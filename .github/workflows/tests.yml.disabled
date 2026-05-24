@@ -1,0 +1,46 @@
+name: Microservices Tests
+
+on:
+
+  push:
+    branches:
+      - main
+
+  pull_request:
+    branches:
+      - main
+
+jobs:
+
+  test:
+
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        service:
+          - gateway
+          - auth
+          - converter
+          - notification
+
+    steps:
+
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Set Up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install Dependencies
+        run: |
+          cd services/${{ matrix.service }}
+          pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Run Tests
+        run: |
+          cd services/${{ matrix.service }}
+          pytest

@@ -1,0 +1,32 @@
+replicaCount: 1
+
+image:
+  repository: rabbitmq
+  tag: "3.13-management"
+  pullPolicy: IfNotPresent
+
+service:
+  type: ClusterIP
+
+  amqpPort: 5672
+  managementPort: 15672
+
+storage:
+  size: 5Gi
+
+rabbitmq:
+  username: admin
+  password: password123
+  vhost: /
+
+resources:
+  requests:
+    memory: "256Mi"
+    cpu: "250m"
+
+  limits:
+    memory: "512Mi"
+    cpu: "500m"
+
+persistence:
+  enabled: true

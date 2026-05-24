@@ -1,0 +1,62 @@
+apiVersion: apps/v1
+
+kind: Deployment
+
+metadata:
+  name: converter-deployment
+  namespace: video-converter
+
+spec:
+
+  replicas: 2
+
+  selector:
+    matchLabels:
+      app: converter
+
+  template:
+
+    metadata:
+      labels:
+        app: converter
+
+    spec:
+
+      containers:
+
+        - name: converter
+
+          image: your-dockerhub-username/converter-service:latest
+
+          imagePullPolicy: Always
+
+          ports:
+            - containerPort: 8002
+
+          envFrom:
+
+            - configMapRef:
+                name: converter-config
+
+          volumeMounts:
+
+            - name: converter-storage
+
+              mountPath: /app/assets
+
+          resources:
+
+            requests:
+              cpu: "500m"
+              memory: "512Mi"
+
+            limits:
+              cpu: "1000m"
+              memory: "1Gi"
+
+      volumes:
+
+        - name: converter-storage
+
+          persistentVolumeClaim:
+            claimName: converter-pvc

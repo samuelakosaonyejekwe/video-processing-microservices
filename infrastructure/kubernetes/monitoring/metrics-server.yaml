@@ -1,0 +1,66 @@
+apiVersion: apps/v1
+
+kind: Deployment
+
+metadata:
+  name: metrics-server
+  namespace: kube-system
+
+spec:
+
+  replicas: 1
+
+  selector:
+    matchLabels:
+      app: metrics-server
+
+  template:
+
+    metadata:
+      labels:
+        app: metrics-server
+
+    spec:
+
+      containers:
+
+        - name: metrics-server
+
+          image: registry.k8s.io/metrics-server/metrics-server:v0.7.2
+
+          args:
+            - --kubelet-insecure-tls
+
+          ports:
+            - containerPort: 4443
+
+          resources:
+
+            requests:
+              cpu: "100m"
+              memory: "128Mi"
+
+            limits:
+              cpu: "300m"
+              memory: "256Mi"
+---
+apiVersion: v1
+
+kind: Service
+
+metadata:
+  name: metrics-server
+  namespace: kube-system
+
+spec:
+
+  selector:
+    app: metrics-server
+
+  ports:
+
+    - protocol: TCP
+      port: 443
+      targetPort: 4443
+
+  type: ClusterIP

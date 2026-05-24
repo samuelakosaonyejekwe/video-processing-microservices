@@ -1,0 +1,28 @@
+replicaCount: 1
+
+image:
+  repository: mongo
+  tag: "7.0"
+  pullPolicy: IfNotPresent
+
+service:
+  type: ClusterIP
+  port: 27017
+
+storage:
+  size: 5Gi
+  accessModes:
+    - ReadWriteOnce
+
+mongodb:
+  username: admin
+  password: password123
+  database: video_converter
+
+resources:
+  requests:
+    memory: "256Mi"
+    cpu: "250m"
+  limits:
+    memory: "512Mi"
+    cpu: "500m"

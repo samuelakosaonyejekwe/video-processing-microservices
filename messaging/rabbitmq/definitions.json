@@ -1,0 +1,36 @@
+{
+  "rabbit_version": "3.13",
+  "users": [
+    {
+      "name": "admin",
+      "password": "password123",
+      "tags": "administrator"
+    }
+  ],
+  "vhosts": [
+    {
+      "name": "/"
+    }
+  ],
+  "permissions": [
+    {
+      "user": "admin",
+      "vhost": "/",
+      "configure": ".*",
+      "write": ".*",
+      "read": ".*"
+    }
+  ],
+  "queues": [
+    {
+      "name": "video_conversion",
+      "vhost": "/",
+      "durable": true
+    },
+    {
+      "name": "notifications",
+      "vhost": "/",
+      "durable": true
+    }
+  ]
+}

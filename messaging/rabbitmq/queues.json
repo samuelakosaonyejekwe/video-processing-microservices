@@ -1,0 +1,12 @@
+{
+  "queues": [
+    {
+      "name": "video_conversion",
+      "durable": true
+    },
+    {
+      "name": "notifications",
+      "durable": true
+    }
+  ]
+}

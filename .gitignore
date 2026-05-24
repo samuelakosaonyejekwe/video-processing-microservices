@@ -1,0 +1,56 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Virtual Environment
+venv/
+.env
+
+# Docker
+*.log
+
+# VS Code
+.vscode/
+
+# JetBrains
+.idea/
+
+# macOS
+.DS_Store
+
+# Linux
+*~
+
+# Kubernetes
+kubeconfig
+
+# Uploads
+uploads/*
+output/*
+
+# Pytest
+.pytest_cache/
+
+# Coverage
+.coverage
+htmlcov/
+
+# Node Modules
+node_modules/
+
+# Terraform
+*.tfstate
+*.tfstate.backup
+
+# Secrets
+secrets.yaml
+*.pem
+*.key
+
+# Jenkins
+workspace/
+
+# Helm
+charts/

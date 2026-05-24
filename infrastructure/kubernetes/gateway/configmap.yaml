@@ -1,0 +1,19 @@
+apiVersion: v1
+
+kind: ConfigMap
+
+metadata:
+  name: gateway-config
+  namespace: video-converter
+
+data:
+
+  APP_NAME: "gateway-service"
+
+  APP_ENV: "production"
+
+  AUTH_SERVICE_URL: "http://auth-service"
+
+  CONVERTER_SERVICE_URL: "http://converter-service"
+
+  NOTIFICATION_SERVICE_URL: "http://notification-service"

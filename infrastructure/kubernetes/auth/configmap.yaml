@@ -1,0 +1,21 @@
+apiVersion: v1
+
+kind: ConfigMap
+
+metadata:
+  name: auth-config
+  namespace: video-converter
+
+data:
+
+  APP_NAME: "auth-service"
+
+  APP_ENV: "production"
+
+  APP_PORT: "8001"
+
+  DATABASE_HOST: "postgresql"
+
+  DATABASE_PORT: "5432"
+
+  DATABASE_NAME: "video_converter_db"

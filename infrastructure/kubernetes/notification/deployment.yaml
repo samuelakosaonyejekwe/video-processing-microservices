@@ -1,0 +1,49 @@
+apiVersion: apps/v1
+
+kind: Deployment
+
+metadata:
+  name: notification-deployment
+  namespace: video-converter
+
+spec:
+
+  replicas: 2
+
+  selector:
+    matchLabels:
+      app: notification
+
+  template:
+
+    metadata:
+      labels:
+        app: notification
+
+    spec:
+
+      containers:
+
+        - name: notification
+
+          image: your-dockerhub-username/notification-service:latest
+
+          imagePullPolicy: Always
+
+          ports:
+            - containerPort: 8003
+
+          envFrom:
+
+            - configMapRef:
+                name: notification-config
+
+          resources:
+
+            requests:
+              cpu: "200m"
+              memory: "256Mi"
+
+            limits:
+              cpu: "500m"
+              memory: "512Mi"
