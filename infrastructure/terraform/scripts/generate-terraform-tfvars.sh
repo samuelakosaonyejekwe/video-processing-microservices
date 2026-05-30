@@ -103,3 +103,4 @@ jenkins_root_volume_size = ${JENKINS_ROOT_VOLUME_SIZE}
 EOF
 
 echo "terraform.tfvars generated successfully"
+terraform fmt terraform.tfvars

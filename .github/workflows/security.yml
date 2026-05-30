@@ -21,18 +21,20 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Install Trivy
+        uses: aquasecurity/setup-trivy@v0.2.1
+
       - name: Run Trivy Filesystem Scan
-        uses: aquasecurity/trivy-action@0.20.0
-        with:
-          scan-type: fs
-          scan-ref: .
-          trivy-config: security/trivy/trivy.yaml
-          trivyignores: security/trivy/ignore.yaml
-          format: sarif
-          output: security/trivy/reports/trivy-fs.sarif
-          exit-code: 1
-          ignore-unfixed: true
-          severity: CRITICAL,HIGH
+        run: |
+          mkdir -p security/trivy/reports
+          trivy fs . \
+            --config security/trivy/trivy.yaml \
+            --ignorefile security/trivy/ignore.yaml \
+            --format sarif \
+            --output security/trivy/reports/trivy-fs.sarif \
+            --severity CRITICAL,HIGH \
+            --ignore-unfixed \
+            --exit-code 1
 
       - name: Upload Trivy FS SARIF
         uses: github/codeql-action/upload-sarif@v3
@@ -47,17 +49,18 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Install Trivy
+        uses: aquasecurity/setup-trivy@v0.2.1
+
       - name: Run Trivy IaC Scan
-        uses: aquasecurity/trivy-action@0.20.0
-        with:
-          scan-type: config
-          scan-ref: infrastructure/
-          trivy-config: security/trivy/trivy.yaml
-          trivyignores: security/trivy/ignore.yaml
-          format: table
-          exit-code: 1
-          ignore-unfixed: true
-          severity: CRITICAL,HIGH
+        run: |
+          trivy config infrastructure/ \
+            --config security/trivy/trivy.yaml \
+            --ignorefile security/trivy/ignore.yaml \
+            --format table \
+            --severity CRITICAL,HIGH \
+            --ignore-unfixed \
+            --exit-code 1
 
   trivy-image-scan:
     runs-on: ubuntu-latest
@@ -70,21 +73,26 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Install Trivy
+        uses: aquasecurity/setup-trivy@v0.2.1
+
       - name: Build service image
-        run: docker build -t scan-${{ matrix.service }}:ci ./services/${{ matrix.service }}
+        run: |
+          docker build \
+            -t scan-${{ matrix.service }}:ci \
+            -f services/${{ matrix.service }}/Dockerfile .
 
       - name: Run Trivy Image Scan
-        uses: aquasecurity/trivy-action@0.20.0
-        with:
-          scan-type: image
-          image-ref: scan-${{ matrix.service }}:ci
-          trivy-config: security/trivy/trivy.yaml
-          trivyignores: security/trivy/ignore.yaml
-          format: sarif
-          output: security/trivy/reports/trivy-${{ matrix.service }}.sarif
-          exit-code: 1
-          ignore-unfixed: true
-          severity: CRITICAL,HIGH
+        run: |
+          mkdir -p security/trivy/reports
+          trivy image scan-${{ matrix.service }}:ci \
+            --config security/trivy/trivy.yaml \
+            --ignorefile security/trivy/ignore.yaml \
+            --format sarif \
+            --output security/trivy/reports/trivy-${{ matrix.service }}.sarif \
+            --severity CRITICAL,HIGH \
+            --ignore-unfixed \
+            --exit-code 1
 
       - name: Upload Trivy Image SARIF
         uses: github/codeql-action/upload-sarif@v3
@@ -98,13 +106,8 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
-
-      - name: Install Gitleaks
-        run: |
-          GITLEAKS_VERSION=v8.18.0
-          wget -q https://github.com/gitleaks/gitleaks/releases/download/${GITLEAKS_VERSION}/gitleaks_linux_x64.tar.gz
-          tar -xzf gitleaks_linux_x64.tar.gz
-          sudo mv gitleaks /usr/local/bin/
+        with:
+          fetch-depth: 0
 
       - name: Run Gitleaks
-        run: gitleaks detect --source . --verbose
+        uses: gitleaks/gitleaks-action@v2

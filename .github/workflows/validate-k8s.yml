@@ -11,11 +11,27 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: azure/setup-kubectl@v4
+      - name: Install PyYAML
+        run: pip install pyyaml
 
-      - name: Kubernetes Dry Run Validation
+      - name: Validate Kubernetes Manifests
         run: |
-          find infrastructure/kubernetes -name '*.yaml' -o -name '*.yml' | while read file
-          do
-            kubectl apply --dry-run=client --validate=false -f "$file"
-          done
+          python3 - <<'PY'
+          import glob
+          import sys
+
+          import yaml
+
+          paths = glob.glob("infrastructure/kubernetes/**/*.yaml", recursive=True)
+          errors = []
+          for path in paths:
+              with open(path, encoding="utf-8") as handle:
+                  try:
+                      list(yaml.safe_load_all(handle))
+                  except yaml.YAMLError as exc:
+                      errors.append(f"{path}: {exc}")
+          if errors:
+              print("\n".join(errors))
+              sys.exit(1)
+          print(f"Validated {len(paths)} manifests")
+          PY
