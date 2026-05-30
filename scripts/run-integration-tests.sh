@@ -11,7 +11,7 @@ source "${ROOT_DIR}/scripts/lib/env-aliases.sh"
 
 RUNTIME_ENV="${ROOT_DIR}/.env.compose.runtime"
 if [ -f "${ROOT_DIR}/.env" ]; then
-  cp "${ROOT_DIR}/.env" "${RUNTIME_ENV}"
+  grep -v '^JWT_PRIVATE_KEY=' "${ROOT_DIR}/.env" | grep -v '^JWT_PUBLIC_KEY=' > "${RUNTIME_ENV}" || cp "${ROOT_DIR}/.env" "${RUNTIME_ENV}"
 else
   cp "${ROOT_DIR}/.env.example" "${RUNTIME_ENV}"
 fi
