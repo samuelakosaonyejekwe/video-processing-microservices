@@ -30,11 +30,19 @@ jobs:
         run: |
           mkdir -p security/trivy/reports
           trivy fs . \
-            --ignorefile security/trivy/ignore.yaml \
+            --ignorefile security/trivy/.trivyignore \
+            --skip-dirs .compose-secrets,.git,.venv,.terraform \
+            --skip-files jwt-private.pem,jwt-public.pem \
             --format sarif \
             --output security/trivy/reports/trivy-fs.sarif \
             --severity CRITICAL,HIGH \
-            --ignore-unfixed \
+            --exit-code 0
+          trivy fs . \
+            --ignorefile security/trivy/.trivyignore \
+            --skip-dirs .compose-secrets,.git,.venv,.terraform \
+            --skip-files jwt-private.pem,jwt-public.pem \
+            --format table \
+            --severity CRITICAL,HIGH \
             --exit-code 1
 
       - name: Upload Trivy FS SARIF
@@ -58,10 +66,8 @@ jobs:
       - name: Run Trivy IaC Scan
         run: |
           trivy config infrastructure/ \
-            --ignorefile security/trivy/ignore.yaml \
             --format table \
             --severity CRITICAL,HIGH \
-            --ignore-unfixed \
             --exit-code 1
 
   trivy-image-scan:
@@ -90,11 +96,15 @@ jobs:
         run: |
           mkdir -p security/trivy/reports
           trivy image scan-${{ matrix.service }}:ci \
-            --ignorefile security/trivy/ignore.yaml \
+            --ignorefile security/trivy/.trivyignore \
             --format sarif \
             --output security/trivy/reports/trivy-${{ matrix.service }}.sarif \
             --severity CRITICAL,HIGH \
-            --ignore-unfixed \
+            --exit-code 0
+          trivy image scan-${{ matrix.service }}:ci \
+            --ignorefile security/trivy/.trivyignore \
+            --format table \
+            --severity CRITICAL,HIGH \
             --exit-code 1
 
       - name: Upload Trivy Image SARIF

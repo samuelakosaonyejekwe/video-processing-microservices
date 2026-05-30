@@ -170,7 +170,11 @@ jobs:
         run: |
           find infrastructure/helm -name Chart.yaml -exec dirname {} \; | while read chart
           do
-            helm lint "$chart"
+            helm lint "$chart" \
+              --set RABBITMQ_PASSWORD=guest \
+              --set RABBITMQ_USERNAME=guest \
+              --set RABBITMQ_ERLANG_COOKIE=local-dev-cookie \
+              --set persistence.size=1Gi
           done
 
   kubernetes-validation:
