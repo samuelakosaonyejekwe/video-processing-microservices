@@ -125,15 +125,6 @@ variable "eks_max_size" {
   description = "Maximum number of EKS worker nodes."
 
   type = number
-
-  validation {
-
-    condition = (
-      var.eks_max_size >= var.eks_min_size
-    )
-
-    error_message = "eks_max_size must be greater than or equal to eks_min_size."
-  }
 }
 
 variable "vpc_cidr" {

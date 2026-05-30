@@ -27,11 +27,11 @@ REPO="$(gh repo view --json nameWithOwner -q .nameWithOwner 2>/dev/null || true)
 
 get_gh_variable() {
   local name="$1"
-  if [ -z "${REPO}" ]; then
-    gh variable get "$name" 2>/dev/null || true
+  if [ -n "${REPO}" ]; then
+    gh api "/repos/${REPO}/actions/variables/${name}" --jq '.value' 2>/dev/null || true
     return
   fi
-  gh variable get "$name" --repo "$REPO" 2>/dev/null || true
+  gh variable get "$name" 2>/dev/null || true
 }
 
 gh_var_set() {

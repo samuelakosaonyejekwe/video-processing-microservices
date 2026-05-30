@@ -11,7 +11,7 @@ from app.middleware.rate_limit_middleware import RateLimitMiddleware
 from app.routes.auth_routes import router as auth_router
 from app.routes.converter_routes import router as converter_router
 
-APP_NAME = os.getenv("APP_NAME", "gateway-service")
+APP_NAME = os.getenv("APP_NAME") or "gateway-service"
 
 
 @asynccontextmanager
