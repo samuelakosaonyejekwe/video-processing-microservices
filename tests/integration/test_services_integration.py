@@ -33,7 +33,7 @@ def test_converter_health():
 
     converter_url = os.getenv(
         "CONVERTER_BASE_URL"
-    ) or f"http://{os.getenv('CONVERTER_HOST', 'localhost')}:{os.getenv('CONVERTER_PORT', '8001')}"
+    ) or f"http://{os.getenv('CONVERTER_HOST', 'localhost')}:{os.getenv('CONVERTER_PORT', '8002')}"
 
     response = requests.get(
         f"{converter_url}/health"

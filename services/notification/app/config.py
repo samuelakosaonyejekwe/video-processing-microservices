@@ -44,6 +44,16 @@ RABBITMQ_PASSWORD = os.getenv("RABBITMQ_PASSWORD") or os.getenv(
 
 NOTIFICATION_QUEUE = os.getenv("NOTIFICATION_QUEUE", "notification-queue").strip()
 
+WEBSOCKET_HOST = os.getenv("WEBSOCKET_HOST", "0.0.0.0").strip()
+
+WEBSOCKET_PORT = int(os.getenv("WEBSOCKET_PORT", "8004").strip())
+
+REDIS_HOST = os.getenv("REDIS_HOST", "redis").strip()
+
+REDIS_PORT = int(os.getenv("REDIS_PORT", "6379").strip())
+
+REDIS_PASSWORD = os.getenv("REDIS_PASSWORD", "")
+
 RABBITMQ_URI = os.getenv("RABBITMQ_URI")
 
 if not RABBITMQ_URI:

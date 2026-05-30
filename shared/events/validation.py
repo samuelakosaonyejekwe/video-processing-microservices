@@ -1,9 +1,4 @@
-required_fields = [
-    "event_id",
-    "event_type",
-    "timestamp",
-    "payload"
-]
+required_fields = ["event_id", "event_type", "timestamp", "payload"]
 
 
 def validate_event(event):
@@ -12,6 +7,4 @@ def validate_event(event):
 
         if field not in event:
 
-            raise ValueError(
-                f"Missing event field: {field}"
-            )
+            raise ValueError(f"Missing event field: {field}")

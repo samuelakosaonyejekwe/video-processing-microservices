@@ -17,12 +17,13 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 RUN groupadd --system appgroup && \
     useradd --system --gid appgroup --create-home appuser
 
-COPY requirements.txt .
+COPY services/converter/requirements.txt ./requirements.txt
 
 RUN pip install --no-cache-dir --upgrade pip && \
     pip install --no-cache-dir -r requirements.txt
 
-COPY . .
+COPY shared ./shared
+COPY services/converter/ .
 
 RUN mkdir -p /tmp/uploads /tmp/output /tmp/video-converter && \
     chown -R appuser:appgroup /app
@@ -31,7 +32,7 @@ USER appuser
 
 EXPOSE 8002
 
-HEALTHCHECK --interval=30s --timeout=10s --start-period=20s --retries=3 \
+HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
   CMD curl -f http://localhost:8002/health || exit 1
 
 ENTRYPOINT ["/usr/bin/tini", "--"]

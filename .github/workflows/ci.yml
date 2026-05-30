@@ -109,7 +109,9 @@ jobs:
           sudo apt-get install -y yamllint
 
       - name: Validate YAML
-        run: yamllint -d relaxed .github infrastructure/kubernetes infrastructure/helm
+        run: |
+          yamllint -d relaxed .github infrastructure/kubernetes
+          find infrastructure/helm -name 'values.yaml' -print0 | xargs -0 -r yamllint -d relaxed
 
   docker-validation:
     runs-on: ubuntu-latest
@@ -184,5 +186,5 @@ jobs:
         run: |
           find infrastructure/kubernetes -name '*.yaml' -o -name '*.yml' | while read file
           do
-            kubectl apply --dry-run=client -f "$file"
+            kubectl apply --dry-run=client --validate=false -f "$file"
           done

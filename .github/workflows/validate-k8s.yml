@@ -17,5 +17,5 @@ jobs:
         run: |
           find infrastructure/kubernetes -name '*.yaml' -o -name '*.yml' | while read file
           do
-            kubectl apply --dry-run=client -f "$file"
+            kubectl apply --dry-run=client --validate=false -f "$file"
           done

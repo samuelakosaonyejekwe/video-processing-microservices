@@ -16,12 +16,13 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 RUN groupadd --system appgroup && \
     useradd --system --gid appgroup --create-home appuser
 
-COPY requirements.txt .
+COPY services/auth/requirements.txt ./requirements.txt
 
 RUN pip install --no-cache-dir --upgrade pip && \
     pip install --no-cache-dir -r requirements.txt
 
-COPY . .
+COPY shared ./shared
+COPY services/auth/ .
 
 RUN chown -R appuser:appgroup /app
 

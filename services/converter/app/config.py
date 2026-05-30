@@ -1,6 +1,12 @@
 import os
 from urllib.parse import quote_plus
 
+from app.shared_bootstrap import ensure_shared_path
+
+ensure_shared_path()
+
+from shared.constants import queues as shared_queues
+
 
 def first_env(*names: str, default: str = "") -> str:
 
@@ -50,22 +56,31 @@ RABBITMQ_PASSWORD = first_env(
 )
 
 VIDEO_UPLOAD_QUEUE = first_env(
-    "VIDEO_UPLOAD_QUEUE", "RABBITMQ_QUEUE", default="video-upload-queue"
+    "VIDEO_UPLOAD_QUEUE",
+    "RABBITMQ_QUEUE",
+    default=shared_queues.VIDEO_UPLOAD_QUEUE,
 )
 
 NOTIFICATION_QUEUE = first_env(
     "NOTIFICATION_QUEUE",
     "RABBITMQ_NOTIFICATION_QUEUE",
-    default="notification-queue",
+    default=shared_queues.NOTIFICATION_QUEUE,
 )
 
-GATEWAY_EVENTS_QUEUE = first_env("GATEWAY_EVENTS_QUEUE", default="gateway-events-queue")
+GATEWAY_EVENTS_QUEUE = first_env(
+    "GATEWAY_EVENTS_QUEUE",
+    default=shared_queues.GATEWAY_EVENTS_QUEUE,
+)
 
 VIDEO_COMPLETED_QUEUE = first_env(
-    "VIDEO_COMPLETED_QUEUE", default="video-completed-queue"
+    "VIDEO_COMPLETED_QUEUE",
+    default=shared_queues.VIDEO_COMPLETED_QUEUE,
 )
 
-VIDEO_FAILED_QUEUE = first_env("VIDEO_FAILED_QUEUE", default="video-failed-queue")
+VIDEO_FAILED_QUEUE = first_env(
+    "VIDEO_FAILED_QUEUE",
+    default=shared_queues.VIDEO_FAILED_QUEUE,
+)
 
 MONGO_HOST = first_env("MONGO_HOST", default="mongodb")
 

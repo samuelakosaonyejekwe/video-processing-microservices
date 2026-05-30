@@ -23,6 +23,17 @@ fi
 # shellcheck source=scripts/lib/env-aliases.sh
 source "${ROOT_DIR}/scripts/lib/env-aliases.sh"
 
+REPO="$(gh repo view --json nameWithOwner -q .nameWithOwner 2>/dev/null || true)"
+
+get_gh_variable() {
+  local name="$1"
+  if [ -z "${REPO}" ]; then
+    gh variable get "$name" 2>/dev/null || true
+    return
+  fi
+  gh variable get "$name" --repo "$REPO" 2>/dev/null || true
+}
+
 gh_var_set() {
   local name="$1"
   local value="$2"
@@ -88,8 +99,11 @@ gh_var_set JWT_ACTIVE_KID "${JWT_ACTIVE_KID:-default}"
 gh_var_set VIDEO_UPLOAD_QUEUE "${VIDEO_UPLOAD_QUEUE:-}"
 gh_var_set NOTIFICATION_QUEUE "${NOTIFICATION_QUEUE:-}"
 gh_var_set GATEWAY_EVENTS_QUEUE "${GATEWAY_EVENTS_QUEUE:-}"
-S3_UPLOAD_VALUE="${S3_UPLOAD_BUCKET:-$(gh variable get AWS_S3_VIDEO_BUCKET 2>/dev/null || gh variable get AWS_S3_BUCKET 2>/dev/null || echo '')}"
-S3_AUDIO_VALUE="${S3_AUDIO_BUCKET:-$(gh variable get AWS_S3_AUDIO_BUCKET 2>/dev/null || echo '')}"
+S3_UPLOAD_VALUE="$(get_gh_variable AWS_S3_VIDEO_BUCKET)"
+if [ -z "${S3_UPLOAD_VALUE}" ]; then
+  S3_UPLOAD_VALUE="$(get_gh_variable AWS_S3_BUCKET)"
+fi
+S3_AUDIO_VALUE="$(get_gh_variable AWS_S3_AUDIO_BUCKET)"
 gh_var_sync S3_UPLOAD_BUCKET "${S3_UPLOAD_VALUE}"
 gh_var_sync S3_AUDIO_BUCKET "${S3_AUDIO_VALUE}"
 gh_var_set VPC_CIDR "${VPC_CIDR:-}"

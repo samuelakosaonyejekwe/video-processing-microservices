@@ -24,7 +24,7 @@ async def start_server():
 
     async with websockets.serve(handler, WEBSOCKET_HOST, WEBSOCKET_PORT):
 
-        print(f"WebSocket server running on port {WEBSOCKET_PORT}")
+        print(f"WebSocket server running on {WEBSOCKET_HOST}:{WEBSOCKET_PORT}")
 
         await asyncio.Future()
 

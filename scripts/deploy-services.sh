@@ -24,5 +24,6 @@ kubectl apply -f "${ROOT_DIR}/.rendered-k8s/infrastructure/kubernetes/gateway/"
 kubectl apply -f "${ROOT_DIR}/.rendered-k8s/infrastructure/kubernetes/auth/"
 kubectl apply -f "${ROOT_DIR}/.rendered-k8s/infrastructure/kubernetes/converter/"
 kubectl apply -f "${ROOT_DIR}/.rendered-k8s/infrastructure/kubernetes/notification/"
+kubectl apply -f "${ROOT_DIR}/.rendered-k8s/infrastructure/kubernetes/redis/"
 
 echo "Microservices deployed successfully."

@@ -54,7 +54,7 @@ jobs:
             --no-cache \
             -t ${DOCKER_USERNAME}/gateway-service:${IMAGE_TAG} \
             -t ${DOCKER_USERNAME}/gateway-service:latest \
-            ./services/gateway
+            -f services/gateway/Dockerfile .
 
       - name: Push Gateway Image
         run: |
@@ -68,7 +68,7 @@ jobs:
             --no-cache \
             -t ${DOCKER_USERNAME}/auth-service:${IMAGE_TAG} \
             -t ${DOCKER_USERNAME}/auth-service:latest \
-            ./services/auth
+            -f services/auth/Dockerfile .
 
       - name: Push Auth Image
         run: |
@@ -82,7 +82,7 @@ jobs:
             --no-cache \
             -t ${DOCKER_USERNAME}/converter-service:${IMAGE_TAG} \
             -t ${DOCKER_USERNAME}/converter-service:latest \
-            ./services/converter
+            -f services/converter/Dockerfile .
 
       - name: Push Converter Image
         run: |
@@ -96,7 +96,7 @@ jobs:
             --no-cache \
             -t ${DOCKER_USERNAME}/notification-service:${IMAGE_TAG} \
             -t ${DOCKER_USERNAME}/notification-service:latest \
-            ./services/notification
+            -f services/notification/Dockerfile .
 
       - name: Push Notification Image
         run: |

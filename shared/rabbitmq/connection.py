@@ -10,8 +10,7 @@ def get_connection():
         try:
 
             credentials = pika.PlainCredentials(
-                os.getenv("RABBITMQ_USERNAME"),
-                os.getenv("RABBITMQ_PASSWORD")
+                os.getenv("RABBITMQ_USERNAME"), os.getenv("RABBITMQ_PASSWORD")
             )
 
             parameters = pika.ConnectionParameters(
@@ -19,7 +18,7 @@ def get_connection():
                 port=int(os.getenv("RABBITMQ_PORT")),
                 credentials=credentials,
                 heartbeat=600,
-                blocked_connection_timeout=300
+                blocked_connection_timeout=300,
             )
 
             return pika.BlockingConnection(parameters)

@@ -1,5 +1,11 @@
 import os
 
+from app.shared_bootstrap import ensure_shared_path
+
+ensure_shared_path()
+
+from shared.constants import queues as shared_queues
+
 
 def first_env(*names: str, default: str = "") -> str:
 
@@ -89,11 +95,16 @@ CORS_ALLOWED_ORIGINS = [
 ] or ["*"]
 
 VIDEO_UPLOAD_QUEUE = first_env(
-    "VIDEO_UPLOAD_QUEUE", "RABBITMQ_QUEUE", default="video-upload-queue"
+    "VIDEO_UPLOAD_QUEUE",
+    "RABBITMQ_QUEUE",
+    default=shared_queues.VIDEO_UPLOAD_QUEUE,
 )
 NOTIFICATION_QUEUE = first_env(
     "NOTIFICATION_QUEUE",
     "RABBITMQ_NOTIFICATION_QUEUE",
-    default="notification-queue",
+    default=shared_queues.NOTIFICATION_QUEUE,
 )
-GATEWAY_EVENTS_QUEUE = first_env("GATEWAY_EVENTS_QUEUE", default="gateway-events-queue")
+GATEWAY_EVENTS_QUEUE = first_env(
+    "GATEWAY_EVENTS_QUEUE",
+    default=shared_queues.GATEWAY_EVENTS_QUEUE,
+)

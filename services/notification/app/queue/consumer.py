@@ -8,6 +8,7 @@ import pika
 from pika.exceptions import AMQPConnectionError, AMQPChannelError
 
 from app.email.send_email import send_email
+from app.websocket.events import broadcast_event_sync
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
 
@@ -131,6 +132,15 @@ class NotificationConsumer:
                 raise ValueError("Missing recipient in notification payload")
 
             send_email(recipient, subject, content)
+
+            broadcast_event_sync(
+                {
+                    "type": "notification_sent",
+                    "recipient": recipient,
+                    "correlation_id": correlation_id,
+                    "subject": subject,
+                }
+            )
 
             logger.info(
                 "Notification sent successfully " "to %s " "correlation_id=%s",

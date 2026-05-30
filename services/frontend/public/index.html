@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Video Converter</title>
+  <style>
+    body { font-family: system-ui, sans-serif; max-width: 720px; margin: 2rem auto; padding: 0 1rem; }
+    .status { padding: 0.75rem; border-radius: 6px; background: #f4f4f5; margin: 1rem 0; }
+    input, button { margin-top: 0.5rem; }
+  </style>
+</head>
+<body>
+  <h1>Video to Audio Converter</h1>
+  <p>Upload a video file to start conversion.</p>
+  <form id="upload-form">
+    <input type="file" id="video" accept="video/*" required />
+    <button type="submit">Upload</button>
+  </form>
+  <div class="status" id="status">Checking gateway...</div>
+  <script>
+    const gateway = window.GATEWAY_URL || '/api';
+    const statusEl = document.getElementById('status');
+    fetch(`${gateway}/health`).then(r => r.json()).then(data => {
+      statusEl.textContent = `Gateway: ${data.status || 'unknown'}`;
+    }).catch(() => { statusEl.textContent = 'Gateway unavailable'; });
+    document.getElementById('upload-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const file = document.getElementById('video').files[0];
+      if (!file) return;
+      const form = new FormData();
+      form.append('file', file);
+      statusEl.textContent = 'Uploading...';
+      try {
+        const res = await fetch(`${gateway}/upload`, { method: 'POST', body: form });
+        const body = await res.json().catch(() => ({}));
+        statusEl.textContent = res.ok ? `Upload accepted: ${JSON.stringify(body)}` : `Upload failed (${res.status})`;
+      } catch (err) {
+        statusEl.textContent = `Upload error: ${err.message}`;
+      }
+    });
+  </script>
+</body>
+</html>
