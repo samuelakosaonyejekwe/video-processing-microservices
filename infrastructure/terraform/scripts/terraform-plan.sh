@@ -4,4 +4,4 @@ set -euo pipefail
 
 cd infrastructure/terraform
 
-terraform plan
+terraform plan -out=tfplan

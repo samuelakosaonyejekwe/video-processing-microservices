@@ -4,6 +4,9 @@ set -euo pipefail
 
 cd infrastructure/terraform
 
-terraform plan -out=tfplan
+if [ ! -f tfplan ]; then
+  echo "ERROR: tfplan not found. Run terraform-plan.sh first."
+  exit 1
+fi
 
 terraform apply -auto-approve tfplan
