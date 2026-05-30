@@ -32,4 +32,10 @@ if [ "${CLUSTER_AUTOSCALER_ENABLED:-true}" = "true" ]; then
     --wait --timeout 10m
 fi
 
+helm repo add aws-ebs-csi-driver https://kubernetes-sigs.github.io/aws-ebs-csi-driver 2>/dev/null || true
+helm upgrade --install aws-ebs-csi-driver aws-ebs-csi-driver/aws-ebs-csi-driver \
+  --namespace kube-system \
+  --set controller.serviceAccount.create=true \
+  --wait --timeout 10m || echo "EBS CSI driver install deferred (may need IRSA)"
+
 echo "Cluster add-ons installed."
