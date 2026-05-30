@@ -3,6 +3,11 @@ name: Terraform EKS Infrastructure
 on:
 
   workflow_dispatch:
+    inputs:
+      force_unlock_lock_id:
+        description: 'Optional stale Terraform state lock ID to force-unlock before plan'
+        required: false
+        type: string
 
   push:
     branches:
@@ -72,6 +77,11 @@ jobs:
 
       - name: Terraform Init
         run: infrastructure/terraform/scripts/terraform-init.sh
+
+      - name: Force Unlock Stale State Lock
+        if: github.event_name == 'workflow_dispatch' && github.event.inputs.force_unlock_lock_id != ''
+        working-directory: infrastructure/terraform
+        run: terraform force-unlock -force "${{ github.event.inputs.force_unlock_lock_id }}"
 
       - name: Terraform Format Check
         working-directory: infrastructure/terraform
