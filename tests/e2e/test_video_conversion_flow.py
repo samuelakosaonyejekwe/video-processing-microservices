@@ -49,3 +49,8 @@ def test_video_upload_flow():
     )
 
     assert response.status_code in [200, 201, 202], response.text
+
+    body = response.json()
+    assert body.get("job_id"), body
+    assert body.get("status") == "uploaded", body
+    assert body.get("correlation_id"), body

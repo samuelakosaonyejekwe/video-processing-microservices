@@ -7,7 +7,7 @@ kind: ConfigMap
 
 metadata:
   name: converter-config
-  namespace: video-converter
+  namespace: ${K8S_NAMESPACE}
 
 data:
   APP_NAME: "converter-service"

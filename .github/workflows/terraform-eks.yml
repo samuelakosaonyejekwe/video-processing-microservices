@@ -80,6 +80,7 @@ jobs:
 
       - name: Force Unlock Stale State Lock
         if: github.event_name == 'workflow_dispatch' && github.event.inputs.force_unlock_lock_id != ''
+        continue-on-error: true
         working-directory: infrastructure/terraform
         run: terraform force-unlock -force "${{ github.event.inputs.force_unlock_lock_id }}"
 
@@ -118,6 +119,50 @@ jobs:
         if: github.event_name == 'workflow_dispatch'
         working-directory: infrastructure/terraform
         run: terraform output
+
+      - name: Setup Helm
+        if: github.event_name == 'workflow_dispatch'
+        uses: azure/setup-helm@v4
+
+      - name: Deploy EKS Services
+        if: github.event_name == 'workflow_dispatch'
+        env:
+          DOCKER_USERNAME: ${{ vars.DOCKER_IMAGE_NAMESPACE }}
+          DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
+          JWT_PRIVATE_KEY: ${{ secrets.JWT_PRIVATE_KEY }}
+          JWT_PUBLIC_KEY: ${{ secrets.JWT_PUBLIC_KEY }}
+          JWT_SECRET: ${{ secrets.JWT_SECRET }}
+          JWT_REFRESH_TOKEN_SECRET: ${{ secrets.JWT_REFRESH_TOKEN_SECRET }}
+          JWT_SESSION_SECRET: ${{ secrets.JWT_SESSION_SECRET }}
+          POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
+          MONGO_PASSWORD: ${{ secrets.MONGO_PASSWORD }}
+          RABBITMQ_PASSWORD: ${{ secrets.RABBITMQ_PASSWORD }}
+          RABBITMQ_USERNAME: ${{ secrets.RABBITMQ_USERNAME }}
+          RABBITMQ_URI: ${{ secrets.RABBITMQ_URI }}
+          SMTP_USERNAME: ${{ secrets.SMTP_USERNAME }}
+          SMTP_PASSWORD: ${{ secrets.SMTP_PASSWORD }}
+        run: |
+          chmod +x scripts/deploy-eks.sh scripts/deploy-services.sh scripts/create-docker-registry-secret.sh scripts/run-production-validation.sh scripts/discover-production-api-url.sh
+          bash scripts/create-docker-registry-secret.sh
+          bash scripts/deploy-eks.sh
+          bash scripts/deploy-services.sh
+
+      - name: Production Validation
+        if: github.event_name == 'workflow_dispatch'
+        env:
+          JWT_PRIVATE_KEY: ${{ secrets.JWT_PRIVATE_KEY }}
+          JWT_PUBLIC_KEY: ${{ secrets.JWT_PUBLIC_KEY }}
+          JWT_SECRET: ${{ secrets.JWT_SECRET }}
+          JWT_REFRESH_TOKEN_SECRET: ${{ secrets.JWT_REFRESH_TOKEN_SECRET }}
+          JWT_SESSION_SECRET: ${{ secrets.JWT_SESSION_SECRET }}
+          POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
+          MONGO_PASSWORD: ${{ secrets.MONGO_PASSWORD }}
+          RABBITMQ_PASSWORD: ${{ secrets.RABBITMQ_PASSWORD }}
+          RABBITMQ_USERNAME: ${{ secrets.RABBITMQ_USERNAME }}
+          RABBITMQ_URI: ${{ secrets.RABBITMQ_URI }}
+          SMTP_USERNAME: ${{ secrets.SMTP_USERNAME }}
+          SMTP_PASSWORD: ${{ secrets.SMTP_PASSWORD }}
+        run: bash scripts/run-production-validation.sh
 
       - name: Cleanup Sensitive Files
         if: always()

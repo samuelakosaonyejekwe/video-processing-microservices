@@ -1,0 +1,41 @@
+#!/bin/bash
+set -euo pipefail
+
+ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+# shellcheck source=scripts/lib/env-aliases.sh
+source "${ROOT_DIR}/scripts/lib/env-aliases.sh"
+
+echo "=== Kubernetes cluster validation ==="
+kubectl get nodes
+kubectl get pods -A
+kubectl get svc -A
+kubectl get ingress -A
+
+echo "=== Core deployment rollouts ==="
+for deploy in gateway-deployment auth-service converter-service notification-deployment; do
+  kubectl rollout status "deployment/${deploy}" -n "${K8S_NAMESPACE}" --timeout=600s || true
+done
+
+echo "=== RabbitMQ validation ==="
+messaging_ns="${MESSAGING_NAMESPACE:-messaging}"
+kubectl get pods -n "${messaging_ns}" 2>/dev/null || kubectl get pods -A | grep -i rabbit || true
+kubectl get svc -n "${messaging_ns}" 2>/dev/null || true
+
+echo "=== Discover API URL ==="
+api_url="$(bash "${ROOT_DIR}/scripts/discover-production-api-url.sh" || true)"
+if [ -n "${api_url}" ]; then
+  export GATEWAY_BASE_URL="${api_url}"
+  export AUTH_BASE_URL="${api_url}"
+  echo "Using API URL: ${api_url}"
+  curl -sfk "${api_url}/health" && echo ""
+fi
+
+echo "=== Production E2E tests ==="
+export INTEGRATION_TESTS=true
+pip install -q pytest httpx requests
+for service in gateway auth converter notification; do
+  pip install -q -r "${ROOT_DIR}/services/${service}/requirements.txt"
+done
+python3 -m pytest "${ROOT_DIR}/tests/integration" "${ROOT_DIR}/tests/e2e" -v --tb=short
+
+echo "=== Production validation completed ==="

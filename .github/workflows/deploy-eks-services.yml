@@ -2,10 +2,15 @@ name: Deploy EKS Services
 
 on:
   workflow_dispatch:
+  workflow_run:
+    workflows: ["Terraform EKS Infrastructure"]
+    types: [completed]
+    branches: [main]
 
 jobs:
   deploy:
     name: Deploy Microservices to EKS
+    if: github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success'
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -17,8 +22,13 @@ jobs:
       APP_ENV: ${{ vars.APP_ENV }}
       PROJECT_NAME: ${{ vars.PROJECT_NAME }}
       GATEWAY_RELEASE_NAME: gateway
+      DOCKER_USERNAME: ${{ vars.DOCKER_IMAGE_NAMESPACE }}
+      DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
       JWT_PRIVATE_KEY: ${{ secrets.JWT_PRIVATE_KEY }}
       JWT_PUBLIC_KEY: ${{ secrets.JWT_PUBLIC_KEY }}
+      JWT_SECRET: ${{ secrets.JWT_SECRET }}
+      JWT_REFRESH_TOKEN_SECRET: ${{ secrets.JWT_REFRESH_TOKEN_SECRET }}
+      JWT_SESSION_SECRET: ${{ secrets.JWT_SESSION_SECRET }}
       POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
       MONGO_PASSWORD: ${{ secrets.MONGO_PASSWORD }}
       RABBITMQ_PASSWORD: ${{ secrets.RABBITMQ_PASSWORD }}
@@ -47,49 +57,17 @@ jobs:
       - name: Setup Helm
         uses: azure/setup-helm@v4
 
-      - name: Deploy EKS Platform
+      - name: Configure kubectl
         run: |
-          chmod +x scripts/deploy-eks.sh scripts/verify-deployment.sh
-          bash scripts/deploy-eks.sh
+          aws eks update-kubeconfig --region "${AWS_REGION}" --name "${EKS_CLUSTER_NAME}"
+          kubectl get nodes
 
-      - name: Deploy Microservices
+      - name: Deploy Stack
         run: |
-          chmod +x scripts/deploy-services.sh scripts/render-k8s-manifests.sh
+          chmod +x scripts/*.sh scripts/lib/*.sh
+          bash scripts/create-docker-registry-secret.sh
+          bash scripts/deploy-eks.sh
           bash scripts/deploy-services.sh
 
-      - name: Kubernetes Validation
-        run: |
-          kubectl get nodes
-          kubectl get pods -A
-          kubectl get svc -A
-          kubectl get ingress -A
-
-      - name: Wait for Core Deployments
-        run: |
-          kubectl rollout status deployment/gateway -n "${K8S_NAMESPACE}" --timeout=600s || true
-          kubectl rollout status deployment/auth-service -n "${K8S_NAMESPACE}" --timeout=600s || true
-          kubectl rollout status deployment/converter-service -n "${K8S_NAMESPACE}" --timeout=600s || true
-          kubectl rollout status deployment/notification-service -n "${K8S_NAMESPACE}" --timeout=600s || true
-          kubectl get pods -A
-
-      - name: RabbitMQ Production Validation
-        run: |
-          kubectl get pods -n "${MESSAGING_NAMESPACE:-messaging}" -l app=rabbitmq || kubectl get pods -A | grep -i rabbit || true
-          kubectl get svc -n "${MESSAGING_NAMESPACE:-messaging}" || true
-
-      - name: Run Production E2E Tests
-        env:
-          INTEGRATION_TESTS: "true"
-          GATEWAY_BASE_URL: ${{ vars.API_BASE_URL }}
-          AUTH_BASE_URL: ${{ vars.API_BASE_URL }}
-        run: |
-          pip install pytest httpx
-          for service in gateway auth converter notification; do
-            pip install -r "services/${service}/requirements.txt"
-          done
-          if [ -n "${GATEWAY_BASE_URL}" ] && [ "${GATEWAY_BASE_URL}" != "https://api.your-domain.com" ]; then
-            python3 -m pytest tests/integration tests/e2e -v --tb=short -m "not slow" || \
-              echo "E2E against API_BASE_URL skipped or failed; verify ingress/DNS manually."
-          else
-            echo "API_BASE_URL not configured for production E2E; skipping remote tests."
-          fi
+      - name: Production Validation
+        run: bash scripts/run-production-validation.sh

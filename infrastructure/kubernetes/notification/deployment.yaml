@@ -58,7 +58,7 @@ spec:
 
         - name: notification-service
 
-          image: ${DOCKER_REGISTRY}/notification-service:${IMAGE_TAG}
+          image: ${DOCKER_IMAGE_REGISTRY}/${DOCKER_IMAGE_NAMESPACE}/notification-service:${IMAGE_TAG}
 
           imagePullPolicy: IfNotPresent
 

@@ -1,54 +1,68 @@
 name: Platform Bootstrap
 
 on:
-
-  push:
-    branches:
-      - main
-
   workflow_dispatch:
 
 jobs:
-
   terraform:
-
     name: Provision Jenkins Infrastructure
-
     runs-on: ubuntu-latest
 
-    defaults:
-      run:
-        working-directory: infrastructure/terraform
+    env:
+      AWS_REGION: ${{ vars.AWS_REGION }}
+      PROJECT_NAME: ${{ vars.PROJECT_NAME }}
+      APP_ENV: ${{ vars.APP_ENV }}
+      TF_STATE_BUCKET: ${{ vars.TF_STATE_BUCKET }}
+      TF_LOCK_TABLE: ${{ vars.TF_LOCK_TABLE }}
 
     steps:
-
       - name: Checkout Repository
         uses: actions/checkout@v4
 
+      - name: Export Environment Aliases
+        run: |
+          chmod +x scripts/lib/env-aliases.sh
+          source scripts/lib/env-aliases.sh
+          env | sort >> "$GITHUB_ENV"
+
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v4
-
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-
           aws-region: ${{ vars.AWS_REGION }}
 
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.8.5
 
-      - name: Terraform Format Check
-        run: terraform fmt -check
+      - name: Make Scripts Executable
+        run: chmod +x infrastructure/terraform/scripts/*.sh
+
+      - name: Bootstrap Terraform Backend
+        run: infrastructure/terraform/scripts/bootstrap-terraform-backend.sh
+
+      - name: Generate terraform.tfvars
+        run: infrastructure/terraform/scripts/generate-terraform-tfvars.sh
 
       - name: Terraform Init
-        run: terraform init
+        run: infrastructure/terraform/scripts/terraform-init.sh
+
+      - name: Terraform Format Check
+        working-directory: infrastructure/terraform
+        run: terraform fmt -check -recursive
 
       - name: Terraform Validate
+        working-directory: infrastructure/terraform
         run: terraform validate
 
       - name: Terraform Plan
-        run: terraform plan
+        run: infrastructure/terraform/scripts/terraform-plan.sh
 
       - name: Terraform Apply
-        run: terraform apply -auto-approve
+        run: infrastructure/terraform/scripts/terraform-apply.sh
+
+      - name: Cleanup Sensitive Files
+        if: always()
+        run: rm -f infrastructure/terraform/terraform.tfvars

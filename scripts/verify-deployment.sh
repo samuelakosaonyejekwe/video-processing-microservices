@@ -8,5 +8,5 @@ kubectl get deployments -A
 
 kubectl get services -A
 
-kubectl rollout status deployment/gateway \
--n ${K8S_NAMESPACE}
+kubectl rollout status deployment/gateway-deployment \
+  -n "${K8S_NAMESPACE}" --timeout=600s
