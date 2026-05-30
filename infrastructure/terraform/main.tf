@@ -170,20 +170,3 @@ module "jenkins" {
 
   jenkins_root_volume_size = var.jenkins_root_volume_size
 }
-
-module "keda" {
-
-  source = "./modules/keda"
-
-  keda_release_name = var.keda_release_name
-
-  keda_helm_repository = var.keda_helm_repository
-
-  keda_chart_name = var.keda_chart_name
-
-  keda_namespace = var.keda_namespace
-
-  depends_on = [
-    module.eks
-  ]
-}
