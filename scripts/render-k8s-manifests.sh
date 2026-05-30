@@ -40,15 +40,30 @@ if [ "${#missing[@]}" -gt 0 ]; then
   exit 1
 fi
 
+_is_secret_manifest() {
+  local file="$1"
+  case "${file}" in
+    */secrets/*|*/secret.yaml|*/rabbitmq-secret.yaml|*/grafana-secret.yaml)
+      return 0
+      ;;
+  esac
+  return 1
+}
+
 mkdir -p "${OUTPUT_DIR}"
 
 echo "Rendering Kubernetes manifests to ${OUTPUT_DIR}..."
 
-find "${ROOT_DIR}/infrastructure/kubernetes" -name '*.yaml' -o -name '*.yml' | while read -r file; do
+find "${ROOT_DIR}/infrastructure/kubernetes" \( -name '*.yaml' -o -name '*.yml' \) | while read -r file; do
+  if _is_secret_manifest "${file}"; then
+    continue
+  fi
   rel="${file#"${ROOT_DIR}/"}"
   dest="${OUTPUT_DIR}/${rel}"
   mkdir -p "$(dirname "${dest}")"
   envsubst < "${file}" > "${dest}"
 done
+
+bash "${ROOT_DIR}/scripts/render-k8s-secrets.sh" "${OUTPUT_DIR}"
 
 echo "Rendered manifests ready in ${OUTPUT_DIR}"
