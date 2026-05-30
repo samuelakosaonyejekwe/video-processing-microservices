@@ -14,10 +14,16 @@ GLOBAL_VALUES="${HELM_DIR}/global-values.yaml"
 recycle_failed_pods() {
   local namespace="$1"
   echo "Recycling database pods in ${namespace} before Helm upgrade..."
-  kubectl delete pod -n "${namespace}" -l app=mongodb --ignore-not-found --wait=false 2>/dev/null || true
+  if kubectl get pod mongodb-0 -n "${namespace}" >/dev/null 2>&1; then
+    if ! kubectl get pod mongodb-0 -n "${namespace}" -o jsonpath='{.status.containerStatuses[?(@.name=="mongodb")].ready}' 2>/dev/null | grep -q true; then
+      echo "Resetting MongoDB PVC for clean volume permissions..."
+      kubectl delete pod mongodb-0 -n "${namespace}" --ignore-not-found --wait=false 2>/dev/null || true
+      kubectl delete pvc mongodb-pvc -n "${namespace}" --ignore-not-found --wait=false 2>/dev/null || true
+      sleep 10
+    fi
+  fi
   kubectl delete pod -n "${namespace}" -l app=postgresql --ignore-not-found --wait=false 2>/dev/null || true
   kubectl delete pod -n "${namespace}" -l app=rabbitmq --ignore-not-found --wait=false 2>/dev/null || true
-  kubectl delete pod -n "${namespace}" --field-selector=status.phase=Failed --ignore-not-found --wait=false 2>/dev/null || true
   sleep 5
 }
 
