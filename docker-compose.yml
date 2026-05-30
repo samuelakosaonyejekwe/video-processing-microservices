@@ -226,8 +226,6 @@ services:
       - "${RABBITMQ_MANAGEMENT_PORT:-15672}:15672"
     volumes:
       - rabbitmq_data:/var/lib/rabbitmq
-      - ./messaging/rabbitmq/rabbitmq.local.conf:/etc/rabbitmq/rabbitmq.conf:ro
-      - ./messaging/rabbitmq/definitions.local.json:/etc/rabbitmq/definitions.json:ro
     healthcheck:
       test: ["CMD", "rabbitmq-diagnostics", "ping"]
       interval: 15s

@@ -1,7 +1,13 @@
 {
+  "vhosts": [
+    {
+      "name": "/"
+    }
+  ],
   "queues": [
     {
       "name": "video-upload-queue",
+      "vhost": "/",
       "durable": true,
       "arguments": {
         "x-dead-letter-exchange": "video.dlx"
@@ -9,6 +15,7 @@
     },
     {
       "name": "video-upload-retry-queue",
+      "vhost": "/",
       "durable": true,
       "arguments": {
         "x-message-ttl": 30000,
@@ -18,28 +25,34 @@
     },
     {
       "name": "video-upload-dlq",
+      "vhost": "/",
       "durable": true
     },
     {
       "name": "notification-queue",
+      "vhost": "/",
       "durable": true
     },
     {
       "name": "gateway-events-queue",
+      "vhost": "/",
       "durable": true
     },
     {
       "name": "video-completed-queue",
+      "vhost": "/",
       "durable": true
     },
     {
       "name": "video-failed-queue",
+      "vhost": "/",
       "durable": true
     }
   ],
   "exchanges": [
     {
       "name": "video.dlx",
+      "vhost": "/",
       "type": "direct",
       "durable": true
     }
@@ -47,6 +60,7 @@
   "bindings": [
     {
       "source": "video.dlx",
+      "vhost": "/",
       "destination": "video-upload-dlq",
       "destination_type": "queue",
       "routing_key": "failed"

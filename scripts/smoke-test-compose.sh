@@ -20,61 +20,9 @@ if [ -f "${ROOT_DIR}/.env" ]; then
   source "${ROOT_DIR}/scripts/lib/env-aliases.sh"
 fi
 
-# Prepare runtime env file with resolved defaults for compose
-RUNTIME_ENV="${ROOT_DIR}/.env.compose.runtime"
-: > "${RUNTIME_ENV}"
-if [ -f "${ROOT_DIR}/.env" ]; then
-  set +u
-  set -a
-  # shellcheck disable=SC1091
-  source "${ROOT_DIR}/.env"
-  set +a
-  set -u
-fi
-# shellcheck source=scripts/lib/env-aliases.sh
-source "${ROOT_DIR}/scripts/lib/env-aliases.sh"
-
-write_env() {
-  local key="$1"
-  local value="${!key:-}"
-  if [ -n "$value" ]; then
-    printf '%s=%q\n' "$key" "$value" >> "${RUNTIME_ENV}"
-  fi
-}
-
-for key in \
-  APP_ENV POSTGRES_HOST POSTGRES_PORT POSTGRES_USER POSTGRES_PASSWORD POSTGRES_DB POSTGRES_SSL_MODE \
-  RABBITMQ_PORT RABBITMQ_USERNAME RABBITMQ_PASSWORD RABBITMQ_DEFAULT_USER RABBITMQ_DEFAULT_PASS \
-  JWT_ISSUER JWT_AUDIENCE JWT_ACTIVE_KID \
-  GATEWAY_APP_PORT AUTH_APP_PORT CONVERTER_APP_PORT NOTIFICATION_APP_PORT \
-  VIDEO_UPLOAD_QUEUE NOTIFICATION_QUEUE GATEWAY_EVENTS_QUEUE \
-  MONGO_USERNAME MONGO_PASSWORD MONGO_DATABASE MONGO_PORT \
-  AWS_REGION AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY \
-  S3_UPLOAD_BUCKET S3_AUDIO_BUCKET SMTP_HOST SMTP_PORT SMTP_EMAIL SMTP_PASSWORD SMTP_FROM_EMAIL \
-  CORS_ALLOWED_ORIGINS; do
-  write_env "$key"
-done
-
-if [ -f "${ROOT_DIR}/jwt-private.pem" ]; then
-  echo "JWT_ALGORITHM=RS256" >> "${RUNTIME_ENV}"
-else
-  write_env "JWT_ALGORITHM"
-fi
-
-if [ -f "${ROOT_DIR}/jwt-private.pem" ] && [ ! -f "${ROOT_DIR}/jwt-public.pem" ]; then
-  openssl rsa -in "${ROOT_DIR}/jwt-private.pem" -pubout -out "${ROOT_DIR}/jwt-public.pem" 2>/dev/null || true
-fi
-
-SECRETS_DIR="${ROOT_DIR}/.compose-secrets"
-mkdir -p "${SECRETS_DIR}"
-if [ -f "${ROOT_DIR}/jwt-private.pem" ]; then
-  cp "${ROOT_DIR}/jwt-private.pem" "${SECRETS_DIR}/"
-  cp "${ROOT_DIR}/jwt-public.pem" "${SECRETS_DIR}/"
-  chmod 644 "${SECRETS_DIR}/jwt-private.pem" "${SECRETS_DIR}/jwt-public.pem"
-fi
-export COMPOSE_SECRETS_DIR="${SECRETS_DIR}"
-
-export COMPOSE_ENV_FILE="${RUNTIME_ENV}"
+# shellcheck source=scripts/lib/prepare-compose-env.sh
+source "${ROOT_DIR}/scripts/lib/prepare-compose-env.sh"
+prepare_compose_env "${ROOT_DIR}"
 export APP_ENV="${APP_ENV:-development}"
 export POSTGRES_SSL_MODE="${POSTGRES_SSL_MODE:-disable}"
 export ENABLE_SWAGGER="${ENABLE_SWAGGER:-true}"

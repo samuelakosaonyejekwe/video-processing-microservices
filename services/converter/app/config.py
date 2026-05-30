@@ -5,7 +5,7 @@ from app.shared_bootstrap import ensure_shared_path
 
 ensure_shared_path()
 
-from shared.constants import queues as shared_queues
+from shared.constants import queues as shared_queues  # noqa: E402
 
 
 def first_env(*names: str, default: str = "") -> str:

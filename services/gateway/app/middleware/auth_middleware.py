@@ -6,13 +6,7 @@ from starlette.middleware.base import BaseHTTPMiddleware
 import jwt
 from jwt.exceptions import ExpiredSignatureError, PyJWTError
 
-from app.config import (
-    JWT_PUBLIC_KEY,
-    JWT_SECRET,
-    JWT_ISSUER,
-    JWT_AUDIENCE,
-    JWT_ALGORITHM,
-)
+import app.config as jwt_config
 
 
 class AuthMiddleware(BaseHTTPMiddleware):
@@ -26,6 +20,8 @@ class AuthMiddleware(BaseHTTPMiddleware):
             "/redoc",
             "/health",
             "/health/",
+            "/health/jwt",
+            "/health/verify-token",
             "/auth/login",
             "/auth/register",
             "/auth/refresh",
@@ -58,16 +54,19 @@ class AuthMiddleware(BaseHTTPMiddleware):
             )
 
         try:
+            algorithm = jwt_config.JWT_ALGORITHM
             decode_key = (
-                JWT_PUBLIC_KEY if JWT_ALGORITHM.startswith("RS") else JWT_SECRET
+                jwt_config.JWT_PUBLIC_KEY
+                if algorithm.startswith("RS")
+                else jwt_config.JWT_SECRET
             )
 
             payload = jwt.decode(
                 token,
                 decode_key,
-                algorithms=[JWT_ALGORITHM],
-                issuer=JWT_ISSUER if JWT_ALGORITHM.startswith("RS") else None,
-                audience=JWT_AUDIENCE if JWT_ALGORITHM.startswith("RS") else None,
+                algorithms=[algorithm],
+                issuer=jwt_config.JWT_ISSUER if algorithm.startswith("RS") else None,
+                audience=jwt_config.JWT_AUDIENCE if algorithm.startswith("RS") else None,
             )
 
             token_type = payload.get("type")

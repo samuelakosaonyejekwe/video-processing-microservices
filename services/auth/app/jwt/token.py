@@ -9,9 +9,8 @@ from typing import Optional
 from typing import Dict
 from typing import Any
 
-from jose import jwt
-from jose import JWTError
-from jose import ExpiredSignatureError
+import jwt
+from jwt.exceptions import ExpiredSignatureError, PyJWTError
 
 from app.config import (
     JWT_PRIVATE_KEY,
@@ -61,19 +60,17 @@ def create_access_token(user_id: str, role: str) -> str:
         "role": role,
         "iss": JWT_ISSUER,
         "aud": JWT_AUDIENCE,
-        "iat": now,
-        "exp": expire,
+        "iat": int(now.timestamp()),
+        "exp": int(expire.timestamp()),
         "jti": str(uuid.uuid4()),
     }
 
-    encoded_jwt = jwt.encode(
+    return jwt.encode(
         payload,
         JWT_PRIVATE_KEY,
         algorithm=JWT_ALGORITHM,
         headers={"kid": JWT_ACTIVE_KID},
     )
-
-    return encoded_jwt
 
 
 # =========================================================
@@ -93,19 +90,17 @@ def create_refresh_token(user_id: str, role: str) -> str:
         "role": role,
         "iss": JWT_ISSUER,
         "aud": JWT_AUDIENCE,
-        "iat": now,
-        "exp": expire,
+        "iat": int(now.timestamp()),
+        "exp": int(expire.timestamp()),
         "jti": generate_refresh_token_id(),
     }
 
-    refresh_token = jwt.encode(
+    return jwt.encode(
         refresh_payload,
         JWT_PRIVATE_KEY,
         algorithm=JWT_ALGORITHM,
         headers={"kid": JWT_ACTIVE_KID},
     )
-
-    return refresh_token
 
 
 # =========================================================
@@ -135,7 +130,7 @@ def verify_access_token(token: str) -> Optional[Dict[str, Any]]:
 
         return None
 
-    except JWTError:
+    except PyJWTError:
 
         return None
 
@@ -167,6 +162,6 @@ def verify_refresh_token(token: str) -> Optional[Dict[str, Any]]:
 
         return None
 
-    except JWTError:
+    except PyJWTError:
 
         return None

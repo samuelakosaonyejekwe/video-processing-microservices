@@ -31,13 +31,15 @@ POSTGRES_SSL_MODE = first_env("POSTGRES_SSL_MODE", default="prefer")
 
 def load_pem(env_name: str, file_path: str) -> str:
 
+    if os.path.exists(file_path):
+        with open(file_path, encoding="utf-8") as pem_file:
+            file_value = pem_file.read().strip()
+            if file_value:
+                return file_value
+
     value = os.getenv(env_name)
     if value and value.strip():
         return value.strip()
-
-    if os.path.exists(file_path):
-        with open(file_path, encoding="utf-8") as pem_file:
-            return pem_file.read().strip()
 
     return ""
 
@@ -55,7 +57,7 @@ JWT_AUDIENCE = first_env(
     "JWT_AUDIENCE", "JWT_TOKEN_AUDIENCE", default="video-converter-users"
 )
 
-JWT_ALGORITHM = first_env("JWT_ALGORITHM", default="RS256")
+JWT_ALGORITHM = first_env("JWT_ALGORITHM", default="RS256").upper()
 
 JWT_ACCESS_TOKEN_EXPIRES_MINUTES = int(
     first_env("JWT_ACCESS_TOKEN_EXPIRES_MINUTES", default="60")

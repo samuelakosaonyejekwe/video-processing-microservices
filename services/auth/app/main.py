@@ -1,11 +1,19 @@
 import os
 from contextlib import asynccontextmanager
+import hashlib
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from prometheus_fastapi_instrumentator import Instrumentator
 
 from app.config import APP_ENV, APP_NAME, APP_PORT, CORS_ALLOWED_ORIGINS
+from app.config import (
+    JWT_ALGORITHM,
+    JWT_AUDIENCE,
+    JWT_ISSUER,
+    JWT_PRIVATE_KEY,
+    JWT_PUBLIC_KEY,
+)
 from app.database.connection import engine
 from app.models.user_entity import Base
 from app.routes.db_health import router as db_health_router
@@ -56,6 +64,25 @@ app.include_router(register_router)
 app.include_router(refresh_token_router)
 app.include_router(logout_router)
 app.include_router(db_health_router)
+
+
+@app.get("/health/jwt")
+async def jwt_health():
+
+    fingerprint = (
+        hashlib.sha256(JWT_PUBLIC_KEY.encode()).hexdigest()[:16]
+        if JWT_PUBLIC_KEY
+        else ""
+    )
+
+    return {
+        "algorithm": JWT_ALGORITHM,
+        "issuer": JWT_ISSUER,
+        "audience": JWT_AUDIENCE,
+        "private_key_loaded": bool(JWT_PRIVATE_KEY),
+        "public_key_loaded": bool(JWT_PUBLIC_KEY),
+        "public_key_fingerprint": fingerprint,
+    }
 
 
 @app.get("/health")

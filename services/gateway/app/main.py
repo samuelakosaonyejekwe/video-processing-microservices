@@ -1,15 +1,22 @@
 import os
 from contextlib import asynccontextmanager
+import hashlib
+
+import jwt
+from jwt.exceptions import ExpiredSignatureError, PyJWTError
+from fastapi import Request
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from prometheus_fastapi_instrumentator import Instrumentator
 
 from app.config import APP_ENV, CORS_ALLOWED_ORIGINS
+from app.config import JWT_ALGORITHM, JWT_AUDIENCE, JWT_ISSUER, JWT_PUBLIC_KEY, JWT_SECRET
 from app.middleware.auth_middleware import AuthMiddleware
 from app.middleware.rate_limit_middleware import RateLimitMiddleware
 from app.routes.auth_routes import router as auth_router
 from app.routes.converter_routes import router as converter_router
+from app.queue.producer import get_gateway_producer
 
 APP_NAME = os.getenv("APP_NAME") or "gateway-service"
 
@@ -22,6 +29,10 @@ async def lifespan(app: FastAPI):
     yield
 
     print("Shutting down gateway service...")
+    try:
+        get_gateway_producer().close()
+    except Exception:
+        pass
 
 
 _enable_docs = (
@@ -66,6 +77,67 @@ app.add_middleware(AuthMiddleware)
 
 app.include_router(auth_router)
 app.include_router(converter_router)
+
+
+@app.post("/health/verify-token")
+async def verify_token(request: Request):
+
+    authorization = request.headers.get("Authorization")
+    if not authorization:
+        return {"valid": False, "detail": "Authorization header missing"}
+
+    parts = authorization.split()
+    if len(parts) != 2 or parts[0].lower() != "bearer":
+        return {"valid": False, "detail": "Invalid authorization header"}
+
+    token = parts[1]
+
+    try:
+        import app.config as jwt_config
+
+        algorithm = jwt_config.JWT_ALGORITHM
+        decode_key = (
+            jwt_config.JWT_PUBLIC_KEY
+            if algorithm.startswith("RS")
+            else jwt_config.JWT_SECRET
+        )
+        payload = jwt.decode(
+            token,
+            decode_key,
+            algorithms=[algorithm],
+            issuer=jwt_config.JWT_ISSUER if algorithm.startswith("RS") else None,
+            audience=jwt_config.JWT_AUDIENCE if algorithm.startswith("RS") else None,
+        )
+        if payload.get("type") and payload.get("type") != "access":
+            return {"valid": False, "detail": "Invalid token type"}
+        return {"valid": True, "sub": payload.get("sub")}
+    except ExpiredSignatureError:
+        return {"valid": False, "detail": "Token expired"}
+    except PyJWTError as exc:
+        return {
+            "valid": False,
+            "detail": f"Invalid token: {exc.__class__.__name__}",
+            "algorithm": algorithm,
+            "key_length": len(decode_key or ""),
+        }
+
+
+@app.get("/health/jwt")
+async def jwt_health():
+
+    fingerprint = (
+        hashlib.sha256(JWT_PUBLIC_KEY.encode()).hexdigest()[:16]
+        if JWT_PUBLIC_KEY
+        else ""
+    )
+
+    return {
+        "algorithm": JWT_ALGORITHM,
+        "issuer": JWT_ISSUER,
+        "audience": JWT_AUDIENCE,
+        "public_key_loaded": bool(JWT_PUBLIC_KEY),
+        "public_key_fingerprint": fingerprint,
+    }
 
 
 @app.get("/health")

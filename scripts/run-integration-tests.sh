@@ -6,29 +6,14 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "${ROOT_DIR}"
 
-# shellcheck source=scripts/lib/env-aliases.sh
-source "${ROOT_DIR}/scripts/lib/env-aliases.sh"
-
-RUNTIME_ENV="${ROOT_DIR}/.env.compose.runtime"
-if [ -f "${ROOT_DIR}/jwt-private.pem" ]; then
-  grep -v '^JWT_PRIVATE_KEY=' "${ROOT_DIR}/.env" | grep -v '^JWT_PUBLIC_KEY=' | grep -v '^JWT_ALGORITHM=' > "${RUNTIME_ENV}" || cp "${ROOT_DIR}/.env" "${RUNTIME_ENV}"
-else
-  grep -v '^JWT_PRIVATE_KEY=' "${ROOT_DIR}/.env" 2>/dev/null | grep -v '^JWT_PUBLIC_KEY=' > "${RUNTIME_ENV}" || cp "${ROOT_DIR}/.env" "${RUNTIME_ENV}"
-fi
-echo "JWT_ALGORITHM=RS256" >> "${RUNTIME_ENV}"
-
-SECRETS_DIR="${ROOT_DIR}/.compose-secrets"
-mkdir -p "${SECRETS_DIR}"
-if [ -f "${ROOT_DIR}/jwt-private.pem" ]; then
-  cp "${ROOT_DIR}/jwt-private.pem" "${SECRETS_DIR}/"
-  openssl rsa -in "${ROOT_DIR}/jwt-private.pem" -pubout -out "${SECRETS_DIR}/jwt-public.pem" 2>/dev/null || true
-  chmod 644 "${SECRETS_DIR}/"*.pem
-fi
-
-export COMPOSE_ENV_FILE="${RUNTIME_ENV}"
-export COMPOSE_SECRETS_DIR="${SECRETS_DIR}"
+# shellcheck source=scripts/lib/prepare-compose-env.sh
+source "${ROOT_DIR}/scripts/lib/prepare-compose-env.sh"
+prepare_compose_env "${ROOT_DIR}"
 
 cleanup() {
+  if [ "${NO_CLEANUP:-}" = "1" ]; then
+    return
+  fi
   docker compose --env-file "${COMPOSE_ENV_FILE}" down --remove-orphans 2>/dev/null || true
 }
 trap cleanup EXIT

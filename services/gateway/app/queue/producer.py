@@ -68,9 +68,9 @@ class GatewayEventProducer:
                 f"Missing required environment variables: " f"{missing_variables}"
             )
 
-    def connect(self):
+    def connect(self, max_attempts: int = 12):
 
-        while True:
+        for attempt in range(max_attempts):
 
             try:
 
@@ -104,11 +104,14 @@ class GatewayEventProducer:
 
                 logger.info("Gateway RabbitMQ producer connected successfully")
 
-                break
+                return
 
             except (AMQPConnectionError, AMQPChannelError) as error:
 
                 logger.error("RabbitMQ connection failed: %s", str(error))
+
+                if attempt >= max_attempts - 1:
+                    raise
 
                 logger.info("Retrying RabbitMQ connection in 5 seconds...")
 

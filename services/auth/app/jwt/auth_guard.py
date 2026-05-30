@@ -5,9 +5,8 @@ from fastapi import status
 from fastapi.security import HTTPBearer
 from fastapi.security import HTTPAuthorizationCredentials
 
-from jose import jwt
-from jose import JWTError
-from jose import ExpiredSignatureError
+import jwt
+from jwt.exceptions import ExpiredSignatureError, PyJWTError
 
 from app.config import JWT_PUBLIC_KEY, JWT_ISSUER, JWT_AUDIENCE, JWT_ALGORITHM
 
@@ -76,7 +75,7 @@ async def verify_token(credentials: HTTPAuthorizationCredentials = Depends(secur
             status_code=status.HTTP_401_UNAUTHORIZED, detail="Token expired"
         ) from exc
 
-    except JWTError as exc:
+    except PyJWTError as exc:
 
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token"
