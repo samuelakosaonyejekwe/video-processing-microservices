@@ -13,46 +13,37 @@ GLOBAL_VALUES="${HELM_DIR}/global-values.yaml"
 
 recycle_failed_pods() {
   local namespace="$1"
-  local failed_pods
-  failed_pods="$(kubectl get pods -n "${namespace}" --field-selector=status.phase=Failed -o name 2>/dev/null || true)"
-  if [ -n "${failed_pods}" ]; then
-    echo "Recycling failed pods in ${namespace} before Helm upgrade..."
-    kubectl delete ${failed_pods} -n "${namespace}" --wait=false || true
-    sleep 5
-  fi
+  echo "Recycling database pods in ${namespace} before Helm upgrade..."
+  kubectl delete pod -n "${namespace}" -l app=mongodb --ignore-not-found --wait=false 2>/dev/null || true
+  kubectl delete pod -n "${namespace}" -l app=postgresql --ignore-not-found --wait=false 2>/dev/null || true
+  kubectl delete pod -n "${namespace}" -l app=rabbitmq --ignore-not-found --wait=false 2>/dev/null || true
+  kubectl delete pod -n "${namespace}" --field-selector=status.phase=Failed --ignore-not-found --wait=false 2>/dev/null || true
+  sleep 5
+}
+
+deploy_chart() {
+  local release="$1"
+  local chart_path="$2"
+  local namespace="$3"
+  helm upgrade --install "${release}" "${chart_path}" \
+    --namespace "${namespace}" \
+    --create-namespace \
+    -f "${GLOBAL_VALUES}" \
+    --no-wait
+  recycle_failed_pods "${namespace}"
+  kubectl rollout status "statefulset/${release}" -n "${namespace}" --timeout=1200s
 }
 
 echo "Deploying MongoDB Helm Chart..."
 
-recycle_failed_pods "${DATABASE_NAMESPACE}"
-
-helm upgrade --install "${MONGODB_RELEASE_NAME}" \
-  "${HELM_DIR}/mongodb" \
-  --namespace "${DATABASE_NAMESPACE}" \
-  --create-namespace \
-  -f "${GLOBAL_VALUES}" \
-  --wait --timeout 20m
+deploy_chart "${MONGODB_RELEASE_NAME}" "${HELM_DIR}/mongodb" "${DATABASE_NAMESPACE}"
 
 echo "Deploying PostgreSQL Helm Chart..."
 
-recycle_failed_pods "${DATABASE_NAMESPACE}"
-
-helm upgrade --install "${POSTGRESQL_RELEASE_NAME}" \
-  "${HELM_DIR}/postgresql" \
-  --namespace "${DATABASE_NAMESPACE}" \
-  --create-namespace \
-  -f "${GLOBAL_VALUES}" \
-  --wait --timeout 20m
+deploy_chart "${POSTGRESQL_RELEASE_NAME}" "${HELM_DIR}/postgresql" "${DATABASE_NAMESPACE}"
 
 echo "Deploying RabbitMQ Helm Chart..."
 
-recycle_failed_pods "${MESSAGING_NAMESPACE}"
-
-helm upgrade --install "${RABBITMQ_RELEASE_NAME}" \
-  "${HELM_DIR}/rabbitmq" \
-  --namespace "${MESSAGING_NAMESPACE}" \
-  --create-namespace \
-  -f "${GLOBAL_VALUES}" \
-  --wait --timeout 20m
+deploy_chart "${RABBITMQ_RELEASE_NAME}" "${HELM_DIR}/rabbitmq" "${MESSAGING_NAMESPACE}"
 
 echo "Helm deployments completed."
