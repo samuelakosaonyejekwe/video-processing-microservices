@@ -54,6 +54,21 @@ module "eks" {
 
   iam_role_arn = var.cluster_role_arn
 
+  cluster_addons = {
+    vpc-cni = {
+      most_recent = true
+    }
+    coredns = {
+      most_recent = true
+    }
+    kube-proxy = {
+      most_recent = true
+    }
+    aws-ebs-csi-driver = {
+      most_recent = true
+    }
+  }
+
   tags = merge(
     {
       Environment = var.environment

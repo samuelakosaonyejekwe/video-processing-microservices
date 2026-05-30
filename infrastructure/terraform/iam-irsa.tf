@@ -14,6 +14,8 @@ resource "aws_iam_role" "irsa_roles" {
 
   name = "${var.project_name}-${var.environment}-${each.key}-irsa-role"
 
+  depends_on = [module.eks]
+
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
 
@@ -22,14 +24,14 @@ resource "aws_iam_role" "irsa_roles" {
         Effect = "Allow"
 
         Principal = {
-          Federated = aws_iam_openid_connect_provider.eks.arn
+          Federated = module.eks.oidc_provider_arn
         }
 
         Action = "sts:AssumeRoleWithWebIdentity"
 
         Condition = {
           StringEquals = {
-            "${replace(aws_iam_openid_connect_provider.eks.url, "https://", "")}:sub" = "system:serviceaccount:${var.kubernetes_namespace}:${each.key}-service-account"
+            "${replace(module.eks.cluster_oidc_issuer_url, "https://", "")}:sub" = "system:serviceaccount:${var.kubernetes_namespace}:${each.key}-service-account"
           }
         }
       }

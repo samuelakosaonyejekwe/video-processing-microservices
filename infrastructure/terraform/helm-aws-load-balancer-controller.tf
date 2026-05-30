@@ -13,7 +13,7 @@ resource "helm_release" "aws_load_balancer_controller" {
   set {
     name = "clusterName"
 
-    value = var.cluster_name
+    value = var.eks_cluster_name
   }
 
   depends_on = [
