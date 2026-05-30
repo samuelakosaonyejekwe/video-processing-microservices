@@ -82,6 +82,16 @@ install_via_helm() {
   local role_arn="$1"
   helm repo add aws-ebs-csi-driver https://kubernetes-sigs.github.io/aws-ebs-csi-driver 2>/dev/null || true
   helm repo update
+
+  if helm status aws-ebs-csi-driver -n kube-system >/dev/null 2>&1; then
+    status="$(helm status aws-ebs-csi-driver -n kube-system -o json | python3 -c "import json,sys; print(json.load(sys.stdin)['info']['status'])" 2>/dev/null || echo unknown)"
+    if [ "${status}" = "pending-install" ] || [ "${status}" = "pending-upgrade" ] || [ "${status}" = "pending-rollback" ]; then
+      echo "Clearing stuck Helm release aws-ebs-csi-driver (status=${status})..."
+      helm uninstall aws-ebs-csi-driver -n kube-system --wait --timeout 5m || true
+      sleep 5
+    fi
+  fi
+
   helm upgrade --install aws-ebs-csi-driver aws-ebs-csi-driver/aws-ebs-csi-driver \
     --namespace kube-system \
     --create-namespace \
