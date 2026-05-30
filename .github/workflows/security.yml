@@ -30,7 +30,6 @@ jobs:
         run: |
           mkdir -p security/trivy/reports
           trivy fs . \
-            --config security/trivy/trivy.yaml \
             --ignorefile security/trivy/ignore.yaml \
             --format sarif \
             --output security/trivy/reports/trivy-fs.sarif \
@@ -59,7 +58,6 @@ jobs:
       - name: Run Trivy IaC Scan
         run: |
           trivy config infrastructure/ \
-            --config security/trivy/trivy.yaml \
             --ignorefile security/trivy/ignore.yaml \
             --format table \
             --severity CRITICAL,HIGH \
@@ -92,7 +90,6 @@ jobs:
         run: |
           mkdir -p security/trivy/reports
           trivy image scan-${{ matrix.service }}:ci \
-            --config security/trivy/trivy.yaml \
             --ignorefile security/trivy/ignore.yaml \
             --format sarif \
             --output security/trivy/reports/trivy-${{ matrix.service }}.sarif \

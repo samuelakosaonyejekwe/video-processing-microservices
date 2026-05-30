@@ -16,7 +16,6 @@ from app.config import (
     JWT_AUDIENCE,
     JWT_ISSUER,
     JWT_PUBLIC_KEY,
-    JWT_SECRET,
 )
 from app.middleware.auth_middleware import AuthMiddleware
 from app.middleware.rate_limit_middleware import RateLimitMiddleware
