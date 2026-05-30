@@ -174,7 +174,9 @@ jobs:
               --set RABBITMQ_PASSWORD=guest \
               --set RABBITMQ_USERNAME=guest \
               --set RABBITMQ_ERLANG_COOKIE=local-dev-cookie \
-              --set persistence.size=1Gi
+              --set persistence.size=1Gi \
+              --set persistence.storageClass=gp2 \
+              --set global.storage.className=gp2
           done
 
   kubernetes-validation:

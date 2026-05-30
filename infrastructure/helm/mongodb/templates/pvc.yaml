@@ -11,7 +11,7 @@ spec:
 
     - ReadWriteOnce
 
-  storageClassName: {{ .Values.global.storage.className }}
+  storageClassName: {{ .Values.persistence.storageClass | default .Values.global.storage.className | default "" }}
 
   resources:
 
