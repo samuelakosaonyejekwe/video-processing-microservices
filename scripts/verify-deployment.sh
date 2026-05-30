@@ -6,6 +6,13 @@ ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 # shellcheck source=scripts/lib/env-aliases.sh
 source "${ROOT_DIR}/scripts/lib/env-aliases.sh"
 
+echo "Restarting microservice deployments to pick up secret and config changes..."
+for deploy in gateway-deployment auth-service converter-service notification-deployment; do
+  if kubectl get "deployment/${deploy}" -n "${K8S_NAMESPACE}" >/dev/null 2>&1; then
+    kubectl rollout restart "deployment/${deploy}" -n "${K8S_NAMESPACE}"
+  fi
+done
+
 kubectl get pods -A
 
 kubectl get deployments -A
