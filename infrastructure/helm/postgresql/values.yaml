@@ -31,11 +31,11 @@ postgresql:
 
   auth:
 
-    username: ${POSTGRES_USER}
+    username: "${POSTGRES_USER}"
 
-    password: ${POSTGRES_PASSWORD}
+    password: "${POSTGRES_PASSWORD}"
 
-    database: ${POSTGRES_DB}
+    database: "${POSTGRES_DB}"
 
   architecture: ${POSTGRES_ARCHITECTURE}
 

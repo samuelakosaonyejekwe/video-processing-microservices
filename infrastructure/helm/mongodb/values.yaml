@@ -37,7 +37,7 @@ mongodb:
 
     rootUsername: ${MONGO_USERNAME}
 
-    rootPassword: ${MONGO_PASSWORD}
+    rootPassword: "${MONGO_PASSWORD}"
 
     database: ${MONGO_DATABASE}
 
