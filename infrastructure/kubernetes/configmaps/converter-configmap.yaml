@@ -1,0 +1,94 @@
+apiVersion: v1
+kind: ConfigMap
+
+metadata:
+  name: converter-config
+  namespace: ${K8S_NAMESPACE}
+
+data:
+
+  # =========================================================
+  # APPLICATION
+  # =========================================================
+
+  APP_NAME: ${CONVERTER_APP_NAME}
+
+  APP_ENV: ${APP_ENV}
+
+  LOG_LEVEL: ${LOG_LEVEL}
+
+  CONVERTER_APP_PORT: "${CONVERTER_APP_PORT}"
+
+  # =========================================================
+  # RABBITMQ
+  # =========================================================
+
+  RABBITMQ_HOST: ${RABBITMQ_HOST}
+
+  RABBITMQ_PORT: "${RABBITMQ_PORT}"
+
+  RABBITMQ_VHOST: ${RABBITMQ_VHOST}
+
+  VIDEO_UPLOAD_QUEUE: ${VIDEO_UPLOAD_QUEUE}
+
+  VIDEO_UPLOAD_RETRY_QUEUE: ${VIDEO_UPLOAD_RETRY_QUEUE}
+
+  VIDEO_UPLOAD_DLQ: ${VIDEO_UPLOAD_DLQ}
+
+  VIDEO_COMPLETED_QUEUE: ${VIDEO_COMPLETED_QUEUE}
+
+  VIDEO_FAILED_QUEUE: ${VIDEO_FAILED_QUEUE}
+
+  NOTIFICATION_QUEUE: ${NOTIFICATION_QUEUE}
+
+  GATEWAY_EVENTS_QUEUE: ${GATEWAY_EVENTS_QUEUE}
+
+  RABBITMQ_EXCHANGE: ${RABBITMQ_EXCHANGE}
+
+  RABBITMQ_ROUTING_KEY: ${RABBITMQ_ROUTING_KEY}
+
+  # =========================================================
+  # AWS / S3
+  # =========================================================
+
+  AWS_REGION: ${AWS_REGION}
+
+  S3_BUCKET_NAME: ${S3_BUCKET_NAME}
+
+  S3_VIDEO_UPLOAD_PREFIX: ${S3_VIDEO_UPLOAD_PREFIX}
+
+  S3_AUDIO_OUTPUT_PREFIX: ${S3_AUDIO_OUTPUT_PREFIX}
+
+  # =========================================================
+  # FFMPEG
+  # =========================================================
+
+  FFMPEG_THREADS: "${FFMPEG_THREADS}"
+
+  MAX_VIDEO_SIZE_MB: "${MAX_VIDEO_SIZE_MB}"
+
+  ALLOWED_VIDEO_EXTENSIONS: ${ALLOWED_VIDEO_EXTENSIONS}
+
+  OUTPUT_AUDIO_FORMAT: ${OUTPUT_AUDIO_FORMAT}
+
+  # =========================================================
+  # STORAGE
+  # =========================================================
+
+  TEMP_STORAGE_PATH: ${TEMP_STORAGE_PATH}
+
+  OUTPUT_STORAGE_PATH: ${OUTPUT_STORAGE_PATH}
+
+  # =========================================================
+  # PERFORMANCE
+  # =========================================================
+
+  CONVERSION_WORKER_CONCURRENCY: "${CONVERSION_WORKER_CONCURRENCY}"
+
+  MAX_CONVERSION_TIMEOUT_SECONDS: "${MAX_CONVERSION_TIMEOUT_SECONDS}"
+
+  # =========================================================
+  # HEALTHCHECK
+  # =========================================================
+
+  HEALTHCHECK_PATH: ${CONVERTER_HEALTHCHECK_PATH}

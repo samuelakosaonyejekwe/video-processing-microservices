@@ -1,6 +1,9 @@
+import os
 import requests
 
-BASE_URL = "http://localhost:8000"
+BASE_URL = os.getenv("GATEWAY_SERVICE_URL") or (
+    f"http://{os.getenv('GATEWAY_HOST', 'localhost')}:{os.getenv('GATEWAY_PORT', '8080')}"
+)
 
 
 def test_gateway_root():

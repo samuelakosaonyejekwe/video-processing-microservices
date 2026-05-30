@@ -1,0 +1,35 @@
+name: Docker Pipeline
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  PROJECT_NAME: ${{ vars.PROJECT_NAME }}
+
+jobs:
+
+  docker-build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Verify Required Credentials
+        run: |
+          test -n "${{ vars.DOCKER_USERNAME }}"
+          test -n "${{ secrets.DOCKER_PASSWORD }}"
+
+      - name: Docker Login
+        uses: docker/login-action@v3
+        with:
+          username: ${{ vars.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      - name: Build Images
+        run: docker compose build
+
+      - name: Push Images
+        run: docker compose push

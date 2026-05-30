@@ -1,0 +1,152 @@
+apiVersion: networking.k8s.io/v1
+
+kind: NetworkPolicy
+
+metadata:
+  name: ${GATEWAY_NETWORK_POLICY_NAME}
+  namespace: ${K8S_NAMESPACE}
+
+  labels:
+    app: ${GATEWAY_APP_NAME}
+    component: gateway
+    policy: ${GATEWAY_NETWORK_POLICY_LABEL}
+    environment: ${APP_ENV}
+
+spec:
+
+  podSelector:
+    matchLabels:
+      app: ${GATEWAY_APP_NAME}
+
+  policyTypes:
+    - Ingress
+    - Egress
+
+  ingress:
+
+    #
+    # ALLOW TRAFFIC FROM INGRESS CONTROLLER
+    #
+    - from:
+
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: ${INGRESS_NGINX_NAMESPACE}
+
+          podSelector:
+            matchLabels:
+              ${INGRESS_CONTROLLER_LABEL_KEY}: ${INGRESS_CONTROLLER_LABEL_VALUE}
+
+      ports:
+
+        - protocol: TCP
+          port: ${GATEWAY_PORT}
+
+  egress:
+
+    #
+    # AUTH SERVICE
+    #
+    - to:
+
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: ${K8S_NAMESPACE}
+
+          podSelector:
+            matchLabels:
+              app: ${AUTH_APP_NAME}
+
+      ports:
+
+        - protocol: TCP
+          port: ${AUTH_SERVICE_PORT}
+
+    #
+    # CONVERTER SERVICE
+    #
+    - to:
+
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: ${K8S_NAMESPACE}
+
+          podSelector:
+            matchLabels:
+              app: ${CONVERTER_APP_NAME}
+
+      ports:
+
+        - protocol: TCP
+          port: ${CONVERTER_SERVICE_PORT}
+
+    #
+    # NOTIFICATION SERVICE
+    #
+    - to:
+
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: ${K8S_NAMESPACE}
+
+          podSelector:
+            matchLabels:
+              app: ${NOTIFICATION_APP_NAME}
+
+      ports:
+
+        - protocol: TCP
+          port: ${NOTIFICATION_SERVICE_PORT}
+
+    #
+    # MONGODB
+    #
+    - to:
+
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: ${DATABASE_NAMESPACE}
+
+          podSelector:
+            matchLabels:
+              app: ${MONGODB_APP_NAME}
+
+      ports:
+
+        - protocol: TCP
+          port: ${MONGODB_PORT}
+
+    #
+    # RABBITMQ
+    #
+    - to:
+
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: ${MESSAGING_NAMESPACE}
+
+          podSelector:
+            matchLabels:
+              app: ${RABBITMQ_APP_NAME}
+
+      ports:
+
+        - protocol: TCP
+          port: ${RABBITMQ_AMQP_PORT}
+
+    #
+    # DNS
+    #
+    - to:
+
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: ${KUBE_SYSTEM_NAMESPACE}
+
+      ports:
+
+        - protocol: UDP
+          port: ${DNS_PORT}
+
+        - protocol: TCP
+          port: ${DNS_PORT}

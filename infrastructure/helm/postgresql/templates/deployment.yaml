@@ -1,46 +1,241 @@
 apiVersion: apps/v1
+
 kind: Deployment
+
 metadata:
+
   name: postgresql
+
+  labels:
+
+    app: postgresql
+
 spec:
+
   replicas: {{ .Values.replicaCount }}
+
   selector:
+
     matchLabels:
+
       app: postgresql
+
   template:
+
     metadata:
+
       labels:
+
         app: postgresql
+
+      annotations:
+
+        checksum/secrets: {{ include (print $.Template.BasePath "/secret.yaml") . | sha256sum }}
+
     spec:
+
+      securityContext:
+
+        fsGroup: 999
+
       containers:
+
         - name: postgresql
+
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+
           imagePullPolicy: {{ .Values.image.pullPolicy }}
 
+          securityContext:
+
+            runAsNonRoot: true
+
+            runAsUser: 999
+
+            runAsGroup: 999
+
+            allowPrivilegeEscalation: false
+
+            readOnlyRootFilesystem: false
+
+            capabilities:
+
+              drop:
+                - ALL
+
           ports:
-            - containerPort: 5432
+
+            - name: postgres
+
+              containerPort: {{ .Values.service.port }}
+
+              protocol: TCP
 
           env:
-            - name: POSTGRES_USER
-              valueFrom:
-                secretKeyRef:
-                  name: postgresql-secret
-                  key: postgres-user
 
-            - name: POSTGRES_PASSWORD
+            - name: POSTGRES_HOST
+
               valueFrom:
+
                 secretKeyRef:
-                  name: postgresql-secret
-                  key: postgres-password
+
+                  name: postgres-secret
+
+                  key: POSTGRES_HOST
+
+            - name: POSTGRES_PORT
+
+              valueFrom:
+
+                secretKeyRef:
+
+                  name: postgres-secret
+
+                  key: POSTGRES_PORT
 
             - name: POSTGRES_DB
-              value: {{ .Values.postgresql.database }}
+
+              valueFrom:
+
+                secretKeyRef:
+
+                  name: postgres-secret
+
+                  key: POSTGRES_DB
+
+            - name: POSTGRES_USER
+
+              valueFrom:
+
+                secretKeyRef:
+
+                  name: postgres-secret
+
+                  key: POSTGRES_USER
+
+            - name: POSTGRES_PASSWORD
+
+              valueFrom:
+
+                secretKeyRef:
+
+                  name: postgres-secret
+
+                  key: POSTGRES_PASSWORD
+
+            - name: POSTGRES_SSL_MODE
+
+              valueFrom:
+
+                secretKeyRef:
+
+                  name: postgres-secret
+
+                  key: POSTGRES_SSL_MODE
+
+            - name: PGDATA
+
+              value: /var/lib/postgresql/data/pgdata
+
+          resources:
+
+            requests:
+
+              cpu: {{ .Values.resources.requests.cpu | quote }}
+
+              memory: {{ .Values.resources.requests.memory | quote }}
+
+            limits:
+
+              cpu: {{ .Values.resources.limits.cpu | quote }}
+
+              memory: {{ .Values.resources.limits.memory | quote }}
+
+          livenessProbe:
+
+            exec:
+
+              command:
+
+                - /bin/sh
+
+                - -c
+
+                - >
+                  pg_isready
+                  -U "$POSTGRES_USER"
+                  -d "$POSTGRES_DB"
+
+            initialDelaySeconds: 30
+
+            periodSeconds: 10
+
+            timeoutSeconds: 5
+
+            successThreshold: 1
+
+            failureThreshold: 6
+
+          readinessProbe:
+
+            exec:
+
+              command:
+
+                - /bin/sh
+
+                - -c
+
+                - >
+                  pg_isready
+                  -U "$POSTGRES_USER"
+                  -d "$POSTGRES_DB"
+
+            initialDelaySeconds: 10
+
+            periodSeconds: 10
+
+            timeoutSeconds: 5
+
+            successThreshold: 1
+
+            failureThreshold: 6
+
+          startupProbe:
+
+            exec:
+
+              command:
+
+                - /bin/sh
+
+                - -c
+
+                - >
+                  pg_isready
+                  -U "$POSTGRES_USER"
+                  -d "$POSTGRES_DB"
+
+            initialDelaySeconds: 10
+
+            periodSeconds: 10
+
+            timeoutSeconds: 5
+
+            successThreshold: 1
+
+            failureThreshold: 30
 
           volumeMounts:
+
             - name: postgres-storage
+
               mountPath: /var/lib/postgresql/data
 
       volumes:
+
         - name: postgres-storage
+
           persistentVolumeClaim:
+
             claimName: postgresql-pvc

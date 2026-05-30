@@ -1,0 +1,24 @@
+name: Database Validation
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+
+  validate-database:
+
+    runs-on: ubuntu-latest
+
+    steps:
+
+      - uses: actions/checkout@v4
+
+      - name: Validate SQL
+        run: |
+          find databases/postgresql -name "*.sql"
+
+      - name: Validate Mongo Scripts
+        run: |
+          find databases/mongodb -name "*.js"

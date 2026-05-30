@@ -1,0 +1,21 @@
+name: Helm Validation
+
+on:
+  workflow_dispatch:
+
+jobs:
+
+  helm-validate:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: azure/setup-helm@v4
+
+      - name: Helm Template Validation
+        run: |
+          find infrastructure/helm -name Chart.yaml -exec dirname {} \; | while read chart
+          do
+            helm template "$chart" > /dev/null
+          done

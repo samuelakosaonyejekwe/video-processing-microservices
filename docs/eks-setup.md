@@ -29,7 +29,7 @@ https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
 
 ```bash
 curl --silent --location \
-"https://github.com/weaveworks/eksctl/releases/latest/download/eksctl_$(uname -s)_amd64.tar.gz" \
+"https://github.com/weaveworks/eksctl/releases/download/v0.152.0/eksctl_$(uname -s)_amd64.tar.gz" \
 | tar xz -C /tmp
 
 sudo mv /tmp/eksctl /usr/local/bin
@@ -42,7 +42,7 @@ sudo mv /tmp/eksctl /usr/local/bin
 ```bash
 eksctl create cluster \
 --name video-converter-cluster \
---region eu-west-2 \
+--region $AWS_REGION \
 --nodes 2 \
 --managed
 ```

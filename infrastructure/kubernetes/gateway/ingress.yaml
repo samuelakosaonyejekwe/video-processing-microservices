@@ -3,17 +3,34 @@ apiVersion: networking.k8s.io/v1
 kind: Ingress
 
 metadata:
-  name: gateway-ingress
-  namespace: video-converter
+
+  name: ${GATEWAY_INGRESS_NAME}
+
+  namespace: ${K8S_NAMESPACE}
 
   annotations:
-    kubernetes.io/ingress.class: nginx
+
+    kubernetes.io/ingress.class: ${INGRESS_CLASS_NAME}
+
+    alb.ingress.kubernetes.io/scheme: ${ALB_SCHEME}
+
+    alb.ingress.kubernetes.io/target-type: ${ALB_TARGET_TYPE}
+
+    alb.ingress.kubernetes.io/listen-ports: ${ALB_LISTEN_PORTS}
+
+    alb.ingress.kubernetes.io/certificate-arn: ${ACM_CERTIFICATE_ARN}
+
+    alb.ingress.kubernetes.io/ssl-redirect: ${ALB_SSL_REDIRECT_PORT}
+
+    external-dns.alpha.kubernetes.io/hostname: ${DOMAIN_NAME}
 
 spec:
 
+  ingressClassName: ${INGRESS_CLASS_NAME}
+
   rules:
 
-    - host: video-converter.local
+    - host: ${DOMAIN_NAME}
 
       http:
 
@@ -26,7 +43,9 @@ spec:
             backend:
 
               service:
-                name: gateway-service
+
+                name: ${GATEWAY_SERVICE_NAME}
 
                 port:
-                  number: 80
+
+                  number: ${GATEWAY_SERVICE_PORT}

@@ -1,0 +1,55 @@
+{
+  "queues": [
+    {
+      "name": "video-upload-queue",
+      "durable": true,
+      "arguments": {
+        "x-dead-letter-exchange": "video.dlx"
+      }
+    },
+    {
+      "name": "video-upload-retry-queue",
+      "durable": true,
+      "arguments": {
+        "x-message-ttl": 30000,
+        "x-dead-letter-exchange": "",
+        "x-dead-letter-routing-key": "video-upload-queue"
+      }
+    },
+    {
+      "name": "video-upload-dlq",
+      "durable": true
+    },
+    {
+      "name": "notification-queue",
+      "durable": true
+    },
+    {
+      "name": "gateway-events-queue",
+      "durable": true
+    },
+    {
+      "name": "video-completed-queue",
+      "durable": true
+    },
+    {
+      "name": "video-failed-queue",
+      "durable": true
+    }
+  ],
+  "exchanges": [
+    {
+      "name": "video.dlx",
+      "type": "direct",
+      "durable": true
+    }
+  ],
+  "bindings": [
+    {
+      "source": "video.dlx",
+      "destination": "video-upload-dlq",
+      "destination_type": "queue",
+      "routing_key": "failed"
+    }
+  ]
+}

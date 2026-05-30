@@ -1,0 +1,89 @@
+apiVersion: keda.sh/v1alpha1
+
+kind: ScaledObject
+
+metadata:
+
+  name: ${CONVERTER_SCALEDOBJECT_NAME}
+
+  namespace: ${K8S_NAMESPACE}
+
+  labels:
+
+    app.kubernetes.io/name: ${CONVERTER_APP_NAME}
+
+    app.kubernetes.io/component: ${CONVERTER_COMPONENT_NAME}
+
+    app.kubernetes.io/part-of: ${PROJECT_NAME}
+
+    app.kubernetes.io/managed-by: ${MANAGED_BY}
+
+    app.kubernetes.io/environment: ${APP_ENV}
+
+spec:
+
+  scaleTargetRef:
+
+    name: ${CONVERTER_DEPLOYMENT_NAME}
+
+  pollingInterval: ${KEDA_POLLING_INTERVAL}
+
+  cooldownPeriod: ${KEDA_COOLDOWN_PERIOD}
+
+  minReplicaCount: ${CONVERTER_MIN_REPLICA_COUNT}
+
+  maxReplicaCount: ${CONVERTER_MAX_REPLICA_COUNT}
+
+  advanced:
+
+    restoreToOriginalReplicaCount: ${KEDA_RESTORE_TO_ORIGINAL_REPLICA_COUNT}
+
+    horizontalPodAutoscalerConfig:
+
+      behavior:
+
+        scaleUp:
+
+          stabilizationWindowSeconds: ${KEDA_SCALE_UP_STABILIZATION_WINDOW_SECONDS}
+
+          policies:
+
+            - type: ${KEDA_SCALE_UP_POLICY_TYPE}
+
+              value: ${KEDA_SCALE_UP_POLICY_VALUE}
+
+              periodSeconds: ${KEDA_SCALE_UP_POLICY_PERIOD_SECONDS}
+
+        scaleDown:
+
+          stabilizationWindowSeconds: ${KEDA_SCALE_DOWN_STABILIZATION_WINDOW_SECONDS}
+
+          policies:
+
+            - type: ${KEDA_SCALE_DOWN_POLICY_TYPE}
+
+              value: ${KEDA_SCALE_DOWN_POLICY_VALUE}
+
+              periodSeconds: ${KEDA_SCALE_DOWN_POLICY_PERIOD_SECONDS}
+
+  triggers:
+
+    - type: ${KEDA_TRIGGER_TYPE}
+
+      metadata:
+
+        protocol: ${RABBITMQ_PROTOCOL}
+
+        queueName: ${VIDEO_UPLOAD_QUEUE}
+
+        mode: ${KEDA_TRIGGER_MODE}
+
+        value: ${KEDA_QUEUE_LENGTH_THRESHOLD}
+
+        activationValue: ${KEDA_ACTIVATION_QUEUE_LENGTH}
+
+        hostFromEnv: ${RABBITMQ_HOST_ENV_VARIABLE}
+
+      authenticationRef:
+
+        name: ${KEDA_TRIGGER_AUTH_NAME}

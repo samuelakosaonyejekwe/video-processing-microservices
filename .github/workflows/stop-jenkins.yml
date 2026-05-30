@@ -1,0 +1,36 @@
+name: Stop Jenkins
+
+on:
+  workflow_dispatch:
+
+jobs:
+
+  stop:
+
+    runs-on: ubuntu-latest
+
+    steps:
+
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Export Environment Aliases
+        run: |
+          chmod +x scripts/lib/env-aliases.sh
+          source scripts/lib/env-aliases.sh
+          echo "JENKINS_ASG_NAME=${JENKINS_ASG_NAME}" >> "$GITHUB_ENV"
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ vars.AWS_REGION }}
+
+      - name: Stop Jenkins ASG
+        run: |
+          test -n "${JENKINS_ASG_NAME}"
+          aws autoscaling update-auto-scaling-group \
+            --auto-scaling-group-name "${JENKINS_ASG_NAME}" \
+            --desired-capacity 0 \
+            --min-size 0

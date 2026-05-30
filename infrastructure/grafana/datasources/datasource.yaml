@@ -1,0 +1,29 @@
+apiVersion: 1
+
+datasources:
+
+  - name: ${PROMETHEUS_DATASOURCE_NAME}
+
+    type: prometheus
+
+    access: proxy
+
+    url: ${PROMETHEUS_DATASOURCE_URL}
+
+    isDefault: ${PROMETHEUS_IS_DEFAULT_DATASOURCE}
+
+  - name: ${LOKI_DATASOURCE_NAME}
+
+    type: loki
+
+    access: proxy
+
+    url: ${LOKI_DATASOURCE_URL}
+
+  - name: ${TEMPO_DATASOURCE_NAME}
+
+    type: tempo
+
+    access: proxy
+
+    url: ${TEMPO_DATASOURCE_URL}

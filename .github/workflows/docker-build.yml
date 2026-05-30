@@ -1,0 +1,109 @@
+name: Docker Build and Push
+
+on:
+  push:
+    branches:
+      - main
+
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: write
+
+env:
+  DOCKER_USERNAME: ${{ vars.DOCKER_USERNAME }}
+  IMAGE_TAG: ${{ github.sha }}
+
+jobs:
+
+  docker-build:
+
+    name: Build and Push Docker Images
+
+    runs-on: ubuntu-latest
+
+    timeout-minutes: 30
+
+    strategy:
+      fail-fast: true
+
+    steps:
+
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Verify Required Credentials
+        run: |
+          test -n "${{ vars.DOCKER_USERNAME }}"
+          test -n "${{ secrets.DOCKER_PASSWORD }}"
+
+      - name: Set Up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to DockerHub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ vars.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      - name: Build Gateway Image
+        run: |
+          docker build \
+            --pull \
+            --no-cache \
+            -t ${DOCKER_USERNAME}/gateway-service:${IMAGE_TAG} \
+            -t ${DOCKER_USERNAME}/gateway-service:latest \
+            ./services/gateway
+
+      - name: Push Gateway Image
+        run: |
+          docker push ${DOCKER_USERNAME}/gateway-service:${IMAGE_TAG}
+          docker push ${DOCKER_USERNAME}/gateway-service:latest
+
+      - name: Build Auth Image
+        run: |
+          docker build \
+            --pull \
+            --no-cache \
+            -t ${DOCKER_USERNAME}/auth-service:${IMAGE_TAG} \
+            -t ${DOCKER_USERNAME}/auth-service:latest \
+            ./services/auth
+
+      - name: Push Auth Image
+        run: |
+          docker push ${DOCKER_USERNAME}/auth-service:${IMAGE_TAG}
+          docker push ${DOCKER_USERNAME}/auth-service:latest
+
+      - name: Build Converter Image
+        run: |
+          docker build \
+            --pull \
+            --no-cache \
+            -t ${DOCKER_USERNAME}/converter-service:${IMAGE_TAG} \
+            -t ${DOCKER_USERNAME}/converter-service:latest \
+            ./services/converter
+
+      - name: Push Converter Image
+        run: |
+          docker push ${DOCKER_USERNAME}/converter-service:${IMAGE_TAG}
+          docker push ${DOCKER_USERNAME}/converter-service:latest
+
+      - name: Build Notification Image
+        run: |
+          docker build \
+            --pull \
+            --no-cache \
+            -t ${DOCKER_USERNAME}/notification-service:${IMAGE_TAG} \
+            -t ${DOCKER_USERNAME}/notification-service:latest \
+            ./services/notification
+
+      - name: Push Notification Image
+        run: |
+          docker push ${DOCKER_USERNAME}/notification-service:${IMAGE_TAG}
+          docker push ${DOCKER_USERNAME}/notification-service:latest
+
+      - name: Deployment Summary
+        run: |
+          echo "Docker images built and pushed successfully."
+          echo "Images tagged with latest and ${IMAGE_TAG}"

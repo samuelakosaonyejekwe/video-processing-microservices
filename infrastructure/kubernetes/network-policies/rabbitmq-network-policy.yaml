@@ -1,0 +1,73 @@
+apiVersion: networking.k8s.io/v1
+
+kind: NetworkPolicy
+
+metadata:
+  name: rabbitmq-network-policy
+  namespace: ${K8S_NAMESPACE}
+
+  labels:
+    app: ${RABBITMQ_APP_NAME}
+    component: messaging
+    environment: ${APP_ENV}
+
+spec:
+
+  podSelector:
+    matchLabels:
+      app: ${RABBITMQ_APP_NAME}
+
+  policyTypes:
+    - Ingress
+    - Egress
+
+  ingress:
+    - from:
+
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: ${K8S_NAMESPACE}
+
+      ports:
+
+        - protocol: TCP
+          port: ${RABBITMQ_AMQP_PORT}
+
+        - protocol: TCP
+          port: ${RABBITMQ_MANAGEMENT_PORT}
+
+  egress:
+
+    # DNS access
+    - to:
+
+        - namespaceSelector: {}
+
+      ports:
+
+        - protocol: UDP
+          port: 53
+
+        - protocol: TCP
+          port: 53
+
+    # RabbitMQ intra-cluster communication
+    - to:
+
+        - podSelector:
+            matchLabels:
+              app: ${RABBITMQ_APP_NAME}
+
+      ports:
+
+        - protocol: TCP
+          port: ${RABBITMQ_ERLANG_PORT}
+
+        - protocol: TCP
+          port: ${RABBITMQ_CLUSTERING_PORT}
+
+        - protocol: TCP
+          port: ${RABBITMQ_AMQP_PORT}
+
+        - protocol: TCP
+          port: ${RABBITMQ_MANAGEMENT_PORT}

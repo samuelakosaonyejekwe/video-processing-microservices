@@ -1,71 +1,240 @@
-version: '3.9'
-
 services:
 
-  gateway-service:
+  gateway:
     build:
       context: ./services/gateway
-    ports:
-      - "8000:8000"
+      dockerfile: Dockerfile
+    container_name: ${GATEWAY_CONTAINER_NAME:-gateway}
+    restart: unless-stopped
     env_file:
-      - ./services/gateway/.env
+      - ${COMPOSE_ENV_FILE:-.env}
+    environment:
+      APP_ENV: ${APP_ENV:-development}
+      APP_PORT: "8080"
+      GATEWAY_SERVICE_PORT: "8080"
+      JWT_ISSUER: ${JWT_ISSUER:-${JWT_TOKEN_ISSUER:-video-converter-platform}}
+      JWT_AUDIENCE: ${JWT_AUDIENCE:-${JWT_TOKEN_AUDIENCE:-video-converter-users}}
+      JWT_ALGORITHM: ${JWT_ALGORITHM:-RS256}
+      RABBITMQ_HOST: rabbitmq
+      RABBITMQ_PORT: ${RABBITMQ_PORT:-5672}
+      RABBITMQ_USERNAME: ${RABBITMQ_USERNAME:-${RABBITMQ_DEFAULT_USER:-guest}}
+      RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD:-${RABBITMQ_DEFAULT_PASS:-guest}}
+      RABBITMQ_EXCHANGE: ${RABBITMQ_EXCHANGE:-video-conversion-exchange}
+      VIDEO_UPLOAD_QUEUE: ${VIDEO_UPLOAD_QUEUE:-${RABBITMQ_QUEUE:-video-upload-queue}}
+      NOTIFICATION_QUEUE: ${NOTIFICATION_QUEUE:-notification-queue}
+      GATEWAY_EVENTS_QUEUE: ${GATEWAY_EVENTS_QUEUE:-gateway-events-queue}
+      AUTH_SERVICE_HOST: auth
+      AUTH_SERVICE_PORT: "8000"
+      CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:-http://localhost:3000}
+    ports:
+      - "${GATEWAY_APP_PORT:-8080}:8080"
+    volumes:
+      - ${COMPOSE_SECRETS_DIR:-.}/jwt-public.pem:/run/secrets/jwt-public.pem:ro
     depends_on:
-      - auth-service
-      - converter-service
+      rabbitmq:
+        condition: service_healthy
+      auth:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+    networks:
+      - video-converter-network
 
-  auth-service:
+  auth:
     build:
       context: ./services/auth
-    ports:
-      - "8001:8001"
+      dockerfile: Dockerfile
+    container_name: ${AUTH_CONTAINER_NAME:-auth}
+    restart: unless-stopped
     env_file:
-      - ./services/auth/.env
+      - ${COMPOSE_ENV_FILE:-.env}
+    environment:
+      APP_ENV: ${APP_ENV:-development}
+      APP_PORT: "8000"
+      AUTH_SERVICE_PORT: "8000"
+      POSTGRES_HOST: postgres
+      POSTGRES_SSL_MODE: disable
+      JWT_ACTIVE_KID: ${JWT_ACTIVE_KID:-default}
+      JWT_ISSUER: ${JWT_ISSUER:-${JWT_TOKEN_ISSUER:-video-converter-platform}}
+      JWT_AUDIENCE: ${JWT_AUDIENCE:-${JWT_TOKEN_AUDIENCE:-video-converter-users}}
+      JWT_ALGORITHM: ${JWT_ALGORITHM:-RS256}
+      RABBITMQ_HOST: rabbitmq
+      RABBITMQ_PORT: ${RABBITMQ_PORT:-5672}
+      RABBITMQ_USERNAME: ${RABBITMQ_USERNAME:-${RABBITMQ_DEFAULT_USER:-guest}}
+      RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD:-${RABBITMQ_DEFAULT_PASS:-guest}}
+      CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:-http://localhost:3000}
+    ports:
+      - "${AUTH_APP_PORT:-8000}:8000"
+    volumes:
+      - ${COMPOSE_SECRETS_DIR:-.}/jwt-private.pem:/run/secrets/jwt-private.pem:ro
+      - ${COMPOSE_SECRETS_DIR:-.}/jwt-public.pem:/run/secrets/jwt-public.pem:ro
     depends_on:
-      - postgres
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+    networks:
+      - video-converter-network
 
-  converter-service:
+  converter:
     build:
       context: ./services/converter
-    ports:
-      - "8002:8002"
+      dockerfile: Dockerfile
+    container_name: ${CONVERTER_CONTAINER_NAME:-converter}
+    restart: unless-stopped
     env_file:
-      - ./services/converter/.env
+      - ${COMPOSE_ENV_FILE:-.env}
+    environment:
+      APP_ENV: ${APP_ENV:-development}
+      APP_PORT: "8002"
+      CONVERTER_SERVICE_PORT: "8002"
+      RABBITMQ_HOST: rabbitmq
+      RABBITMQ_PORT: ${RABBITMQ_PORT:-5672}
+      RABBITMQ_USERNAME: ${RABBITMQ_USERNAME:-${RABBITMQ_DEFAULT_USER:-guest}}
+      RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD:-${RABBITMQ_DEFAULT_PASS:-guest}}
+      VIDEO_UPLOAD_QUEUE: ${VIDEO_UPLOAD_QUEUE:-video-upload-queue}
+      VIDEO_UPLOAD_RETRY_QUEUE: ${VIDEO_UPLOAD_RETRY_QUEUE:-video-upload-retry-queue}
+      VIDEO_UPLOAD_DLQ: ${VIDEO_UPLOAD_DLQ:-video-upload-dlq}
+      VIDEO_COMPLETED_QUEUE: ${VIDEO_COMPLETED_QUEUE:-video-completed-queue}
+      VIDEO_FAILED_QUEUE: ${VIDEO_FAILED_QUEUE:-video-failed-queue}
+      NOTIFICATION_QUEUE: ${NOTIFICATION_QUEUE:-notification-queue}
+      GATEWAY_EVENTS_QUEUE: ${GATEWAY_EVENTS_QUEUE:-gateway-events-queue}
+      TEMP_STORAGE_PATH: ${TEMP_STORAGE_PATH:-/tmp}
+      MONGO_HOST: mongodb
+      MONGO_PORT: ${MONGO_PORT:-27017}
+      MONGO_DATABASE: ${MONGO_DATABASE:-video_converter}
+    ports:
+      - "${CONVERTER_APP_PORT:-8002}:8002"
     depends_on:
-      - rabbitmq
-      - mongodb
+      rabbitmq:
+        condition: service_healthy
+      mongodb:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8002/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    networks:
+      - video-converter-network
 
-  notification-service:
+  notification:
     build:
       context: ./services/notification
-    ports:
-      - "8003:8003"
+      dockerfile: Dockerfile
+    container_name: ${NOTIFICATION_CONTAINER_NAME:-notification}
+    restart: unless-stopped
     env_file:
-      - ./services/notification/.env
+      - ${COMPOSE_ENV_FILE:-.env}
+    environment:
+      APP_ENV: ${APP_ENV:-development}
+      APP_PORT: "8003"
+      NOTIFICATION_SERVICE_PORT: "8003"
+      RABBITMQ_HOST: rabbitmq
+      RABBITMQ_PORT: ${RABBITMQ_PORT:-5672}
+      RABBITMQ_USERNAME: ${RABBITMQ_USERNAME:-${RABBITMQ_DEFAULT_USER:-guest}}
+      RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD:-${RABBITMQ_DEFAULT_PASS:-guest}}
+      NOTIFICATION_QUEUE: ${NOTIFICATION_QUEUE:-notification-queue}
+    ports:
+      - "${NOTIFICATION_APP_PORT:-8003}:8003"
     depends_on:
-      - rabbitmq
+      rabbitmq:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8003/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+    networks:
+      - video-converter-network
 
   postgres:
-    image: postgres:16
-    container_name: postgres
+    image: postgres:16-alpine
+    container_name: ${POSTGRES_CONTAINER_NAME:-postgres}
+    restart: unless-stopped
+    env_file:
+      - ${COMPOSE_ENV_FILE:-.env}
     environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: password123
-      POSTGRES_DB: video_converter_db
+      POSTGRES_DB: ${POSTGRES_DB:-video_to_audio_converter}
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
     ports:
-      - "5432:5432"
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./databases/postgresql/schema.sql:/docker-entrypoint-initdb.d/01-schema.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+    networks:
+      - video-converter-network
 
   mongodb:
     image: mongo:7
-    container_name: mongodb
+    container_name: ${MONGO_CONTAINER_NAME:-mongodb}
+    restart: unless-stopped
     environment:
-      MONGO_INITDB_ROOT_USERNAME: admin
-      MONGO_INITDB_ROOT_PASSWORD: password123
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_USERNAME:-mongo}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_PASSWORD:-mongo}
+      MONGO_INITDB_DATABASE: ${MONGO_DATABASE:-video_converter}
     ports:
-      - "27017:27017"
+      - "${MONGO_PORT:-27017}:27017"
+    volumes:
+      - mongodb_data:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - video-converter-network
 
   rabbitmq:
     image: rabbitmq:3-management
-    container_name: rabbitmq
+    container_name: ${RABBITMQ_CONTAINER_NAME:-rabbitmq}
+    restart: unless-stopped
+    env_file:
+      - ${COMPOSE_ENV_FILE:-.env}
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_DEFAULT_USER:-${RABBITMQ_USERNAME:-guest}}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_DEFAULT_PASS:-${RABBITMQ_PASSWORD:-guest}}
+      RABBITMQ_ERLANG_COOKIE: ${RABBITMQ_ERLANG_COOKIE:-local-dev-cookie}
     ports:
-      - "5672:5672"
-      - "15672:15672"
+      - "${RABBITMQ_PORT:-5672}:5672"
+      - "${RABBITMQ_MANAGEMENT_PORT:-15672}:15672"
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+      - ./messaging/rabbitmq/rabbitmq.local.conf:/etc/rabbitmq/rabbitmq.conf:ro
+      - ./messaging/rabbitmq/definitions.local.json:/etc/rabbitmq/definitions.json:ro
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "ping"]
+      interval: 15s
+      timeout: 10s
+      retries: 10
+      start_period: 30s
+    networks:
+      - video-converter-network
+
+networks:
+  video-converter-network:
+    driver: bridge
+
+volumes:
+  postgres_data:
+  mongodb_data:
+  rabbitmq_data:

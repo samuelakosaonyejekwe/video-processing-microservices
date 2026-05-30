@@ -4,9 +4,9 @@ INSERT INTO users (
     password
 )
 VALUES (
-    'admin',
-    'admin@example.com',
-    'password123'
+    ${APP_ADMIN_USERNAME},
+    ${APP_ADMIN_EMAIL},
+    ${APP_ADMIN_PASSWORD_HASH}
 );
 
 
@@ -17,8 +17,8 @@ INSERT INTO conversions (
     status
 )
 VALUES (
-    1,
-    'sample-video.mp4',
-    'sample-video.mp3',
+    ${DEFAULT_USER_ID},
+    ${SAMPLE_VIDEO_FILENAME},
+    ${SAMPLE_AUDIO_FILENAME},
     'completed'
 );

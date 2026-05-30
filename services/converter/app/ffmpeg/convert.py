@@ -1,17 +1,34 @@
 import os
-from app.ffmpeg.ffmpeg_utils import run_ffmpeg_command
+
+from pathlib import Path
+
+from app.ffmpeg.ffmpeg_utils import (
+    run_ffmpeg_command
+)
 
 
-def convert_video_to_audio(input_file: str):
+def convert_video_to_audio(
+    input_file_path: str,
+    processing_dir: str
+):
 
-    output_file = os.path.splitext(input_file)[0] + ".mp3"
+    input_filename = Path(
+        input_file_path
+    ).stem
 
-    output_path = f"output/{output_file}"
+    output_filename = (
+        f"{input_filename}.mp3"
+    )
+
+    output_path = os.path.join(
+        processing_dir,
+        output_filename
+    )
 
     command = [
         "ffmpeg",
         "-i",
-        f"uploads/{input_file}",
+        input_file_path,
         "-vn",
         "-ar",
         "44100",

@@ -1,0 +1,30 @@
+global:
+
+  namespace: video-converter
+
+  environment: ${APP_ENV}
+
+  imagePullPolicy: IfNotPresent
+
+  aws:
+    region: ${AWS_REGION}
+
+  storage:
+    className: ${STORAGE_CLASS}
+
+  ingress:
+    enabled: true
+    className: alb
+    domain: ${APP_DOMAIN}
+
+  monitoring:
+    enabled: true
+
+  autoscaling:
+    enabled: true
+
+  security:
+    runAsNonRoot: true
+    runAsUser: 1000
+    readOnlyRootFilesystem: true
+    allowPrivilegeEscalation: false

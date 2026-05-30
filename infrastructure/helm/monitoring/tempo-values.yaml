@@ -1,0 +1,13 @@
+tempo:
+
+  persistence:
+
+    enabled: true
+
+    storageClassName: ${TEMPO_STORAGE_CLASS}
+
+    size: ${TEMPO_STORAGE_SIZE}
+
+serviceMonitor:
+
+  enabled: true

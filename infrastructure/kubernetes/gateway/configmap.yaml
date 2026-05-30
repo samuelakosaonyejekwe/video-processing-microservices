@@ -1,19 +1,23 @@
 apiVersion: v1
-
 kind: ConfigMap
 
 metadata:
   name: gateway-config
-  namespace: video-converter
+  namespace: ${K8S_NAMESPACE}
 
 data:
+  APP_NAME: "${GATEWAY_APP_NAME}"
 
-  APP_NAME: "gateway-service"
+  APP_ENV: "${APP_ENV}"
 
-  APP_ENV: "production"
+  APP_PORT: "${GATEWAY_PORT}"
 
-  AUTH_SERVICE_URL: "http://auth-service"
+  JWT_AUTH_SERVICE_URL: "${JWT_AUTH_SERVICE_URL}"
 
-  CONVERTER_SERVICE_URL: "http://converter-service"
+  CONVERTER_SERVICE_URL: "${CONVERTER_SERVICE_URL}"
 
-  NOTIFICATION_SERVICE_URL: "http://notification-service"
+  NOTIFICATION_SERVICE_URL: "${NOTIFICATION_SERVICE_URL}"
+
+  JWT_ALGORITHM: "${JWT_ALGORITHM}"
+
+  LOG_LEVEL: "${LOG_LEVEL}"

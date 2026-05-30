@@ -1,13 +1,28 @@
 #!/bin/bash
+set -euo pipefail
 
-kubectl apply -f infrastructure/kubernetes/namespaces/
+ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
-kubectl apply -f infrastructure/kubernetes/gateway/
+# shellcheck source=scripts/lib/env-aliases.sh
+source "${ROOT_DIR}/scripts/lib/env-aliases.sh"
 
-kubectl apply -f infrastructure/kubernetes/auth/
+if [ -f "${ROOT_DIR}/.env" ]; then
+  set -a
+  # shellcheck disable=SC1091
+  source "${ROOT_DIR}/.env"
+  set +a
+  # shellcheck source=scripts/lib/env-aliases.sh
+  source "${ROOT_DIR}/scripts/lib/env-aliases.sh"
+fi
 
-kubectl apply -f infrastructure/kubernetes/converter/
+bash "${ROOT_DIR}/scripts/render-k8s-manifests.sh" "${ROOT_DIR}/.rendered-k8s"
 
-kubectl apply -f infrastructure/kubernetes/notification/
+kubectl apply -f "${ROOT_DIR}/.rendered-k8s/infrastructure/kubernetes/namespaces/"
+kubectl apply -f "${ROOT_DIR}/.rendered-k8s/infrastructure/kubernetes/secrets/"
+kubectl apply -f "${ROOT_DIR}/.rendered-k8s/infrastructure/kubernetes/configmaps/"
+kubectl apply -f "${ROOT_DIR}/.rendered-k8s/infrastructure/kubernetes/gateway/"
+kubectl apply -f "${ROOT_DIR}/.rendered-k8s/infrastructure/kubernetes/auth/"
+kubectl apply -f "${ROOT_DIR}/.rendered-k8s/infrastructure/kubernetes/converter/"
+kubectl apply -f "${ROOT_DIR}/.rendered-k8s/infrastructure/kubernetes/notification/"
 
 echo "Microservices deployed successfully."

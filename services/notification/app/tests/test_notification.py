@@ -1,4 +1,5 @@
 from fastapi.testclient import TestClient
+
 from app.main import app
 
 client = TestClient(app)
@@ -10,9 +11,7 @@ def test_root():
 
     assert response.status_code == 200
 
-    assert response.json() == {
-        "message": "Notification Service Running"
-    }
+    assert response.json()["message"] == "Notification Service Running"
 
 
 def test_health():
@@ -21,6 +20,4 @@ def test_health():
 
     assert response.status_code == 200
 
-    assert response.json() == {
-        "status": "healthy"
-    }
+    assert response.json()["status"] == "healthy"

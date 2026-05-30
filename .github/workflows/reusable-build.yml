@@ -1,0 +1,56 @@
+name: Reusable Docker Build Workflow
+
+on:
+  workflow_call:
+
+    inputs:
+
+      docker_compose_file:
+        required: false
+        type: string
+        default: docker-compose.yml
+
+    secrets:
+
+      DOCKER_PASSWORD:
+        required: true
+
+jobs:
+
+  reusable-docker-build:
+
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+
+    steps:
+
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Verify Required Credentials
+        run: |
+          test -n "${{ vars.DOCKER_USERNAME }}"
+          test -n "${{ secrets.DOCKER_PASSWORD }}"
+
+      - name: Set Up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Docker Login
+        uses: docker/login-action@v3
+        with:
+          username: ${{ vars.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      - name: Validate Docker Compose File
+        run: |
+          docker compose -f "${{ inputs.docker_compose_file }}" config
+
+      - name: Build Docker Images
+        run: |
+          docker compose -f "${{ inputs.docker_compose_file }}" build
+
+      - name: Push Docker Images
+        run: |
+          docker compose -f "${{ inputs.docker_compose_file }}" push

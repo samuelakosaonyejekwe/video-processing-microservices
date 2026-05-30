@@ -1,0 +1,25 @@
+name: Environment Validation
+
+on:
+  push:
+  pull_request:
+
+jobs:
+
+  validate-env:
+
+    runs-on: ubuntu-latest
+
+    steps:
+
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Make Script Executable
+        run: chmod +x scripts/discover-env-vars.sh
+
+      - name: Run Environment Discovery
+        run: ./scripts/discover-env-vars.sh
+
+      - name: Scan For Hardcoded Secrets
+        uses: gitleaks/gitleaks-action@v2

@@ -1,59 +1,128 @@
 apiVersion: apps/v1
 kind: StatefulSet
+
 metadata:
+
   name: rabbitmq
 
 spec:
+
   serviceName: rabbitmq
-  replicas: 1
+
+  replicas: {{ .Values.replicaCount }}
 
   selector:
+
     matchLabels:
+
       app: rabbitmq
 
   template:
+
     metadata:
+
       labels:
+
         app: rabbitmq
 
+      annotations:
+
+        prometheus.io/scrape: "true"
+
+        prometheus.io/port: "15672"
+
     spec:
+
+      affinity:
+
+        podAntiAffinity:
+
+          preferredDuringSchedulingIgnoredDuringExecution:
+
+            - weight: 100
+
+              podAffinityTerm:
+
+                topologyKey: kubernetes.io/hostname
+
+                labelSelector:
+
+                  matchExpressions:
+
+                    - key: app
+
+                      operator: In
+
+                      values:
+
+                        - rabbitmq
+
       containers:
+
         - name: rabbitmq
 
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
 
           ports:
+
             - containerPort: 5672
+
             - containerPort: 15672
 
           env:
+
             - name: RABBITMQ_DEFAULT_USER
+
               valueFrom:
+
                 secretKeyRef:
+
                   name: rabbitmq-secret
+
                   key: rabbitmq-username
 
             - name: RABBITMQ_DEFAULT_PASS
+
               valueFrom:
+
                 secretKeyRef:
+
                   name: rabbitmq-secret
+
                   key: rabbitmq-password
 
-            - name: RABBITMQ_DEFAULT_VHOST
-              value: "{{ .Values.rabbitmq.vhost }}"
+            - name: RABBITMQ_ERLANG_COOKIE
 
-          volumeMounts:
-            - name: rabbitmq-storage
-              mountPath: /var/lib/rabbitmq
+              valueFrom:
 
-  volumeClaimTemplates:
-    - metadata:
-        name: rabbitmq-storage
+                secretKeyRef:
 
-      spec:
-        accessModes:
-          - ReadWriteOnce
+                  name: rabbitmq-secret
 
-        resources:
-          requests:
-            storage: {{ .Values.storage.size }}
+                  key: rabbitmq-erlang-cookie
+
+          resources:
+
+            {{- toYaml .Values.resources | nindent 12 }}
+
+          livenessProbe:
+
+            tcpSocket:
+
+              port: 5672
+
+          readinessProbe:
+
+            tcpSocket:
+
+              port: 5672
+
+          startupProbe:
+
+            tcpSocket:
+
+              port: 5672
+
+            failureThreshold: 30
+
+            periodSeconds: 10

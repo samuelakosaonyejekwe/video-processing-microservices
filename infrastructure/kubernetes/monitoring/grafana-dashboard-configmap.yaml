@@ -1,0 +1,27 @@
+apiVersion: v1
+
+kind: ConfigMap
+
+metadata:
+
+  name: ${GRAFANA_DASHBOARD_CONFIGMAP_NAME}
+
+  namespace: ${MONITORING_NAMESPACE}
+
+  labels:
+
+    grafana_dashboard: "1"
+
+data:
+
+  platform-overview-dashboard.json: |
+
+    ${PLATFORM_OVERVIEW_DASHBOARD_JSON}
+
+  rabbitmq-dashboard.json: |
+
+    ${RABBITMQ_DASHBOARD_JSON}
+
+  keda-dashboard.json: |
+
+    ${KEDA_DASHBOARD_JSON}

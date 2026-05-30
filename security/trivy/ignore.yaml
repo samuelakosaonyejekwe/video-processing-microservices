@@ -1,0 +1,6 @@
+# Trivy ignore file — document each exception with a reason and expiry review date.
+#
+# Example:
+# CVE-2024-12345
+#   reason: Not applicable — dev dependency only
+#   expiry: 2026-06-01

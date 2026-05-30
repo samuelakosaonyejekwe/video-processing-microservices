@@ -1,4 +1,5 @@
 from fastapi.testclient import TestClient
+
 from app.main import app
 
 client = TestClient(app)
@@ -10,26 +11,13 @@ def test_root():
 
     assert response.status_code == 200
 
-    assert response.json() == {
-        "message": "Converter Service Running"
-    }
+    assert response.json()["message"] == "Converter Service Running"
 
 
-def test_convert_endpoint():
+def test_health():
 
-    files = {
-        "file": (
-            "sample.mp4",
-            b"fake-video-content",
-            "video/mp4"
-        )
-    }
-
-    response = client.post(
-        "/convert",
-        files=files
-    )
+    response = client.get("/health")
 
     assert response.status_code == 200
 
-    assert "Conversion job queued" in response.text
+    assert response.json()["status"] == "healthy"

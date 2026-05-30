@@ -1,5 +1,8 @@
-apiVersion: v1
+# ==========================================================
+# CONFIGMAP
+# ==========================================================
 
+apiVersion: v1
 kind: ConfigMap
 
 metadata:
@@ -7,23 +10,27 @@ metadata:
   namespace: video-converter
 
 data:
-
   APP_NAME: "converter-service"
+  APP_ENV: "${APP_ENV}"
+  APP_PORT: "${APP_PORT}"
 
-  APP_ENV: "production"
+  AWS_REGION: "${AWS_REGION}"
 
-  APP_PORT: "8002"
+  RABBITMQ_HOST: "${RABBITMQ_HOST}"
+  RABBITMQ_PORT: "${RABBITMQ_PORT}"
+  RABBITMQ_VHOST: "${RABBITMQ_VHOST}"
 
-  RABBITMQ_HOST: "rabbitmq"
+  MONGO_HOST: "${MONGO_HOST}"
+  MONGO_PORT: "${MONGO_PORT}"
+  MONGO_DATABASE: "${MONGO_DATABASE}"
 
-  RABBITMQ_PORT: "5672"
+  S3_UPLOAD_BUCKET: "${S3_UPLOAD_BUCKET}"
+  S3_AUDIO_BUCKET: "${S3_AUDIO_BUCKET}"
+  S3_THUMBNAIL_BUCKET: "${S3_THUMBNAIL_BUCKET}"
 
-  MONGODB_URI: "mongodb://admin:password123@mongodb:27017"
+---
+# ==========================================================
+# MONGODB SECRET
+# ==========================================================
 
-  AWS_REGION: "eu-west-2"
-
-  S3_UPLOAD_BUCKET: "video-converter-uploads-sam"
-
-  S3_AUDIO_BUCKET: "video-converter-audio-sam"
-
-  S3_THUMBNAIL_BUCKET: "video-converter-thumbnails-sam"
+apiVersion: v1

@@ -1,0 +1,106 @@
+apiVersion: networking.k8s.io/v1
+
+kind: NetworkPolicy
+
+metadata:
+  name: ${CONVERTER_NETWORK_POLICY_NAME}
+  namespace: ${K8S_NAMESPACE}
+
+  labels:
+    app: ${CONVERTER_APP_NAME}
+    component: ${CONVERTER_COMPONENT_NAME}
+    policy: ${CONVERTER_NETWORK_POLICY_LABEL}
+    environment: ${APP_ENV}
+
+spec:
+
+  podSelector:
+    matchLabels:
+      app: ${CONVERTER_APP_NAME}
+
+  policyTypes:
+    - Ingress
+    - Egress
+
+  ingress:
+
+    #
+    # ALLOW TRAFFIC FROM GATEWAY
+    #
+    - from:
+
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: ${GATEWAY_NAMESPACE}
+
+          podSelector:
+            matchLabels:
+              app: ${GATEWAY_APP_NAME}
+
+      ports:
+
+        - protocol: TCP
+          port: ${CONVERTER_SERVICE_PORT}
+
+  egress:
+
+    #
+    # ALLOW MONGODB ACCESS
+    #
+    - to:
+
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: ${DATABASE_NAMESPACE}
+
+          podSelector:
+            matchLabels:
+              app: ${MONGODB_APP_NAME}
+
+      ports:
+
+        - protocol: TCP
+          port: ${MONGODB_PORT}
+
+    #
+    # ALLOW RABBITMQ ACCESS
+    #
+    - to:
+
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: ${MESSAGING_NAMESPACE}
+
+          podSelector:
+            matchLabels:
+              app: ${RABBITMQ_APP_NAME}
+
+      ports:
+
+        - protocol: TCP
+          port: ${RABBITMQ_AMQP_PORT}
+
+    #
+    # ALLOW DNS ACCESS
+    #
+    - to:
+
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: ${KUBE_SYSTEM_NAMESPACE}
+
+      ports:
+
+        - protocol: UDP
+          port: ${DNS_PORT}
+
+        - protocol: TCP
+          port: ${DNS_PORT}
+
+    #
+    # ALLOW HTTPS OUTBOUND
+    #
+    - ports:
+
+        - protocol: TCP
+          port: ${HTTPS_PORT}

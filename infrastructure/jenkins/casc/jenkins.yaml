@@ -1,0 +1,174 @@
+jenkins:
+
+  systemMessage: "Fully Automated Production Jenkins"
+
+  numExecutors: 2
+
+  mode: NORMAL
+
+  scmCheckoutRetryCount: 3
+
+  disableRememberMe: false
+
+  markupFormatter:
+    plainText
+
+  remotingSecurity:
+    enabled: true
+
+  authorizationStrategy:
+
+    loggedInUsersCanDoAnything:
+      allowAnonymousRead: false
+
+  securityRealm:
+
+    local:
+
+      allowsSignup: false
+
+      users:
+
+        - id: "${JENKINS_ADMIN_USERNAME}"
+
+          password: "${JENKINS_ADMIN_PASSWORD}"
+
+  globalNodeProperties:
+
+    - envVars:
+
+        env:
+
+          - key: "GITHUB_REPOSITORY"
+            value: "${GITHUB_REPOSITORY}"
+
+          - key: "GITHUB_BRANCH"
+            value: "${GITHUB_BRANCH}"
+
+          - key: "AWS_REGION"
+            value: "${AWS_REGION}"
+
+          - key: "DOCKER_USERNAME"
+            value: "${DOCKER_USERNAME}"
+
+          - key: "JENKINS_URL"
+            value: "${JENKINS_URL}"
+
+unclassified:
+
+  location:
+
+    url: "${JENKINS_URL}"
+
+  gitHubConfiguration:
+
+    apiRateLimitChecker: ThrottleForNormalize
+
+tool:
+
+  git:
+
+    installations:
+
+      - name: "DefaultGit"
+
+        home: "git"
+
+credentials:
+
+  system:
+
+    domainCredentials:
+
+      - credentials:
+
+          - usernamePassword:
+
+              scope: GLOBAL
+
+              id: "dockerhub-credentials"
+
+              username: "${DOCKER_USERNAME}"
+
+              password: "${DOCKER_PASSWORD}"
+
+              description: "DockerHub Credentials"
+
+          - usernamePassword:
+
+              scope: GLOBAL
+
+              id: "github-credentials"
+
+              username: "${GITHUB_USERNAME}"
+
+              password: "${GITHUB_PAT}"
+
+              description: "GitHub Credentials"
+
+          - usernamePassword:
+
+              scope: GLOBAL
+
+              id: "aws-credentials"
+
+              username: "${AWS_ACCESS_KEY_ID}"
+
+              password: "${AWS_SECRET_ACCESS_KEY}"
+
+              description: "AWS Credentials"
+
+jobs:
+
+  - script: >
+
+      pipelineJob('video-converter-platform') {
+
+        definition {
+
+          cpsScm {
+
+            scm {
+
+              git {
+
+                remote {
+
+                  github('${GITHUB_REPOSITORY}')
+
+                  credentials('github-credentials')
+
+                }
+
+                branch('${GITHUB_BRANCH}')
+
+              }
+
+            }
+
+            scriptPath('Jenkinsfile')
+
+          }
+
+        }
+
+      }
+
+security:
+
+  queueItemAuthenticator:
+    authenticators:
+      - global:
+          strategy: triggeringUsersAuthorizationStrategy
+
+appearance:
+
+  themeManager:
+
+    disableUserThemes: false
+
+    theme: "darkSystem"
+
+jenkins:
+
+  slaveAgentPort: 50000

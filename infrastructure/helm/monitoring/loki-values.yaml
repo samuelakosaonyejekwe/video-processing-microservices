@@ -1,0 +1,27 @@
+loki:
+
+  enabled: true
+
+  auth_enabled: false
+
+  persistence:
+
+    enabled: true
+
+    storageClassName: ${LOKI_STORAGE_CLASS}
+
+    size: ${LOKI_STORAGE_SIZE}
+
+promtail:
+
+  enabled: true
+
+  config:
+
+    clients:
+
+      - url: http://loki:3100/loki/api/v1/push
+
+grafana:
+
+  enabled: false

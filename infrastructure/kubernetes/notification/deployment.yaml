@@ -1,49 +1,245 @@
 apiVersion: apps/v1
-
 kind: Deployment
 
 metadata:
   name: notification-deployment
-  namespace: video-converter
+
+  namespace: ${K8S_NAMESPACE}
+
+  labels:
+    app: notification
+    service: notification-service
+    environment: ${APP_ENV}
 
 spec:
 
-  replicas: 2
+  replicas: ${NOTIFICATION_REPLICAS}
+
+  revisionHistoryLimit: 5
 
   selector:
     matchLabels:
       app: notification
+
+  strategy:
+    type: RollingUpdate
+
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
 
   template:
 
     metadata:
       labels:
         app: notification
+        service: notification-service
+        environment: ${APP_ENV}
 
     spec:
 
+      terminationGracePeriodSeconds: 30
+
+      restartPolicy: Always
+
+      imagePullSecrets:
+        - name: ${DOCKER_REGISTRY_SECRET_NAME}
+
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
+
+        seccompProfile:
+          type: RuntimeDefault
+
       containers:
 
-        - name: notification
+        - name: notification-service
 
-          image: your-dockerhub-username/notification-service:latest
+          image: ${DOCKER_REGISTRY}/notification-service:${IMAGE_TAG}
 
-          imagePullPolicy: Always
+          imagePullPolicy: IfNotPresent
 
           ports:
-            - containerPort: 8003
+            - name: http
+              containerPort: ${NOTIFICATION_SERVICE_PORT}
+              protocol: TCP
 
           envFrom:
-
             - configMapRef:
                 name: notification-config
+
+            - secretRef:
+                name: notification-secret
+
+            - secretRef:
+                name: rabbitmq-secret
+
+          env:
+
+            - name: APP_NAME
+              valueFrom:
+                configMapKeyRef:
+                  name: notification-config
+                  key: APP_NAME
+
+            - name: APP_ENV
+              valueFrom:
+                configMapKeyRef:
+                  name: notification-config
+                  key: APP_ENV
+
+            - name: LOG_LEVEL
+              valueFrom:
+                configMapKeyRef:
+                  name: notification-config
+                  key: LOG_LEVEL
+
+            - name: SMTP_HOST
+              valueFrom:
+                configMapKeyRef:
+                  name: notification-config
+                  key: SMTP_HOST
+
+            - name: SMTP_PORT
+              valueFrom:
+                configMapKeyRef:
+                  name: notification-config
+                  key: SMTP_PORT
+
+            - name: SMTP_FROM_EMAIL
+              valueFrom:
+                configMapKeyRef:
+                  name: notification-config
+                  key: SMTP_FROM_EMAIL
+
+            - name: SMTP_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: notification-secret
+                  key: SMTP_USERNAME
+
+            - name: SMTP_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: notification-secret
+                  key: SMTP_PASSWORD
+
+            - name: SMTP_EMAIL
+              valueFrom:
+                secretKeyRef:
+                  name: notification-secret
+                  key: SMTP_EMAIL
+
+            - name: RABBITMQ_HOST
+              valueFrom:
+                configMapKeyRef:
+                  name: notification-config
+                  key: RABBITMQ_HOST
+
+            - name: RABBITMQ_PORT
+              valueFrom:
+                configMapKeyRef:
+                  name: notification-config
+                  key: RABBITMQ_PORT
+
+            - name: NOTIFICATION_QUEUE
+              valueFrom:
+                configMapKeyRef:
+                  name: notification-config
+                  key: NOTIFICATION_QUEUE
+
+            - name: EMAIL_QUEUE
+              valueFrom:
+                configMapKeyRef:
+                  name: notification-config
+                  key: EMAIL_QUEUE
+
+            - name: WEBSOCKET_HOST
+              valueFrom:
+                configMapKeyRef:
+                  name: notification-config
+                  key: WEBSOCKET_HOST
+
+            - name: WEBSOCKET_PORT
+              valueFrom:
+                configMapKeyRef:
+                  name: notification-config
+                  key: WEBSOCKET_PORT
+
+            - name: RABBITMQ_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: rabbitmq-secret
+                  key: RABBITMQ_USERNAME
+
+            - name: RABBITMQ_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: rabbitmq-secret
+                  key: RABBITMQ_PASSWORD
+
+            - name: RABBITMQ_URI
+              valueFrom:
+                secretKeyRef:
+                  name: rabbitmq-secret
+                  key: RABBITMQ_URI
+
+            - name: JWT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: notification-secret
+                  key: JWT_SECRET
 
           resources:
 
             requests:
-              cpu: "200m"
-              memory: "256Mi"
+              cpu: ${NOTIFICATION_CPU_REQUEST}
+              memory: ${NOTIFICATION_MEMORY_REQUEST}
 
             limits:
-              cpu: "500m"
-              memory: "512Mi"
+              cpu: ${NOTIFICATION_CPU_LIMIT}
+              memory: ${NOTIFICATION_MEMORY_LIMIT}
+
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: ${NOTIFICATION_SERVICE_PORT}
+
+            initialDelaySeconds: 30
+            periodSeconds: 15
+            timeoutSeconds: 5
+            successThreshold: 1
+            failureThreshold: 3
+
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: ${NOTIFICATION_SERVICE_PORT}
+
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            timeoutSeconds: 3
+            successThreshold: 1
+            failureThreshold: 3
+
+          startupProbe:
+            httpGet:
+              path: /health
+              port: ${NOTIFICATION_SERVICE_PORT}
+
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 30
+
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: false
+            privileged: false
+
+            capabilities:
+              drop:
+                - ALL

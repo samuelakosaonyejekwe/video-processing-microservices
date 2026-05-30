@@ -1,14 +1,17 @@
 apiVersion: apps/v1
-
 kind: Deployment
 
 metadata:
   name: prometheus
-  namespace: video-converter
+  namespace: ${K8S_NAMESPACE}
+
+  labels:
+    app: prometheus
+    monitoring: prometheus
+    environment: ${APP_ENV}
 
 spec:
-
-  replicas: 1
+  replicas: ${PROMETHEUS_REPLICAS}
 
   selector:
     matchLabels:
@@ -19,35 +22,157 @@ spec:
     metadata:
       labels:
         app: prometheus
+        monitoring: prometheus
+        environment: ${APP_ENV}
 
     spec:
+
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 65534
+        runAsGroup: 65534
+        fsGroup: 65534
+
+        seccompProfile:
+          type: RuntimeDefault
+
+      topologySpreadConstraints:
+
+        - maxSkew: 1
+
+          topologyKey: kubernetes.io/hostname
+
+          whenUnsatisfiable: ScheduleAnyway
+
+          labelSelector:
+            matchLabels:
+              app: prometheus
+
+      affinity:
+
+        podAntiAffinity:
+
+          preferredDuringSchedulingIgnoredDuringExecution:
+
+            - weight: 100
+
+              podAffinityTerm:
+
+                topologyKey: kubernetes.io/hostname
+
+                labelSelector:
+
+                  matchExpressions:
+
+                    - key: app
+                      operator: In
+                      values:
+                        - prometheus
 
       containers:
 
         - name: prometheus
 
-          image: prom/prometheus:latest
+          image: ${PROMETHEUS_IMAGE}
+
+          imagePullPolicy: IfNotPresent
 
           ports:
-            - containerPort: 9090
+
+            - name: http
+              containerPort: 9090
+              protocol: TCP
+
+          args:
+
+            - "--config.file=/etc/prometheus/prometheus.yml"
+            - "--storage.tsdb.path=/prometheus"
+            - "--web.enable-lifecycle"
 
           resources:
 
             requests:
-              cpu: "200m"
-              memory: "256Mi"
+              cpu: ${PROMETHEUS_CPU_REQUEST}
+              memory: ${PROMETHEUS_MEMORY_REQUEST}
 
             limits:
-              cpu: "500m"
-              memory: "512Mi"
+              cpu: ${PROMETHEUS_CPU_LIMIT}
+              memory: ${PROMETHEUS_MEMORY_LIMIT}
+
+          volumeMounts:
+
+            - name: prometheus-config
+              mountPath: /etc/prometheus
+
+            - name: prometheus-storage
+              mountPath: /prometheus
+
+          startupProbe:
+
+            httpGet:
+              path: /-/healthy
+              port: 9090
+
+            failureThreshold: 30
+            periodSeconds: 10
+
+          livenessProbe:
+
+            httpGet:
+              path: /-/healthy
+              port: 9090
+
+            initialDelaySeconds: 30
+            periodSeconds: 15
+            timeoutSeconds: 5
+            failureThreshold: 3
+
+          readinessProbe:
+
+            httpGet:
+              path: /-/ready
+              port: 9090
+
+            initialDelaySeconds: 15
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+
+          securityContext:
+
+            allowPrivilegeEscalation: false
+
+            readOnlyRootFilesystem: true
+
+            capabilities:
+
+              drop:
+                - ALL
+
+      volumes:
+
+        - name: prometheus-config
+
+          configMap:
+            name: prometheus-config
+
+        - name: prometheus-storage
+
+          persistentVolumeClaim:
+            claimName: ${PROMETHEUS_PVC_NAME}
+
 ---
 apiVersion: v1
-
 kind: Service
 
 metadata:
   name: prometheus-service
-  namespace: video-converter
+  namespace: ${K8S_NAMESPACE}
+
+  labels:
+    app: prometheus
+    monitoring: prometheus
+    environment: ${APP_ENV}
 
 spec:
 
@@ -56,7 +181,8 @@ spec:
 
   ports:
 
-    - protocol: TCP
+    - name: http
+      protocol: TCP
       port: 9090
       targetPort: 9090
 

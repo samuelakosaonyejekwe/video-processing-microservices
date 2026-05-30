@@ -1,52 +1,353 @@
 apiVersion: apps/v1
-
 kind: Deployment
 
 metadata:
-  name: auth-deployment
-  namespace: video-converter
+  name: auth-service
+  namespace: ${K8S_NAMESPACE}
+
+  labels:
+    app: auth-service
 
 spec:
 
-  replicas: 2
+  replicas: ${AUTH_REPLICAS}
+
+  revisionHistoryLimit: 5
 
   selector:
     matchLabels:
-      app: auth
+      app: auth-service
+
+  strategy:
+    type: RollingUpdate
+
+    rollingUpdate:
+      maxUnavailable: 1
+      maxSurge: 1
 
   template:
 
     metadata:
+
       labels:
-        app: auth
+        app: auth-service
 
     spec:
 
+      serviceAccountName: ${AUTH_SERVICE_ACCOUNT}
+
+      terminationGracePeriodSeconds: 30
+
+      securityContext:
+
+        runAsNonRoot: true
+
+        seccompProfile:
+          type: RuntimeDefault
+
+        runAsUser: 1000
+
+        fsGroup: 1000
+
       containers:
 
-        - name: auth
+        - name: auth-service
 
-          image: your-dockerhub-username/auth-service:latest
+          image: ${AUTH_IMAGE}
 
           imagePullPolicy: Always
 
           ports:
-            - containerPort: 8001
 
-          envFrom:
+            - containerPort: ${AUTH_APP_PORT}
 
-            - configMapRef:
-                name: auth-config
+          env:
 
-            - secretRef:
-                name: auth-secret
+            # =====================================================
+            # APPLICATION
+            # =====================================================
+
+            - name: APP_ENV
+              valueFrom:
+                configMapKeyRef:
+                  name: auth-config
+                  key: APP_ENV
+
+            - name: LOG_LEVEL
+              valueFrom:
+                configMapKeyRef:
+                  name: auth-config
+                  key: LOG_LEVEL
+
+            - name: AUTH_APP_PORT
+              valueFrom:
+                configMapKeyRef:
+                  name: auth-config
+                  key: AUTH_APP_PORT
+
+            # =====================================================
+            # JWT / AUTHENTICATION
+            # =====================================================
+
+            - name: JWT_ALGORITHM
+              valueFrom:
+                configMapKeyRef:
+                  name: auth-config
+                  key: JWT_ALGORITHM
+
+            - name: ACCESS_TOKEN_EXPIRE_MINUTES
+              valueFrom:
+                configMapKeyRef:
+                  name: auth-config
+                  key: ACCESS_TOKEN_EXPIRE_MINUTES
+
+            - name: REFRESH_TOKEN_EXPIRE_DAYS
+              valueFrom:
+                configMapKeyRef:
+                  name: auth-config
+                  key: REFRESH_TOKEN_EXPIRE_DAYS
+
+            - name: PASSWORD_HASH_SCHEME
+              valueFrom:
+                configMapKeyRef:
+                  name: auth-config
+                  key: PASSWORD_HASH_SCHEME
+
+            - name: JWT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: auth-secret
+                  key: JWT_SECRET
+
+            - name: JWT_REFRESH_TOKEN_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: auth-secret
+                  key: JWT_REFRESH_TOKEN_SECRET
+
+            # =====================================================
+            # POSTGRESQL
+            # =====================================================
+
+            - name: POSTGRES_HOST
+              valueFrom:
+                configMapKeyRef:
+                  name: auth-config
+                  key: POSTGRES_HOST
+
+            - name: POSTGRES_PORT
+              valueFrom:
+                configMapKeyRef:
+                  name: auth-config
+                  key: POSTGRES_PORT
+
+            - name: POSTGRES_DB
+              valueFrom:
+                configMapKeyRef:
+                  name: auth-config
+                  key: POSTGRES_DB
+
+            - name: POSTGRES_USER
+              valueFrom:
+                configMapKeyRef:
+                  name: auth-config
+                  key: POSTGRES_USER
+
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: postgres-secret
+                  key: POSTGRES_PASSWORD
+
+            - name: DATABASE_POOL_SIZE
+              valueFrom:
+                configMapKeyRef:
+                  name: auth-config
+                  key: DATABASE_POOL_SIZE
+
+            - name: DATABASE_MAX_OVERFLOW
+              valueFrom:
+                configMapKeyRef:
+                  name: auth-config
+                  key: DATABASE_MAX_OVERFLOW
+
+            - name: DATABASE_POOL_TIMEOUT
+              valueFrom:
+                configMapKeyRef:
+                  name: auth-config
+                  key: DATABASE_POOL_TIMEOUT
+
+            # =====================================================
+            # RABBITMQ
+            # =====================================================
+
+            - name: RABBITMQ_HOST
+              valueFrom:
+                configMapKeyRef:
+                  name: auth-config
+                  key: RABBITMQ_HOST
+
+            - name: RABBITMQ_PORT
+              valueFrom:
+                configMapKeyRef:
+                  name: auth-config
+                  key: RABBITMQ_PORT
+
+            - name: AUTH_EVENTS_QUEUE
+              valueFrom:
+                configMapKeyRef:
+                  name: auth-config
+                  key: AUTH_EVENTS_QUEUE
+
+            - name: AUTH_RETRY_QUEUE
+              valueFrom:
+                configMapKeyRef:
+                  name: auth-config
+                  key: AUTH_RETRY_QUEUE
+
+            - name: NOTIFICATION_QUEUE
+              valueFrom:
+                configMapKeyRef:
+                  name: auth-config
+                  key: NOTIFICATION_QUEUE
+
+            - name: RABBITMQ_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: rabbitmq-secret
+                  key: RABBITMQ_USERNAME
+
+            - name: RABBITMQ_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: rabbitmq-secret
+                  key: RABBITMQ_PASSWORD
+
+            # =====================================================
+            # FRONTEND / CORS
+            # =====================================================
+
+            - name: FRONTEND_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: auth-config
+                  key: FRONTEND_URL
+
+            - name: API_BASE_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: auth-config
+                  key: API_BASE_URL
+
+            - name: CORS_ALLOWED_ORIGINS
+              valueFrom:
+                configMapKeyRef:
+                  name: auth-config
+                  key: CORS_ALLOWED_ORIGINS
+
+            # =====================================================
+            # SECURITY
+            # =====================================================
+
+            - name: SECURE_COOKIES
+              valueFrom:
+                configMapKeyRef:
+                  name: auth-config
+                  key: SECURE_COOKIES
+
+            - name: COOKIE_SAMESITE
+              valueFrom:
+                configMapKeyRef:
+                  name: auth-config
+                  key: COOKIE_SAMESITE
+
+            - name: COOKIE_SECURE
+              valueFrom:
+                configMapKeyRef:
+                  name: auth-config
+                  key: COOKIE_SECURE
 
           resources:
 
             requests:
-              cpu: "200m"
-              memory: "256Mi"
+              cpu: ${AUTH_CPU_REQUEST}
+              memory: ${AUTH_MEMORY_REQUEST}
 
             limits:
-              cpu: "500m"
-              memory: "512Mi"
+              cpu: ${AUTH_CPU_LIMIT}
+              memory: ${AUTH_MEMORY_LIMIT}
+
+          securityContext:
+
+            allowPrivilegeEscalation: false
+
+            readOnlyRootFilesystem: false
+
+            capabilities:
+              drop:
+                - ALL
+
+          readinessProbe:
+
+            httpGet:
+              path: ${AUTH_HEALTHCHECK_PATH}
+              port: ${AUTH_APP_PORT}
+
+            initialDelaySeconds: 15
+
+            periodSeconds: 10
+
+            timeoutSeconds: 5
+
+            failureThreshold: 3
+
+          livenessProbe:
+
+            httpGet:
+              path: ${AUTH_HEALTHCHECK_PATH}
+              port: ${AUTH_APP_PORT}
+
+            initialDelaySeconds: 30
+
+            periodSeconds: 20
+
+            timeoutSeconds: 5
+
+            failureThreshold: 5
+
+          startupProbe:
+
+            httpGet:
+              path: ${AUTH_HEALTHCHECK_PATH}
+              port: ${AUTH_APP_PORT}
+
+            failureThreshold: 30
+
+            periodSeconds: 10
+
+      restartPolicy: Always
+
+      imagePullSecrets:
+
+        - name: ${DOCKER_REGISTRY_SECRET_NAME}
+
+      affinity:
+
+        podAntiAffinity:
+
+          preferredDuringSchedulingIgnoredDuringExecution:
+
+            - weight: 100
+
+              podAffinityTerm:
+
+                topologyKey: kubernetes.io/hostname
+
+                labelSelector:
+
+                  matchExpressions:
+
+                    - key: app
+                      operator: In
+                      values:
+                        - auth-service

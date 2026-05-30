@@ -1,12 +1,7 @@
 #!/bin/bash
 
-CLUSTER_NAME="video-converter-cluster"
-REGION="eu-west-2"
+set -euo pipefail
 
-echo "Deleting EKS Cluster..."
-
-eksctl delete cluster \
-  --name $CLUSTER_NAME \
-  --region $REGION
-
-echo "Cluster deleted successfully."
+terraform -chdir=infrastructure/terraform destroy \
+  -var-file=environments/dev.tfvars \
+  -auto-approve

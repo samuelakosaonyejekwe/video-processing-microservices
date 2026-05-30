@@ -1,34 +1,54 @@
 import os
+
 import time
 
-
-UPLOAD_FOLDER = "uploads"
-OUTPUT_FOLDER = "output"
+import shutil
 
 
-def cleanup_old_files():
+TEMP_PROCESSING_DIR = os.getenv(
+    "TEMP_PROCESSING_DIR",
+    "/tmp/video-converter"
+)
 
-    while True:
 
-        for folder in [UPLOAD_FOLDER, OUTPUT_FOLDER]:
+MAX_FILE_AGE_SECONDS = int(
+    os.getenv(
+        "TEMP_FILE_MAX_AGE_SECONDS",
+        "3600"
+    )
+)
 
-            for filename in os.listdir(folder):
 
-                file_path = os.path.join(folder, filename)
+def cleanup_temp_files():
 
-                file_age = time.time() - os.path.getmtime(file_path)
+    current_time = time.time()
 
-                # Delete files older than 1 hour
+    for root, dirs, files in os.walk(
+        TEMP_PROCESSING_DIR
+    ):
 
-                if file_age > 3600:
+        for directory in dirs:
 
-                    os.remove(file_path)
+            directory_path = os.path.join(
+                root,
+                directory
+            )
 
-                    print(f"Deleted old file: {file_path}")
+            modified_time = os.path.getmtime(
+                directory_path
+            )
 
-        time.sleep(300)
+            if (
+                current_time - modified_time
+                > MAX_FILE_AGE_SECONDS
+            ):
+
+                shutil.rmtree(
+                    directory_path,
+                    ignore_errors=True
+                )
 
 
 if __name__ == "__main__":
 
-    cleanup_old_files()
+    cleanup_temp_files()

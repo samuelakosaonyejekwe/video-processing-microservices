@@ -1,7 +1,11 @@
 apiVersion: apps/v1
 kind: Deployment
+
 metadata:
   name: rabbitmq
+
+  labels:
+    app: rabbitmq
 
 spec:
   replicas: {{ .Values.replicaCount }}
@@ -20,24 +24,26 @@ spec:
         - name: rabbitmq
 
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
-
           imagePullPolicy: {{ .Values.image.pullPolicy }}
 
           ports:
-            - containerPort: 5672
-            - containerPort: 15672
+            - name: amqp
+              containerPort: 5672
+
+            - name: management
+              containerPort: 15672
 
           env:
             - name: RABBITMQ_DEFAULT_USER
               valueFrom:
                 secretKeyRef:
-                  name: rabbitmq-secret
+                  name: {{ .Values.rabbitmq.secretName }}
                   key: rabbitmq-username
 
             - name: RABBITMQ_DEFAULT_PASS
               valueFrom:
                 secretKeyRef:
-                  name: rabbitmq-secret
+                  name: {{ .Values.rabbitmq.secretName }}
                   key: rabbitmq-password
 
             - name: RABBITMQ_DEFAULT_VHOST
@@ -46,6 +52,38 @@ spec:
           volumeMounts:
             - name: rabbitmq-storage
               mountPath: /var/lib/rabbitmq
+
+          resources:
+            requests:
+              memory: {{ .Values.resources.requests.memory }}
+              cpu: {{ .Values.resources.requests.cpu }}
+
+            limits:
+              memory: {{ .Values.resources.limits.memory }}
+              cpu: {{ .Values.resources.limits.cpu }}
+
+          readinessProbe:
+            tcpSocket:
+              port: 5672
+
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 6
+
+          livenessProbe:
+            tcpSocket:
+              port: 5672
+
+            initialDelaySeconds: 30
+            periodSeconds: 20
+            timeoutSeconds: 5
+            failureThreshold: 6
+
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 1000
+            allowPrivilegeEscalation: false
 
       volumes:
         - name: rabbitmq-storage

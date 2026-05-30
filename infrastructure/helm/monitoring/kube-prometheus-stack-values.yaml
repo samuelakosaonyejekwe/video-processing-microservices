@@ -1,0 +1,137 @@
+prometheus:
+
+  enabled: true
+
+  prometheusSpec:
+
+    retention: ${PROMETHEUS_RETENTION}
+
+    scrapeInterval: ${PROMETHEUS_SCRAPE_INTERVAL}
+
+    evaluationInterval: ${PROMETHEUS_EVALUATION_INTERVAL}
+
+    serviceMonitorSelectorNilUsesHelmValues: false
+
+    podMonitorSelectorNilUsesHelmValues: false
+
+    storageSpec:
+
+      volumeClaimTemplate:
+
+        spec:
+
+          storageClassName: ${PROMETHEUS_STORAGE_CLASS}
+
+          accessModes:
+
+            - ReadWriteOnce
+
+          resources:
+
+            requests:
+
+              storage: ${PROMETHEUS_STORAGE_SIZE}
+
+alertmanager:
+
+  enabled: true
+
+  alertmanagerSpec:
+
+    storage:
+
+      volumeClaimTemplate:
+
+        spec:
+
+          storageClassName: ${ALERTMANAGER_STORAGE_CLASS}
+
+          accessModes:
+
+            - ReadWriteOnce
+
+          resources:
+
+            requests:
+
+              storage: ${ALERTMANAGER_STORAGE_SIZE}
+
+grafana:
+
+  enabled: true
+
+  adminUser: ${GRAFANA_ADMIN_USER}
+
+  adminPassword: ${GRAFANA_ADMIN_PASSWORD}
+
+  sidecar:
+
+    dashboards:
+
+      enabled: ${GRAFANA_SIDECAR_DASHBOARDS_ENABLED}
+
+    datasources:
+
+      enabled: ${GRAFANA_SIDECAR_DATASOURCES_ENABLED}
+
+  dashboardProviders:
+
+    dashboardproviders.yaml:
+
+      apiVersion: 1
+
+      providers:
+
+        - name: ${GRAFANA_DASHBOARD_PROVIDER_NAME}
+
+          orgId: ${GRAFANA_ORG_ID}
+
+          folder: ${GRAFANA_DASHBOARD_FOLDER}
+
+          type: file
+
+          disableDeletion: ${GRAFANA_DISABLE_DASHBOARD_DELETION}
+
+          editable: ${GRAFANA_DASHBOARD_EDITABLE}
+
+          options:
+
+            path: ${GRAFANA_DASHBOARD_PATH}
+
+  dashboardsConfigMaps:
+
+    default: ${GRAFANA_DASHBOARD_CONFIGMAP_NAME}
+
+  persistence:
+
+    enabled: true
+
+    storageClassName: ${GRAFANA_STORAGE_CLASS}
+
+    size: ${GRAFANA_STORAGE_SIZE}
+
+  service:
+
+    type: ${GRAFANA_SERVICE_TYPE}
+
+  ingress:
+
+    enabled: ${GRAFANA_INGRESS_ENABLED}
+
+    ingressClassName: ${GRAFANA_INGRESS_CLASS}
+
+    hosts:
+
+      - ${GRAFANA_HOST}
+
+kubeStateMetrics:
+
+  enabled: true
+
+nodeExporter:
+
+  enabled: true
+
+prometheusOperator:
+
+  enabled: true

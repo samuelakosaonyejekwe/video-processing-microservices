@@ -4,7 +4,7 @@ kind: Service
 
 metadata:
   name: auth-service
-  namespace: video-converter
+  namespace: ${K8S_NAMESPACE}
 
 spec:
 

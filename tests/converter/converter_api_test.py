@@ -1,6 +1,9 @@
+import os
 import requests
 
-BASE_URL = "http://localhost:8002"
+BASE_URL = os.getenv("CONVERTER_SERVICE_URL") or (
+    f"http://{os.getenv('CONVERTER_HOST', 'localhost')}:{os.getenv('CONVERTER_PORT', '8001')}"
+)
 
 
 def test_converter_root():

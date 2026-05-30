@@ -1,0 +1,33 @@
+{
+  "annotations": {
+    "list": []
+  },
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 0,
+  "panels": [],
+  "refresh": "${GRAFANA_DASHBOARD_REFRESH_INTERVAL}",
+  "schemaVersion": 39,
+  "style": "dark",
+  "tags": [
+    "${PROJECT_NAME}",
+    "${ENVIRONMENT}",
+    "kubernetes",
+    "eks",
+    "rabbitmq",
+    "keda",
+    "monitoring"
+  ],
+  "templating": {
+    "list": []
+  },
+  "time": {
+    "from": "${GRAFANA_DEFAULT_TIME_FROM}",
+    "to": "${GRAFANA_DEFAULT_TIME_TO}"
+  },
+  "timezone": "${GRAFANA_TIMEZONE}",
+  "title": "${PLATFORM_OVERVIEW_DASHBOARD_TITLE}",
+  "uid": "${PLATFORM_OVERVIEW_DASHBOARD_UID}",
+  "version": 1,
+  "weekStart": ""
+}

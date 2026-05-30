@@ -1,14 +1,14 @@
-db = db.getSiblingDB("video_converter");
+db = db.getSiblingDB(process.env.MONGO_DATABASE);
 
 db.createUser({
-    user: process.env.MONGO_USERNAME || "admin",
-    pwd: process.env.MONGO_PASSWORD || "changeme",
+    user: process.env.MONGO_USERNAME,
+    pwd: process.env.MONGO_PASSWORD,
     roles: [
         {
             role: "readWrite",
-            db: "video_converter"
+            db: process.env.MONGO_DATABASE
         }
     ]
 });
 
-print("MongoDB database initialized.");
+print("MongoDB database initialized successfully.");

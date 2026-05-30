@@ -1,0 +1,22 @@
+scan:
+  skip-dirs:
+    - .git
+    - .venv
+    - node_modules
+    - .terraform
+    - .pytest_cache
+  security-checks:
+    - vuln
+    - secret
+    - config
+
+severity:
+  - CRITICAL
+  - HIGH
+  - MEDIUM
+
+exit-code: 1
+
+ignore-unfixed: true
+
+format: table

@@ -50,7 +50,7 @@ bash scripts/deploy-eks.sh
 
 ```bash
 aws eks update-kubeconfig \
---region eu-west-2 \
+--region $AWS_REGION \
 --name video-converter-cluster
 ```
 

@@ -1,0 +1,98 @@
+apiVersion: networking.k8s.io/v1
+
+kind: NetworkPolicy
+
+metadata:
+  name: ${AUTH_NETWORK_POLICY_NAME}
+  namespace: ${K8S_NAMESPACE}
+
+  labels:
+    app: ${AUTH_APP_NAME}
+    component: ${AUTH_COMPONENT_NAME}
+    policy: ${AUTH_NETWORK_POLICY_LABEL}
+    environment: ${APP_ENV}
+
+spec:
+
+  podSelector:
+    matchLabels:
+      app: ${AUTH_APP_NAME}
+
+  policyTypes:
+    - Ingress
+    - Egress
+
+  ingress:
+
+    #
+    # ALLOW TRAFFIC FROM API GATEWAY
+    #
+    - from:
+
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: ${GATEWAY_NAMESPACE}
+
+          podSelector:
+            matchLabels:
+              app: ${GATEWAY_APP_NAME}
+
+      ports:
+
+        - protocol: TCP
+          port: ${AUTH_SERVICE_PORT}
+
+  egress:
+
+    #
+    # ALLOW POSTGRESQL DATABASE ACCESS
+    #
+    - to:
+
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: ${DATABASE_NAMESPACE}
+
+          podSelector:
+            matchLabels:
+              app: ${POSTGRES_APP_NAME}
+
+      ports:
+
+        - protocol: TCP
+          port: ${POSTGRES_PORT}
+
+    #
+    # ALLOW RABBITMQ ACCESS
+    #
+    - to:
+
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: ${MESSAGING_NAMESPACE}
+
+          podSelector:
+            matchLabels:
+              app: ${RABBITMQ_APP_NAME}
+
+      ports:
+
+        - protocol: TCP
+          port: ${RABBITMQ_AMQP_PORT}
+
+    #
+    # ALLOW DNS RESOLUTION
+    #
+    - to:
+
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: ${KUBE_SYSTEM_NAMESPACE}
+
+      ports:
+
+        - protocol: UDP
+          port: ${DNS_PORT}
+
+        - protocol: TCP
+          port: ${DNS_PORT}

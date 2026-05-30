@@ -8,4 +8,4 @@ spec:
 
   resources:
     requests:
-      storage: {{ .Values.storage.size }}
+      storage: {{ default "1Gi" .Values.storage.size }}

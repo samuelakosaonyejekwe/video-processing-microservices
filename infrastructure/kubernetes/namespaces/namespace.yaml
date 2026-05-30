@@ -1,6 +1,28 @@
 apiVersion: v1
-
 kind: Namespace
-
 metadata:
-  name: video-converter
+  name: ${APP_NAMESPACE}
+
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: ${MESSAGING_NAMESPACE}
+
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: ${MONITORING_NAMESPACE}
+
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: ${INGRESS_NAMESPACE}
+
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: ${JENKINS_NAMESPACE}

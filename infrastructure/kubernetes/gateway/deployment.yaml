@@ -1,47 +1,128 @@
 apiVersion: apps/v1
-
 kind: Deployment
 
 metadata:
   name: gateway-deployment
-  namespace: video-converter
+  namespace: ${K8S_NAMESPACE}
+  labels:
+    app: gateway
+    service: gateway-service
+    environment: ${APP_ENV}
 
 spec:
-
-  replicas: 2
+  replicas: ${GATEWAY_REPLICA_COUNT}
+  revisionHistoryLimit: 5
 
   selector:
     matchLabels:
       app: gateway
 
   template:
-
     metadata:
       labels:
         app: gateway
+        service: gateway-service
+        environment: ${APP_ENV}
 
     spec:
+      imagePullSecrets:
+        - name: ${DOCKER_REGISTRY_SECRET_NAME}
+
+      securityContext:
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
 
       containers:
-
         - name: gateway
-
-          image: your-dockerhub-username/gateway-service:latest
-
+          image: ${DOCKER_IMAGE_REGISTRY}/${DOCKER_IMAGE_NAMESPACE}/gateway-service:${IMAGE_TAG}
           imagePullPolicy: Always
 
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 10001
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop:
+                - ALL
+
           ports:
-            - containerPort: 8000
+            - name: http
+              containerPort: 8000
+              protocol: TCP
 
           envFrom:
             - configMapRef:
                 name: gateway-config
+            - secretRef:
+                name: gateway-secret
+
+          env:
+            - name: APP_ENV
+              valueFrom:
+                configMapKeyRef:
+                  name: gateway-config
+                  key: APP_ENV
+            - name: APP_PORT
+              valueFrom:
+                configMapKeyRef:
+                  name: gateway-config
+                  key: APP_PORT
+            - name: JWT_PUBLIC_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: jwt-secret
+                  key: JWT_PUBLIC_KEY
+            - name: JWT_ISSUER
+              valueFrom:
+                secretKeyRef:
+                  name: jwt-secret
+                  key: JWT_ISSUER
+            - name: JWT_AUDIENCE
+              valueFrom:
+                secretKeyRef:
+                  name: jwt-secret
+                  key: JWT_AUDIENCE
+            - name: RABBITMQ_URI
+              valueFrom:
+                secretKeyRef:
+                  name: rabbitmq-secret
+                  key: RABBITMQ_URI
 
           resources:
             requests:
               cpu: "200m"
               memory: "256Mi"
-
             limits:
               cpu: "500m"
               memory: "512Mi"
+
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            initialDelaySeconds: 30
+            periodSeconds: 20
+            timeoutSeconds: 5
+            failureThreshold: 5
+
+          volumeMounts:
+            - name: tmp-volume
+              mountPath: /tmp
+
+      volumes:
+        - name: tmp-volume
+          emptyDir: {}
+
+      restartPolicy: Always
+      terminationGracePeriodSeconds: 30

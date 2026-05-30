@@ -1,0 +1,78 @@
+apiVersion: v1
+kind: ConfigMap
+
+metadata:
+  name: notification-config
+  namespace: ${K8S_NAMESPACE}
+
+data:
+
+  # =========================================================
+  # APPLICATION
+  # =========================================================
+
+  APP_NAME: ${NOTIFICATION_APP_NAME}
+
+  APP_ENV: ${APP_ENV}
+
+  APP_PORT: "${NOTIFICATION_APP_PORT}"
+
+  LOG_LEVEL: ${LOG_LEVEL}
+
+  # =========================================================
+  # RABBITMQ
+  # =========================================================
+
+  RABBITMQ_HOST: ${RABBITMQ_HOST}
+
+  RABBITMQ_PORT: "${RABBITMQ_PORT}"
+
+  RABBITMQ_VHOST: ${RABBITMQ_VHOST}
+
+  NOTIFICATION_QUEUE: ${NOTIFICATION_QUEUE}
+
+  EMAIL_QUEUE: ${EMAIL_QUEUE}
+
+  RABBITMQ_EXCHANGE: ${RABBITMQ_EXCHANGE}
+
+  RABBITMQ_ROUTING_KEY: ${RABBITMQ_ROUTING_KEY}
+
+  # =========================================================
+  # SMTP / EMAIL
+  # =========================================================
+
+  SMTP_HOST: ${SMTP_HOST}
+
+  SMTP_PORT: "${SMTP_PORT}"
+
+  SMTP_FROM_EMAIL: ${SMTP_FROM_EMAIL}
+
+  # =========================================================
+  # WEBSOCKET
+  # =========================================================
+
+  WEBSOCKET_HOST: ${WEBSOCKET_HOST}
+
+  WEBSOCKET_PORT: "${WEBSOCKET_PORT}"
+
+  # =========================================================
+  # FRONTEND
+  # =========================================================
+
+  FRONTEND_URL: ${FRONTEND_URL}
+
+  API_BASE_URL: ${API_BASE_URL}
+
+  # =========================================================
+  # NOTIFICATION SETTINGS
+  # =========================================================
+
+  EMAIL_ENABLED: "${EMAIL_ENABLED}"
+
+  WEBSOCKET_NOTIFICATIONS_ENABLED: "${WEBSOCKET_NOTIFICATIONS_ENABLED}"
+
+  # =========================================================
+  # HEALTHCHECK
+  # =========================================================
+
+  HEALTHCHECK_PATH: ${HEALTHCHECK_PATH}

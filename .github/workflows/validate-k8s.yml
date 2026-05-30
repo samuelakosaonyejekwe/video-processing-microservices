@@ -1,0 +1,21 @@
+name: Kubernetes Validation
+
+on:
+  workflow_dispatch:
+
+jobs:
+
+  validate-k8s:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: azure/setup-kubectl@v4
+
+      - name: Kubernetes Dry Run Validation
+        run: |
+          find infrastructure/kubernetes -name '*.yaml' -o -name '*.yml' | while read file
+          do
+            kubectl apply --dry-run=client -f "$file"
+          done

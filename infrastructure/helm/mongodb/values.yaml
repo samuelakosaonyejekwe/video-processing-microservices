@@ -1,28 +1,223 @@
-replicaCount: 1
+replicaCount: ${MONGODB_REPLICA_COUNT}
 
 image:
-  repository: mongo
-  tag: "7.0"
-  pullPolicy: IfNotPresent
+
+  repository: ${MONGODB_IMAGE_REPOSITORY}
+
+  tag: "${MONGODB_IMAGE_TAG}"
+
+  pullPolicy: ${MONGODB_IMAGE_PULL_POLICY}
 
 service:
-  type: ClusterIP
-  port: 27017
 
-storage:
-  size: 5Gi
+  type: ${MONGODB_SERVICE_TYPE}
+
+  port: ${MONGODB_PORT}
+
+  annotations: {}
+
+persistence:
+
+  enabled: true
+
+  storageClass: ${STORAGE_CLASS}
+
   accessModes:
     - ReadWriteOnce
 
+  size: ${MONGODB_STORAGE_SIZE}
+
 mongodb:
-  username: admin
-  password: password123
-  database: video_converter
+
+  architecture: ${MONGODB_ARCHITECTURE}
+
+  auth:
+
+    enabled: true
+
+    rootUsername: ${MONGO_USERNAME}
+
+    rootPassword: ${MONGO_PASSWORD}
+
+    database: ${MONGO_DATABASE}
+
+  replicaCount: ${MONGODB_REPLICA_COUNT}
 
 resources:
+
   requests:
-    memory: "256Mi"
-    cpu: "250m"
+
+    cpu: "${MONGODB_CPU_REQUEST}"
+
+    memory: "${MONGODB_MEMORY_REQUEST}"
+
   limits:
-    memory: "512Mi"
-    cpu: "500m"
+
+    cpu: "${MONGODB_CPU_LIMIT}"
+
+    memory: "${MONGODB_MEMORY_LIMIT}"
+
+securityContext:
+
+  enabled: true
+
+  runAsNonRoot: true
+
+  runAsUser: 1001
+
+  runAsGroup: 1001
+
+  fsGroup: 1001
+
+  readOnlyRootFilesystem: false
+
+  allowPrivilegeEscalation: false
+
+  capabilities:
+
+    drop:
+      - ALL
+
+containerSecurityContext:
+
+  enabled: true
+
+  runAsNonRoot: true
+
+  allowPrivilegeEscalation: false
+
+networkPolicy:
+
+  enabled: true
+
+  allowExternal: false
+
+livenessProbe:
+
+  enabled: true
+
+  tcpSocket:
+
+    port: ${MONGODB_PORT}
+
+  initialDelaySeconds: 30
+
+  periodSeconds: 10
+
+  timeoutSeconds: 5
+
+  successThreshold: 1
+
+  failureThreshold: 6
+
+readinessProbe:
+
+  enabled: true
+
+  tcpSocket:
+
+    port: ${MONGODB_PORT}
+
+  initialDelaySeconds: 10
+
+  periodSeconds: 5
+
+  timeoutSeconds: 5
+
+  successThreshold: 1
+
+  failureThreshold: 6
+
+startupProbe:
+
+  enabled: true
+
+  tcpSocket:
+
+    port: ${MONGODB_PORT}
+
+  initialDelaySeconds: 10
+
+  periodSeconds: 10
+
+  timeoutSeconds: 5
+
+  successThreshold: 1
+
+  failureThreshold: 30
+
+autoscaling:
+
+  enabled: ${MONGODB_AUTOSCALING_ENABLED}
+
+  minReplicas: ${MONGODB_AUTOSCALING_MIN_REPLICAS}
+
+  maxReplicas: ${MONGODB_AUTOSCALING_MAX_REPLICAS}
+
+  targetCPUUtilizationPercentage: ${MONGODB_AUTOSCALING_TARGET_CPU}
+
+metrics:
+
+  enabled: ${MONGODB_METRICS_ENABLED}
+
+  serviceMonitor:
+
+    enabled: ${MONGODB_SERVICE_MONITOR_ENABLED}
+
+backup:
+
+  enabled: ${MONGODB_BACKUP_ENABLED}
+
+  schedule: "${MONGODB_BACKUP_SCHEDULE}"
+
+  retention: ${MONGODB_BACKUP_RETENTION}
+
+nodeSelector: {}
+
+tolerations: []
+
+affinity: {}
+
+podAnnotations: {}
+
+podLabels: {}
+
+serviceAccount:
+
+  create: false
+
+volumePermissions:
+
+  enabled: true
+
+arbiter:
+
+  enabled: ${MONGODB_ARBITER_ENABLED}
+
+replicaSetName: ${MONGODB_REPLICA_SET_NAME}
+
+extraEnvVars:
+
+  - name: MONGO_INITDB_DATABASE
+    value: "${MONGO_DATABASE}"
+
+  - name: MONGO_INITDB_ROOT_USERNAME
+    value: "${MONGO_USERNAME}"
+
+  - name: MONGO_INITDB_ROOT_PASSWORD
+    value: "${MONGO_PASSWORD}"
+
+configuration: |-
+  storage:
+    wiredTiger:
+      engineConfig:
+        cacheSizeGB: ${MONGODB_CACHE_SIZE_GB}
+
+  net:
+    maxIncomingConnections: ${MONGODB_MAX_CONNECTIONS}
+
+  operationProfiling:
+    mode: slowOp
+
+  setParameter:
+    enableLocalhostAuthBypass: false

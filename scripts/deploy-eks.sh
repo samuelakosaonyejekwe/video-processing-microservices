@@ -1,15 +1,16 @@
 #!/bin/bash
 
-CLUSTER_NAME="video-converter-cluster"
-REGION="eu-west-2"
+set -euo pipefail
 
-echo "Creating EKS Cluster..."
+aws eks update-kubeconfig \
+  --region "${AWS_REGION}" \
+  --name "${EKS_CLUSTER_NAME}"
 
-eksctl create cluster \
-  --name $CLUSTER_NAME \
-  --region $REGION \
-  --nodes 2 \
-  --node-type t3.medium \
-  --managed
+helm upgrade --install ${GATEWAY_RELEASE_NAME} \
+  ./infrastructure/helm/gateway \
+  --namespace "${K8S_NAMESPACE}" \
+  --create-namespace
 
-echo "EKS Cluster deployment completed."
+kubectl apply -f infrastructure/kubernetes/
+
+bash scripts/verify-deployment.sh

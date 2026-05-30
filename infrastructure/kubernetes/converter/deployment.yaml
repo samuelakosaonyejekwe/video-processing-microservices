@@ -1,62 +1,92 @@
 apiVersion: apps/v1
-
 kind: Deployment
 
 metadata:
-  name: converter-deployment
-  namespace: video-converter
+  name: converter-service
+  namespace: ${K8S_NAMESPACE}
 
 spec:
-
-  replicas: 2
+  replicas: ${CONVERTER_MIN_REPLICA_COUNT}
 
   selector:
     matchLabels:
-      app: converter
+      app: converter-service
 
   template:
-
     metadata:
       labels:
-        app: converter
+        app: converter-service
 
     spec:
+      imagePullSecrets:
+        - name: ${DOCKER_REGISTRY_SECRET_NAME}
 
       containers:
+        - name: converter-service
 
-        - name: converter
-
-          image: your-dockerhub-username/converter-service:latest
-
+          image: ${DOCKER_IMAGE_REGISTRY}/${DOCKER_IMAGE_NAMESPACE}/converter-service:${IMAGE_TAG}
           imagePullPolicy: Always
 
           ports:
             - containerPort: 8002
 
           envFrom:
-
             - configMapRef:
                 name: converter-config
 
-          volumeMounts:
+            - secretRef:
+                name: mongodb-secret
 
-            - name: converter-storage
+            - secretRef:
+                name: rabbitmq-secret
 
-              mountPath: /app/assets
+          env:
+            - name: MONGO_URI
+              valueFrom:
+                secretKeyRef:
+                  name: mongodb-secret
+                  key: MONGO_URI
+
+            - name: RABBITMQ_URI
+              valueFrom:
+                secretKeyRef:
+                  name: rabbitmq-secret
+                  key: RABBITMQ_URI
+
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8002
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8002
+            initialDelaySeconds: 15
+            periodSeconds: 5
+            timeoutSeconds: 3
+            failureThreshold: 3
+
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: false
+            runAsNonRoot: true
+            runAsUser: 1000
+
+            seccompProfile:
+              type: RuntimeDefault
 
           resources:
-
             requests:
-              cpu: "500m"
-              memory: "512Mi"
+              memory: "${CONVERTER_MEMORY_REQUEST}"
+              cpu: "${CONVERTER_CPU_REQUEST}"
 
             limits:
-              cpu: "1000m"
-              memory: "1Gi"
+              memory: "${CONVERTER_MEMORY_LIMIT}"
+              cpu: "${CONVERTER_CPU_LIMIT}"
 
-      volumes:
-
-        - name: converter-storage
-
-          persistentVolumeClaim:
-            claimName: converter-pvc
+      restartPolicy: Always

@@ -1,6 +1,9 @@
+import os
 import requests
 
-BASE_URL = "http://localhost:8003"
+BASE_URL = os.getenv("NOTIFICATION_SERVICE_URL") or (
+    f"http://{os.getenv('NOTIFICATION_HOST', 'localhost')}:{os.getenv('NOTIFICATION_PORT', '8002')}"
+)
 
 
 def test_notification_root():

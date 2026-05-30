@@ -1,0 +1,94 @@
+apiVersion: networking.k8s.io/v1
+
+kind: NetworkPolicy
+
+metadata:
+  name: ${INGRESS_NGINX_NETWORK_POLICY_NAME}
+  namespace: ${INGRESS_NGINX_NAMESPACE}
+
+  labels:
+    app: ${INGRESS_CONTROLLER_APP_NAME}
+    component: ${INGRESS_CONTROLLER_COMPONENT_NAME}
+    policy: ${INGRESS_NGINX_NETWORK_POLICY_LABEL}
+    environment: ${APP_ENV}
+
+spec:
+
+  podSelector:
+    matchLabels:
+      ${INGRESS_CONTROLLER_LABEL_KEY}: ${INGRESS_CONTROLLER_LABEL_VALUE}
+
+  policyTypes:
+    - Ingress
+    - Egress
+
+  ingress:
+
+    #
+    # ALLOW PUBLIC HTTP TRAFFIC
+    #
+    - ports:
+
+        - protocol: TCP
+          port: ${HTTP_PORT}
+
+    #
+    # ALLOW PUBLIC HTTPS TRAFFIC
+    #
+    - ports:
+
+        - protocol: TCP
+          port: ${HTTPS_PORT}
+
+    #
+    # ALLOW HEALTH CHECK TRAFFIC
+    #
+    - ports:
+
+        - protocol: TCP
+          port: ${INGRESS_CONTROLLER_HEALTH_PORT}
+
+  egress:
+
+    #
+    # ALLOW TRAFFIC TO API GATEWAY
+    #
+    - to:
+
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: ${GATEWAY_NAMESPACE}
+
+          podSelector:
+            matchLabels:
+              app: ${GATEWAY_APP_NAME}
+
+      ports:
+
+        - protocol: TCP
+          port: ${GATEWAY_SERVICE_PORT}
+
+    #
+    # ALLOW DNS RESOLUTION
+    #
+    - to:
+
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: ${KUBE_SYSTEM_NAMESPACE}
+
+      ports:
+
+        - protocol: UDP
+          port: ${DNS_PORT}
+
+        - protocol: TCP
+          port: ${DNS_PORT}
+
+    #
+    # ALLOW HTTPS OUTBOUND TRAFFIC
+    #
+    - ports:
+
+        - protocol: TCP
+          port: ${HTTPS_PORT}

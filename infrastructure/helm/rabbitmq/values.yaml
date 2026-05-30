@@ -1,32 +1,128 @@
-replicaCount: 1
+replicaCount: ${RABBITMQ_REPLICA_COUNT}
 
 image:
-  repository: rabbitmq
-  tag: "3.13-management"
-  pullPolicy: IfNotPresent
+
+  repository: ${RABBITMQ_IMAGE_REPOSITORY}
+
+  tag: ${RABBITMQ_IMAGE_TAG}
+
+  pullPolicy: ${RABBITMQ_IMAGE_PULL_POLICY}
 
 service:
-  type: ClusterIP
 
-  amqpPort: 5672
-  managementPort: 15672
+  type: ${RABBITMQ_SERVICE_TYPE}
 
-storage:
-  size: 5Gi
+  amqpPort: ${RABBITMQ_AMQP_PORT}
 
-rabbitmq:
-  username: admin
-  password: password123
-  vhost: /
-
-resources:
-  requests:
-    memory: "256Mi"
-    cpu: "250m"
-
-  limits:
-    memory: "512Mi"
-    cpu: "500m"
+  managementPort: ${RABBITMQ_MANAGEMENT_PORT}
 
 persistence:
-  enabled: true
+
+  enabled: ${RABBITMQ_PERSISTENCE_ENABLED}
+
+  storageClass: ${STORAGE_CLASS}
+
+  size: ${RABBITMQ_STORAGE_SIZE}
+
+rabbitmq:
+
+  auth:
+
+    username: ${RABBITMQ_USERNAME}
+
+
+resources:
+
+  requests:
+
+    cpu: ${RABBITMQ_REQUEST_CPU}
+
+    memory: ${RABBITMQ_REQUEST_MEMORY}
+
+  limits:
+
+    cpu: ${RABBITMQ_LIMIT_CPU}
+
+    memory: ${RABBITMQ_LIMIT_MEMORY}
+
+securityContext:
+
+  runAsNonRoot: true
+
+  runAsUser: ${RABBITMQ_RUN_AS_USER}
+
+  allowPrivilegeEscalation: false
+
+  readOnlyRootFilesystem: true
+
+livenessProbe:
+
+  tcpSocket:
+
+    port: ${RABBITMQ_AMQP_PORT}
+
+  initialDelaySeconds: ${RABBITMQ_LIVENESS_INITIAL_DELAY_SECONDS}
+
+  periodSeconds: ${RABBITMQ_LIVENESS_PERIOD_SECONDS}
+
+  timeoutSeconds: ${RABBITMQ_LIVENESS_TIMEOUT_SECONDS}
+
+  failureThreshold: ${RABBITMQ_LIVENESS_FAILURE_THRESHOLD}
+
+readinessProbe:
+
+  tcpSocket:
+
+    port: ${RABBITMQ_AMQP_PORT}
+
+  initialDelaySeconds: ${RABBITMQ_READINESS_INITIAL_DELAY_SECONDS}
+
+  periodSeconds: ${RABBITMQ_READINESS_PERIOD_SECONDS}
+
+  timeoutSeconds: ${RABBITMQ_READINESS_TIMEOUT_SECONDS}
+
+  failureThreshold: ${RABBITMQ_READINESS_FAILURE_THRESHOLD}
+
+startupProbe:
+
+  tcpSocket:
+
+    port: ${RABBITMQ_AMQP_PORT}
+
+  failureThreshold: ${RABBITMQ_STARTUP_FAILURE_THRESHOLD}
+
+  periodSeconds: ${RABBITMQ_STARTUP_PERIOD_SECONDS}
+
+autoscaling:
+
+  enabled: ${RABBITMQ_AUTOSCALING_ENABLED}
+
+  minReplicas: ${RABBITMQ_AUTOSCALING_MIN_REPLICAS}
+
+  maxReplicas: ${RABBITMQ_AUTOSCALING_MAX_REPLICAS}
+
+  targetCPUUtilizationPercentage: ${RABBITMQ_TARGET_CPU_UTILIZATION_PERCENTAGE}
+
+affinity:
+
+  podAntiAffinity:
+
+    preferredDuringSchedulingIgnoredDuringExecution:
+
+      - weight: 100
+
+        podAffinityTerm:
+
+          topologyKey: kubernetes.io/hostname
+
+          labelSelector:
+
+            matchExpressions:
+
+              - key: app
+
+                operator: In
+
+                values:
+
+                  - ${RABBITMQ_APP_LABEL}

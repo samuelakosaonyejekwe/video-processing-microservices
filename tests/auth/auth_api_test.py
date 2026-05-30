@@ -1,12 +1,31 @@
+import os
+import uuid
 import requests
 
-BASE_URL = "http://localhost:8001"
+BASE_URL = os.getenv("AUTH_SERVICE_URL") or (
+    f"http://{os.getenv('AUTH_HOST', 'localhost')}:{os.getenv('AUTH_PORT', '8000')}"
+)
+
+
+def generate_test_user():
+
+    unique_id = uuid.uuid4().hex[:8]
+
+    return {
+        "username": f"testuser_{unique_id}",
+        "email": f"testuser_{unique_id}@example.com",
+        "password": os.getenv(
+            "TEST_USER_PASSWORD",
+            "CHANGE_ME_IN_TEST_ENV"
+        )
+    }
 
 
 def test_auth_root():
 
     response = requests.get(
-        f"{BASE_URL}/"
+        f"{BASE_URL}/",
+        timeout=10
     )
 
     assert response.status_code == 200
@@ -18,32 +37,48 @@ def test_auth_root():
 
 def test_register():
 
-    payload = {
-        "username": "testuser",
-        "email": "testuser@example.com",
-        "password": "password123"
-    }
+    payload = generate_test_user()
 
     response = requests.post(
         f"{BASE_URL}/auth/register",
-        json=payload
+        json=payload,
+        timeout=10
     )
 
-    assert response.status_code == 200
+    assert response.status_code in [200, 201]
+
+    response_data = response.json()
+
+    assert response_data is not None
 
 
 def test_login():
 
-    payload = {
-        "email": "admin@example.com",
-        "password": "password123"
-    }
+    test_user = generate_test_user()
 
-    response = requests.post(
-        f"{BASE_URL}/auth/login",
-        json=payload
+    register_response = requests.post(
+        f"{BASE_URL}/auth/register",
+        json=test_user,
+        timeout=10
     )
 
-    assert response.status_code == 200
+    assert register_response.status_code in [200, 201]
 
-    assert "access_token" in response.json()
+    login_payload = {
+        "email": test_user["email"],
+        "password": test_user["password"]
+    }
+
+    login_response = requests.post(
+        f"{BASE_URL}/auth/login",
+        json=login_payload,
+        timeout=10
+    )
+
+    assert login_response.status_code == 200
+
+    response_data = login_response.json()
+
+    assert "access_token" in response_data
+
+    assert response_data["access_token"] is not None

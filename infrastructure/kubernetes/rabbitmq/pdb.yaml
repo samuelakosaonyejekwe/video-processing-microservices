@@ -1,0 +1,14 @@
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+
+metadata:
+  name: rabbitmq-pdb
+  namespace: ${K8S_NAMESPACE}
+
+spec:
+
+  minAvailable: 1
+
+  selector:
+    matchLabels:
+      app: rabbitmq

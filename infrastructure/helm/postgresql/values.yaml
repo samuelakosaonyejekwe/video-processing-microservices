@@ -1,31 +1,203 @@
-replicaCount: 1
+replicaCount: ${POSTGRES_REPLICA_COUNT}
 
 image:
-  repository: postgres
-  tag: "16"
-  pullPolicy: IfNotPresent
+
+  repository: ${POSTGRES_IMAGE_REPOSITORY}
+
+  tag: "${POSTGRES_IMAGE_TAG}"
+
+  pullPolicy: ${POSTGRES_IMAGE_PULL_POLICY}
 
 service:
-  type: ClusterIP
-  port: 5432
 
-storage:
-  size: 10Gi
+  type: ${POSTGRES_SERVICE_TYPE}
+
+  port: ${POSTGRES_PORT}
+
+  annotations: {}
+
+persistence:
+
+  enabled: true
+
+  storageClass: ${STORAGE_CLASS}
+
   accessModes:
     - ReadWriteOnce
 
+  size: ${POSTGRES_STORAGE_SIZE}
+
 postgresql:
-  username: postgres
-  password: password123
-  database: video_converter_db
+
+  auth:
+
+    username: ${POSTGRES_USER}
+
+
+    database: ${POSTGRES_DB}
+
+  architecture: ${POSTGRES_ARCHITECTURE}
+
+  replication:
+    enabled: ${POSTGRES_REPLICATION_ENABLED}
 
 resources:
-  requests:
-    memory: "256Mi"
-    cpu: "250m"
-  limits:
-    memory: "512Mi"
-    cpu: "500m"
 
-persistence:
+  requests:
+
+    cpu: "${POSTGRES_CPU_REQUEST}"
+
+    memory: "${POSTGRES_MEMORY_REQUEST}"
+
+  limits:
+
+    cpu: "${POSTGRES_CPU_LIMIT}"
+
+    memory: "${POSTGRES_MEMORY_LIMIT}"
+
+securityContext:
+
   enabled: true
+
+  runAsNonRoot: true
+
+  runAsUser: 1001
+
+  runAsGroup: 1001
+
+  fsGroup: 1001
+
+  readOnlyRootFilesystem: false
+
+  allowPrivilegeEscalation: false
+
+  capabilities:
+
+    drop:
+      - ALL
+
+containerSecurityContext:
+
+  enabled: true
+
+  runAsNonRoot: true
+
+  allowPrivilegeEscalation: false
+
+networkPolicy:
+
+  enabled: true
+
+  allowExternal: false
+
+livenessProbe:
+
+  enabled: true
+
+  tcpSocket:
+
+    port: ${POSTGRES_PORT}
+
+  initialDelaySeconds: 30
+
+  periodSeconds: 10
+
+  timeoutSeconds: 5
+
+  successThreshold: 1
+
+  failureThreshold: 6
+
+readinessProbe:
+
+  enabled: true
+
+  tcpSocket:
+
+    port: ${POSTGRES_PORT}
+
+  initialDelaySeconds: 10
+
+  periodSeconds: 10
+
+  timeoutSeconds: 5
+
+  successThreshold: 1
+
+  failureThreshold: 6
+
+startupProbe:
+
+  enabled: true
+
+  tcpSocket:
+
+    port: ${POSTGRES_PORT}
+
+  initialDelaySeconds: 10
+
+  periodSeconds: 10
+
+  timeoutSeconds: 5
+
+  successThreshold: 1
+
+  failureThreshold: 30
+
+autoscaling:
+
+  enabled: ${POSTGRES_AUTOSCALING_ENABLED}
+
+  minReplicas: ${POSTGRES_AUTOSCALING_MIN_REPLICAS}
+
+  maxReplicas: ${POSTGRES_AUTOSCALING_MAX_REPLICAS}
+
+  targetCPUUtilizationPercentage: ${POSTGRES_AUTOSCALING_TARGET_CPU}
+
+metrics:
+
+  enabled: ${POSTGRES_METRICS_ENABLED}
+
+  serviceMonitor:
+
+    enabled: ${POSTGRES_SERVICE_MONITOR_ENABLED}
+
+backup:
+
+  enabled: ${POSTGRES_BACKUP_ENABLED}
+
+  schedule: "${POSTGRES_BACKUP_SCHEDULE}"
+
+  retention: ${POSTGRES_BACKUP_RETENTION}
+
+nodeSelector: {}
+
+tolerations: []
+
+affinity: {}
+
+podAnnotations: {}
+
+podLabels: {}
+
+serviceAccount:
+
+  create: false
+
+volumePermissions:
+
+  enabled: true
+
+primary:
+
+  persistence:
+
+    enabled: true
+
+    size: ${POSTGRES_STORAGE_SIZE}
+
+  extendedConfiguration: |-
+    max_connections = ${POSTGRES_MAX_CONNECTIONS}
+    shared_buffers = ${POSTGRES_SHARED_BUFFERS}
+    effective_cache_size = ${POSTGRES_EFFECTIVE_CACHE_SIZE}
+    maintenance_work_mem = ${POSTGRES_MAINTENANCE_WORK_MEM}

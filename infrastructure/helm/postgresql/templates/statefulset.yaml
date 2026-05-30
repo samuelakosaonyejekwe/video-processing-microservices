@@ -1,58 +1,147 @@
 apiVersion: apps/v1
+
 kind: StatefulSet
+
 metadata:
+
   name: postgresql
 
 spec:
+
   serviceName: postgresql
-  replicas: 1
+
+  replicas: {{ .Values.replicaCount }}
 
   selector:
+
     matchLabels:
+
       app: postgresql
 
   template:
+
     metadata:
+
       labels:
+
         app: postgresql
 
+      annotations:
+
+        prometheus.io/scrape: "true"
+
+        prometheus.io/port: "5432"
+
     spec:
+
       containers:
+
         - name: postgresql
 
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
 
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+
           ports:
-            - containerPort: 5432
+
+            - name: postgresql
+
+              containerPort: 5432
 
           env:
+
             - name: POSTGRES_USER
+
               valueFrom:
+
                 secretKeyRef:
-                  name: postgresql-secret
-                  key: postgres-user
+
+                  name: postgres-secret
+
+                  key: POSTGRES_USER
 
             - name: POSTGRES_PASSWORD
+
               valueFrom:
+
                 secretKeyRef:
-                  name: postgresql-secret
-                  key: postgres-password
+
+                  name: postgres-secret
+
+                  key: POSTGRES_PASSWORD
 
             - name: POSTGRES_DB
-              value: {{ .Values.postgresql.database }}
+
+              valueFrom:
+
+                secretKeyRef:
+
+                  name: postgres-secret
+
+                  key: POSTGRES_DB
+
+          resources:
+
+            {{- toYaml .Values.resources | nindent 12 }}
+
+          livenessProbe:
+
+            tcpSocket:
+
+              port: 5432
+
+            initialDelaySeconds: 30
+
+            periodSeconds: 10
+
+            timeoutSeconds: 5
+
+            failureThreshold: 6
+
+          readinessProbe:
+
+            tcpSocket:
+
+              port: 5432
+
+            initialDelaySeconds: 10
+
+            periodSeconds: 5
+
+            timeoutSeconds: 3
+
+            failureThreshold: 6
+
+          startupProbe:
+
+            tcpSocket:
+
+              port: 5432
+
+            failureThreshold: 30
+
+            periodSeconds: 10
 
           volumeMounts:
-            - name: postgres-storage
+
+            - name: postgresql-data
+
               mountPath: /var/lib/postgresql/data
 
   volumeClaimTemplates:
+
     - metadata:
-        name: postgres-storage
+
+        name: postgresql-data
 
       spec:
+
         accessModes:
+
           - ReadWriteOnce
 
         resources:
+
           requests:
-            storage: {{ .Values.storage.size }}
+
+            storage: {{ .Values.persistence.size }}

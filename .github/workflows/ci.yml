@@ -1,0 +1,180 @@
+name: Global CI Pipeline
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+
+  pull_request:
+    branches:
+      - main
+      - develop
+
+permissions:
+  contents: read
+  security-events: write
+
+env:
+  PROJECT_NAME: ${{ vars.PROJECT_NAME }}
+  APP_ENV: ${{ vars.APP_ENV }}
+  AWS_REGION: ${{ vars.AWS_REGION }}
+  EKS_CLUSTER_NAME: ${{ vars.EKS_CLUSTER_NAME }}
+
+jobs:
+
+  validate-environment:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Validate Required Variables
+        run: |
+          REQUIRED_VARS=(
+            PROJECT_NAME
+            APP_ENV
+            AWS_REGION
+            EKS_CLUSTER_NAME
+          )
+
+          for VAR in "${REQUIRED_VARS[@]}"
+          do
+            if [ -z "${!VAR}" ]; then
+              echo "Missing variable: $VAR"
+              exit 1
+            fi
+          done
+
+      - name: Validate Required Secrets
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        run: |
+          REQUIRED_SECRETS=(
+            AWS_ACCESS_KEY_ID
+            AWS_SECRET_ACCESS_KEY
+          )
+
+          for SECRET in "${REQUIRED_SECRETS[@]}"
+          do
+            if [ -z "${!SECRET}" ]; then
+              echo "Missing secret: $SECRET"
+              exit 1
+            fi
+          done
+
+  python-quality:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install Quality Tools
+        run: |
+          python -m pip install --upgrade pip
+          pip install black flake8 pylint mypy pytest pytest-cov
+
+      - name: Run Black
+        run: black --check .
+
+      - name: Run Flake8
+        run: flake8 .
+
+      - name: Run Pytest Unit Tests
+        run: |
+          for service in gateway auth converter notification; do
+            echo "Testing $service..."
+            pip install -r services/$service/requirements.txt
+            (cd services/$service && pytest)
+          done
+
+      - name: Run Integration Test Suite
+        run: pytest
+
+  yaml-validation:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install yamllint
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y yamllint
+
+      - name: Validate YAML
+        run: |
+          yamllint .
+
+  docker-validation:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Validate Docker Compose
+        run: |
+          docker compose config
+
+      - name: Build Docker Images
+        run: |
+          docker compose build
+
+  terraform-validation:
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: infrastructure/terraform
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: hashicorp/setup-terraform@v3
+
+      - name: Terraform Format
+        run: terraform fmt -check -recursive
+
+      - name: Terraform Init
+        run: terraform init
+
+      - name: Terraform Validate
+        run: terraform validate
+
+  helm-validation:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Helm
+        uses: azure/setup-helm@v4
+
+      - name: Helm Lint
+        run: |
+          find infrastructure/helm -name Chart.yaml -exec dirname {} \; | while read chart
+          do
+            helm lint "$chart"
+          done
+
+  kubernetes-validation:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install kubectl
+        uses: azure/setup-kubectl@v4
+
+      - name: Validate Kubernetes Manifests
+        run: |
+          find infrastructure/kubernetes -name '*.yaml' -o -name '*.yml' | while read file
+          do
+            kubectl apply --dry-run=client -f "$file"
+          done

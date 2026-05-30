@@ -1,0 +1,27 @@
+{
+  "annotations": {
+    "list": []
+  },
+  "editable": true,
+  "graphTooltip": 0,
+  "panels": [],
+  "refresh": "${RABBITMQ_DASHBOARD_REFRESH_INTERVAL}",
+  "schemaVersion": 39,
+  "style": "dark",
+  "tags": [
+    "rabbitmq",
+    "${PROJECT_NAME}",
+    "${ENVIRONMENT}"
+  ],
+  "templating": {
+    "list": []
+  },
+  "time": {
+    "from": "${RABBITMQ_DASHBOARD_TIME_FROM}",
+    "to": "${RABBITMQ_DASHBOARD_TIME_TO}"
+  },
+  "timezone": "${GRAFANA_TIMEZONE}",
+  "title": "${RABBITMQ_DASHBOARD_TITLE}",
+  "uid": "${RABBITMQ_DASHBOARD_UID}",
+  "version": 1
+}

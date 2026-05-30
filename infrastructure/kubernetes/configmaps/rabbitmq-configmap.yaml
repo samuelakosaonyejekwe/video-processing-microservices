@@ -1,0 +1,41 @@
+kind: ConfigMap
+
+metadata:
+  name: rabbitmq-config
+  namespace: ${K8S_NAMESPACE}
+
+data:
+
+  # =========================================================
+  # RABBITMQ NETWORK
+  # =========================================================
+
+  RABBITMQ_HOST: ${RABBITMQ_HOST}
+
+  RABBITMQ_PORT: "${RABBITMQ_PORT}"
+
+  RABBITMQ_MANAGEMENT_PORT: "${RABBITMQ_MANAGEMENT_PORT}"
+
+  # =========================================================
+  # RABBITMQ VIRTUAL HOST
+  # =========================================================
+
+  RABBITMQ_VHOST: ${RABBITMQ_VHOST}
+
+  # =========================================================
+  # RABBITMQ MESSAGING
+  # =========================================================
+
+  VIDEO_UPLOAD_QUEUE: ${VIDEO_UPLOAD_QUEUE}
+
+  VIDEO_UPLOAD_RETRY_QUEUE: ${VIDEO_UPLOAD_RETRY_QUEUE}
+
+  VIDEO_UPLOAD_DLQ: ${VIDEO_UPLOAD_DLQ}
+
+  NOTIFICATION_QUEUE: ${NOTIFICATION_QUEUE}
+
+  EMAIL_QUEUE: ${EMAIL_QUEUE}
+
+  RABBITMQ_EXCHANGE: ${RABBITMQ_EXCHANGE}
+
+  RABBITMQ_ROUTING_KEY: ${RABBITMQ_ROUTING_KEY}

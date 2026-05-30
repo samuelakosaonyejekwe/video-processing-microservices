@@ -1,0 +1,91 @@
+apiVersion: autoscaling/v2
+
+kind: HorizontalPodAutoscaler
+
+metadata:
+
+  name: ${CONVERTER_HPA_NAME}
+
+  namespace: ${K8S_NAMESPACE}
+
+  labels:
+
+    app.kubernetes.io/name: ${CONVERTER_APP_NAME}
+
+    app.kubernetes.io/component: ${CONVERTER_COMPONENT_NAME}
+
+    app.kubernetes.io/part-of: ${PROJECT_NAME}
+
+    app.kubernetes.io/environment: ${APP_ENV}
+
+    app.kubernetes.io/managed-by: ${MANAGED_BY}
+
+spec:
+
+  scaleTargetRef:
+
+    apiVersion: apps/v1
+
+    kind: Deployment
+
+    name: ${CONVERTER_DEPLOYMENT_NAME}
+
+  minReplicas: ${CONVERTER_HPA_MIN_REPLICAS}
+
+  maxReplicas: ${CONVERTER_HPA_MAX_REPLICAS}
+
+  behavior:
+
+    scaleUp:
+
+      stabilizationWindowSeconds: ${CONVERTER_SCALE_UP_STABILIZATION_WINDOW_SECONDS}
+
+      selectPolicy: ${CONVERTER_SCALE_UP_SELECT_POLICY}
+
+      policies:
+
+        - type: ${CONVERTER_SCALE_UP_POLICY_TYPE}
+
+          value: ${CONVERTER_SCALE_UP_POLICY_VALUE}
+
+          periodSeconds: ${CONVERTER_SCALE_UP_PERIOD_SECONDS}
+
+    scaleDown:
+
+      stabilizationWindowSeconds: ${CONVERTER_SCALE_DOWN_STABILIZATION_WINDOW_SECONDS}
+
+      selectPolicy: ${CONVERTER_SCALE_DOWN_SELECT_POLICY}
+
+      policies:
+
+        - type: ${CONVERTER_SCALE_DOWN_POLICY_TYPE}
+
+          value: ${CONVERTER_SCALE_DOWN_POLICY_VALUE}
+
+          periodSeconds: ${CONVERTER_SCALE_DOWN_PERIOD_SECONDS}
+
+  metrics:
+
+    - type: Resource
+
+      resource:
+
+        name: cpu
+
+        target:
+
+          type: ${CONVERTER_CPU_TARGET_TYPE}
+
+          averageUtilization: ${CONVERTER_CPU_AVERAGE_UTILIZATION}
+
+    - type: Resource
+
+      resource:
+
+        name: memory
+
+        target:
+
+          type: ${CONVERTER_MEMORY_TARGET_TYPE}
+
+          averageUtilization: ${CONVERTER_MEMORY_AVERAGE_UTILIZATION}

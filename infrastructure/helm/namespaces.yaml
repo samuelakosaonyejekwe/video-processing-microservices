@@ -1,0 +1,32 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: video-converter
+
+---
+
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: messaging
+
+---
+
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: monitoring
+
+---
+
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: databases
+
+---
+
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: jenkins

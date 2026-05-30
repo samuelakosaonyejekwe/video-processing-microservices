@@ -1,0 +1,114 @@
+name: Terraform EKS Infrastructure
+
+on:
+
+  workflow_dispatch:
+
+  push:
+    branches:
+      - main
+
+    paths:
+      - 'infrastructure/terraform/**'
+      - '.github/workflows/terraform-eks.yml'
+
+env:
+
+  AWS_REGION: ${{ vars.AWS_REGION }}
+  PROJECT_NAME: ${{ vars.PROJECT_NAME }}
+  APP_ENV: ${{ vars.APP_ENV }}
+  EKS_CLUSTER_NAME: ${{ vars.EKS_CLUSTER_NAME }}
+  EKS_NODE_GROUP_NAME: ${{ vars.EKS_NODE_GROUP_NAME }}
+  EKS_INSTANCE_TYPE: ${{ vars.EKS_INSTANCE_TYPE }}
+  EKS_DESIRED_SIZE: ${{ vars.EKS_DESIRED_SIZE }}
+  EKS_MIN_SIZE: ${{ vars.EKS_MIN_SIZE }}
+  EKS_MAX_SIZE: ${{ vars.EKS_MAX_SIZE }}
+  TF_STATE_BUCKET: ${{ vars.TF_STATE_BUCKET }}
+  TF_LOCK_TABLE: ${{ vars.TF_LOCK_TABLE }}
+
+jobs:
+
+  terraform:
+
+    name: Terraform Infrastructure Provisioning
+
+    runs-on: ubuntu-latest
+
+    permissions:
+      id-token: write
+      contents: read
+
+    steps:
+
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Export Environment Aliases
+        run: |
+          chmod +x scripts/lib/env-aliases.sh
+          source scripts/lib/env-aliases.sh
+          env | sort >> "$GITHUB_ENV"
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ vars.AWS_REGION }}
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.8.5
+
+      - name: Make Scripts Executable
+        run: chmod +x infrastructure/terraform/scripts/*.sh
+
+      - name: Bootstrap Terraform Backend
+        run: infrastructure/terraform/scripts/bootstrap-terraform-backend.sh
+
+      - name: Generate terraform.tfvars
+        run: infrastructure/terraform/scripts/generate-terraform-tfvars.sh
+
+      - name: Terraform Init
+        run: infrastructure/terraform/scripts/terraform-init.sh
+
+      - name: Terraform Format Check
+        working-directory: infrastructure/terraform
+        run: terraform fmt -check -recursive
+
+      - name: Terraform Validate
+        working-directory: infrastructure/terraform
+        run: terraform validate
+
+      - name: Terraform Plan
+        run: infrastructure/terraform/scripts/terraform-plan.sh
+
+      - name: Run Service Unit Tests
+        run: |
+          pip install pytest
+          for service in gateway auth converter notification; do
+            pip install -r services/$service/requirements.txt
+            (cd services/$service && pytest -q)
+          done
+
+      - name: Terraform Apply
+        if: github.event_name == 'workflow_dispatch'
+        run: infrastructure/terraform/scripts/terraform-apply.sh
+
+      - name: Configure kubectl
+        if: github.event_name == 'workflow_dispatch'
+        run: infrastructure/terraform/scripts/configure-kubectl.sh
+
+      - name: Verify EKS Cluster
+        if: github.event_name == 'workflow_dispatch'
+        run: infrastructure/terraform/scripts/verify-eks.sh
+
+      - name: Output Infrastructure Information
+        if: github.event_name == 'workflow_dispatch'
+        working-directory: infrastructure/terraform
+        run: terraform output
+
+      - name: Cleanup Sensitive Files
+        if: always()
+        run: rm -f infrastructure/terraform/terraform.tfvars

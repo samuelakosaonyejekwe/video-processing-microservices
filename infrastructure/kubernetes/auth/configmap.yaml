@@ -1,21 +1,15 @@
 apiVersion: v1
-
 kind: ConfigMap
 
 metadata:
   name: auth-config
-  namespace: video-converter
+  namespace: ${K8S_NAMESPACE}
 
 data:
+  APP_NAME: "${AUTH_APP_NAME}"
+  APP_ENV: "${APP_ENV}"
+  APP_PORT: "${AUTH_PORT}"
 
-  APP_NAME: "auth-service"
-
-  APP_ENV: "production"
-
-  APP_PORT: "8001"
-
-  DATABASE_HOST: "postgresql"
-
-  DATABASE_PORT: "5432"
-
-  DATABASE_NAME: "video_converter_db"
+  DATABASE_HOST: "${POSTGRES_HOST}"
+  DATABASE_PORT: "${POSTGRES_PORT}"
+  DATABASE_NAME: "${POSTGRES_DB}"

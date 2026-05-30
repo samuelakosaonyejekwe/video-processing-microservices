@@ -1,0 +1,31 @@
+apiVersion: monitoring.coreos.com/v1
+
+kind: ServiceMonitor
+
+metadata:
+
+  name: ${AUTH_SERVICE_MONITOR_NAME}
+
+  namespace: ${MONITORING_NAMESPACE}
+
+spec:
+
+  selector:
+
+    matchLabels:
+
+      app: ${AUTH_APP_LABEL}
+
+  namespaceSelector:
+
+    matchNames:
+
+      - ${APPLICATION_NAMESPACE}
+
+  endpoints:
+
+    - port: ${AUTH_METRICS_PORT_NAME}
+
+      path: ${AUTH_METRICS_PATH}
+
+      interval: ${AUTH_METRICS_INTERVAL}

@@ -1,0 +1,25 @@
+apiVersion: keda.sh/v1alpha1
+kind: ScaledObject
+
+metadata:
+  name: converter-worker-scaler
+  namespace: ${K8S_NAMESPACE}
+
+spec:
+
+  scaleTargetRef:
+    name: converter-service
+
+  minReplicaCount: 1
+  maxReplicaCount: 10
+
+  triggers:
+
+    - type: rabbitmq
+
+      metadata:
+        protocol: amqp
+        queueName: ${VIDEO_UPLOAD_QUEUE}
+        mode: QueueLength
+        value: "5"
+        hostFromEnv: RABBITMQ_URI

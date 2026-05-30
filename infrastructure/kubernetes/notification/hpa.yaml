@@ -4,7 +4,7 @@ kind: HorizontalPodAutoscaler
 
 metadata:
   name: notification-hpa
-  namespace: video-converter
+  namespace: ${K8S_NAMESPACE}
 
 spec:
 

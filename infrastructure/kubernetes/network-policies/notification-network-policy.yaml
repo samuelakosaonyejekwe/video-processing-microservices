@@ -1,0 +1,88 @@
+apiVersion: networking.k8s.io/v1
+
+kind: NetworkPolicy
+
+metadata:
+  name: ${NOTIFICATION_NETWORK_POLICY_NAME}
+  namespace: ${K8S_NAMESPACE}
+
+  labels:
+    app: ${NOTIFICATION_APP_NAME}
+    component: ${NOTIFICATION_COMPONENT_NAME}
+    policy: ${NOTIFICATION_NETWORK_POLICY_LABEL}
+    environment: ${APP_ENV}
+
+spec:
+
+  podSelector:
+    matchLabels:
+      app: ${NOTIFICATION_APP_NAME}
+
+  policyTypes:
+    - Ingress
+    - Egress
+
+  ingress:
+
+    #
+    # ALLOW PROMETHEUS SCRAPING
+    #
+    - from:
+
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: ${MONITORING_NAMESPACE}
+
+          podSelector:
+            matchLabels:
+              ${PROMETHEUS_LABEL_KEY}: ${PROMETHEUS_LABEL_VALUE}
+
+      ports:
+
+        - protocol: TCP
+          port: ${NOTIFICATION_SERVICE_PORT}
+
+  egress:
+
+    #
+    # ALLOW RABBITMQ COMMUNICATION
+    #
+    - to:
+
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: ${MESSAGING_NAMESPACE}
+
+          podSelector:
+            matchLabels:
+              app: ${RABBITMQ_APP_NAME}
+
+      ports:
+
+        - protocol: TCP
+          port: ${RABBITMQ_AMQP_PORT}
+
+    #
+    # ALLOW DNS RESOLUTION
+    #
+    - to:
+
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: ${KUBE_SYSTEM_NAMESPACE}
+
+      ports:
+
+        - protocol: UDP
+          port: ${DNS_PORT}
+
+        - protocol: TCP
+          port: ${DNS_PORT}
+
+    #
+    # ALLOW SMTP OUTBOUND EMAIL
+    #
+    - ports:
+
+        - protocol: TCP
+          port: ${SMTP_PORT}
