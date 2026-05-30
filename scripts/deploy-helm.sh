@@ -29,7 +29,7 @@ deploy_chart() {
     --namespace "${namespace}" \
     --create-namespace \
     -f "${GLOBAL_VALUES}" \
-    --no-wait
+    --wait=false
   recycle_failed_pods "${namespace}"
   kubectl rollout status "statefulset/${release}" -n "${namespace}" --timeout=1200s
 }
