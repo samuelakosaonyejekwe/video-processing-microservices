@@ -27,7 +27,11 @@ kubectl apply -f "${RENDERED}/namespaces/"
 kubectl apply -f "${RENDERED}/serviceaccounts/"
 kubectl apply -f "${RENDERED}/secrets/"
 
-# Deploy workloads first; full configmaps applied last so they are not overwritten.
+if [ -d "${RENDERED}/configmaps" ]; then
+  kubectl apply -f "${RENDERED}/configmaps/"
+fi
+
+# Deploy workloads after configmaps so pods can mount required config.
 for dir in gateway auth converter notification redis; do
   for kind in deployment service ingress hpa; do
     manifest="${RENDERED}/${dir}/${kind}.yaml"
@@ -36,9 +40,5 @@ for dir in gateway auth converter notification redis; do
     fi
   done
 done
-
-if [ -d "${RENDERED}/configmaps" ]; then
-  kubectl apply -f "${RENDERED}/configmaps/"
-fi
 
 echo "Microservices deployed successfully."
