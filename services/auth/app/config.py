@@ -28,6 +28,7 @@ POSTGRES_PASSWORD = first_env("POSTGRES_PASSWORD")
 
 POSTGRES_SSL_MODE = first_env("POSTGRES_SSL_MODE", default="prefer")
 
+
 def load_pem(env_name: str, file_path: str) -> str:
 
     value = os.getenv(env_name)

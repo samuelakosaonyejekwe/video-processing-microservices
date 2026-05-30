@@ -2,20 +2,10 @@ import smtplib
 
 from email.mime.text import MIMEText
 
-from app.config import (
-    SMTP_HOST,
-    SMTP_PORT,
-    SMTP_EMAIL,
-    SMTP_PASSWORD,
-    SMTP_SECURE
-)
+from app.config import SMTP_HOST, SMTP_PORT, SMTP_EMAIL, SMTP_PASSWORD, SMTP_SECURE
 
 
-def send_email(
-    recipient: str,
-    subject: str,
-    body: str
-) -> bool:
+def send_email(recipient: str, subject: str, body: str) -> bool:
 
     msg = MIMEText(body, "html")
 
@@ -33,11 +23,7 @@ def send_email(
 
         if SMTP_SECURE:
 
-            server = smtplib.SMTP_SSL(
-                SMTP_HOST,
-                SMTP_PORT,
-                timeout=30
-            )
+            server = smtplib.SMTP_SSL(SMTP_HOST, SMTP_PORT, timeout=30)
 
         # ======================================================
         # TLS (Port 587)
@@ -45,11 +31,7 @@ def send_email(
 
         else:
 
-            server = smtplib.SMTP(
-                SMTP_HOST,
-                SMTP_PORT,
-                timeout=30
-            )
+            server = smtplib.SMTP(SMTP_HOST, SMTP_PORT, timeout=30)
 
             server.starttls()
 
@@ -57,20 +39,13 @@ def send_email(
         # LOGIN
         # ======================================================
 
-        server.login(
-            SMTP_EMAIL,
-            SMTP_PASSWORD
-        )
+        server.login(SMTP_EMAIL, SMTP_PASSWORD)
 
         # ======================================================
         # SEND EMAIL
         # ======================================================
 
-        server.sendmail(
-            SMTP_EMAIL,
-            [recipient],
-            msg.as_string()
-        )
+        server.sendmail(SMTP_EMAIL, [recipient], msg.as_string())
 
         return True
 

@@ -10,12 +10,8 @@ def first_env(*names: str, default: str = "") -> str:
     return default
 
 
-AUTH_SERVICE_HOST = first_env(
-    "AUTH_SERVICE_HOST", "AUTH_HOST", default="auth-service"
-)
-AUTH_SERVICE_PORT = first_env(
-    "AUTH_SERVICE_PORT", "AUTH_PORT", default="8001"
-)
+AUTH_SERVICE_HOST = first_env("AUTH_SERVICE_HOST", "AUTH_HOST", default="auth-service")
+AUTH_SERVICE_PORT = first_env("AUTH_SERVICE_PORT", "AUTH_PORT", default="8001")
 CONVERTER_SERVICE_HOST = first_env(
     "CONVERTER_SERVICE_HOST", "CONVERTER_HOST", default="converter-service"
 )
@@ -29,11 +25,10 @@ if not JWT_AUTH_SERVICE_URL:
 
 CONVERTER_SERVICE_URL = first_env("CONVERTER_SERVICE_URL")
 if not CONVERTER_SERVICE_URL:
-    CONVERTER_SERVICE_URL = (
-        f"http://{CONVERTER_SERVICE_HOST}:{CONVERTER_SERVICE_PORT}"
-    )
+    CONVERTER_SERVICE_URL = f"http://{CONVERTER_SERVICE_HOST}:{CONVERTER_SERVICE_PORT}"
 
 APP_ENV = first_env("APP_ENV", "ENVIRONMENT", default="production")
+
 
 def load_pem(env_name: str, file_path: str) -> str:
 
@@ -76,15 +71,11 @@ if JWT_ALGORITHM not in SUPPORTED_JWT_ALGORITHMS:
 
 if JWT_ALGORITHM.startswith("RS") and not JWT_PUBLIC_KEY:
     if APP_ENV == "production":
-        raise RuntimeError(
-            "JWT_PUBLIC_KEY is required for RS256-based authentication"
-        )
+        raise RuntimeError("JWT_PUBLIC_KEY is required for RS256-based authentication")
 
 if JWT_ALGORITHM.startswith("HS") and not JWT_SECRET:
     if APP_ENV == "production":
-        raise RuntimeError(
-            "JWT_SECRET is required for HS256-based authentication"
-        )
+        raise RuntimeError("JWT_SECRET is required for HS256-based authentication")
 
 RATE_LIMIT_MAX_REQUESTS = int(first_env("RATE_LIMIT_MAX_REQUESTS", default="100"))
 
@@ -105,6 +96,4 @@ NOTIFICATION_QUEUE = first_env(
     "RABBITMQ_NOTIFICATION_QUEUE",
     default="notification-queue",
 )
-GATEWAY_EVENTS_QUEUE = first_env(
-    "GATEWAY_EVENTS_QUEUE", default="gateway-events-queue"
-)
+GATEWAY_EVENTS_QUEUE = first_env("GATEWAY_EVENTS_QUEUE", default="gateway-events-queue")

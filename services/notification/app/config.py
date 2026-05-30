@@ -20,11 +20,7 @@ SMTP_USERNAME = (
 
 SMTP_PASSWORD = os.getenv("SMTP_PASSWORD", "")
 
-SMTP_EMAIL = (
-    os.getenv("SMTP_EMAIL")
-    or os.getenv("SMTP_USERNAME")
-    or SMTP_USERNAME
-)
+SMTP_EMAIL = os.getenv("SMTP_EMAIL") or os.getenv("SMTP_USERNAME") or SMTP_USERNAME
 
 SMTP_SECURE = os.getenv("SMTP_SECURE", "true").strip().lower() in (
     "true",
@@ -32,9 +28,7 @@ SMTP_SECURE = os.getenv("SMTP_SECURE", "true").strip().lower() in (
     "yes",
 )
 
-SMTP_FROM_EMAIL = os.getenv(
-    "SMTP_FROM_EMAIL", SMTP_USERNAME
-).strip()
+SMTP_FROM_EMAIL = os.getenv("SMTP_FROM_EMAIL", SMTP_USERNAME).strip()
 
 RABBITMQ_HOST = os.getenv("RABBITMQ_HOST", "rabbitmq")
 
@@ -48,9 +42,7 @@ RABBITMQ_PASSWORD = os.getenv("RABBITMQ_PASSWORD") or os.getenv(
     "RABBITMQ_DEFAULT_PASS", "guest"
 )
 
-NOTIFICATION_QUEUE = os.getenv(
-    "NOTIFICATION_QUEUE", "notification-queue"
-).strip()
+NOTIFICATION_QUEUE = os.getenv("NOTIFICATION_QUEUE", "notification-queue").strip()
 
 RABBITMQ_URI = os.getenv("RABBITMQ_URI")
 
@@ -58,15 +50,12 @@ if not RABBITMQ_URI:
     encoded_user = quote_plus(RABBITMQ_USERNAME)
     encoded_password = quote_plus(RABBITMQ_PASSWORD)
     RABBITMQ_URI = (
-        f"amqp://{encoded_user}:{encoded_password}"
-        f"@{RABBITMQ_HOST}:{RABBITMQ_PORT}/"
+        f"amqp://{encoded_user}:{encoded_password}" f"@{RABBITMQ_HOST}:{RABBITMQ_PORT}/"
     )
 
 _cors_raw = os.getenv("CORS_ALLOWED_ORIGINS", "")
 CORS_ALLOWED_ORIGINS = [
-    origin.strip()
-    for origin in _cors_raw.split(",")
-    if origin.strip()
+    origin.strip() for origin in _cors_raw.split(",") if origin.strip()
 ] or ["http://localhost:3000"]
 
 if APP_ENV == "production":
@@ -78,6 +67,5 @@ if APP_ENV == "production":
     missing = [k for k, v in required.items() if not v]
     if missing:
         raise ValueError(
-            "Missing required environment variables: "
-            + ", ".join(missing)
+            "Missing required environment variables: " + ", ".join(missing)
         )

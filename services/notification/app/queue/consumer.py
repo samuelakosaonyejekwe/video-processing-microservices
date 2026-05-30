@@ -5,18 +5,11 @@ import time
 
 import pika
 
-from pika.exceptions import (
-    AMQPConnectionError,
-    AMQPChannelError
-)
+from pika.exceptions import AMQPConnectionError, AMQPChannelError
 
 from app.email.send_email import send_email
 
-
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s %(levelname)s %(message)s"
-)
+logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
 
 logger = logging.getLogger(__name__)
 
@@ -25,32 +18,17 @@ class NotificationConsumer:
 
     def __init__(self):
 
-        self.rabbitmq_host = os.getenv(
-            "RABBITMQ_HOST"
-        )
+        self.rabbitmq_host = os.getenv("RABBITMQ_HOST")
 
-        self.rabbitmq_port = int(
-            os.getenv(
-                "RABBITMQ_PORT",
-                "5672"
-            )
-        )
+        self.rabbitmq_port = int(os.getenv("RABBITMQ_PORT", "5672"))
 
-        self.rabbitmq_username = os.getenv(
-            "RABBITMQ_USERNAME"
-        )
+        self.rabbitmq_username = os.getenv("RABBITMQ_USERNAME")
 
-        self.rabbitmq_password = os.getenv(
-            "RABBITMQ_PASSWORD"
-        )
+        self.rabbitmq_password = os.getenv("RABBITMQ_PASSWORD")
 
-        self.notification_queue = os.getenv(
-            "NOTIFICATION_QUEUE"
-        )
+        self.notification_queue = os.getenv("NOTIFICATION_QUEUE")
 
-        self.retry_queue = os.getenv(
-            "VIDEO_UPLOAD_RETRY_QUEUE"
-        )
+        self.retry_queue = os.getenv("VIDEO_UPLOAD_RETRY_QUEUE")
 
         self.connection = None
 
@@ -63,16 +41,11 @@ class NotificationConsumer:
     def validate_environment(self):
 
         required_environment_variables = [
-
             "RABBITMQ_HOST",
-
             "RABBITMQ_PORT",
-
             "RABBITMQ_USERNAME",
-
             "RABBITMQ_PASSWORD",
-
-            "NOTIFICATION_QUEUE"
+            "NOTIFICATION_QUEUE",
         ]
 
         missing_variables = []
@@ -86,8 +59,7 @@ class NotificationConsumer:
         if missing_variables:
 
             raise ValueError(
-                f"Missing required environment variables: "
-                f"{missing_variables}"
+                f"Missing required environment variables: " f"{missing_variables}"
             )
 
     def connect(self):
@@ -96,13 +68,10 @@ class NotificationConsumer:
 
             try:
 
-                logger.info(
-                    "Connecting to RabbitMQ..."
-                )
+                logger.info("Connecting to RabbitMQ...")
 
                 credentials = pika.PlainCredentials(
-                    username=self.rabbitmq_username,
-                    password=self.rabbitmq_password
+                    username=self.rabbitmq_username, password=self.rabbitmq_password
                 )
 
                 parameters = pika.ConnectionParameters(
@@ -112,150 +81,83 @@ class NotificationConsumer:
                     heartbeat=600,
                     blocked_connection_timeout=300,
                     connection_attempts=5,
-                    retry_delay=5
+                    retry_delay=5,
                 )
 
-                self.connection = pika.BlockingConnection(
-                    parameters
-                )
+                self.connection = pika.BlockingConnection(parameters)
 
                 self.channel = self.connection.channel()
 
-                self.channel.queue_declare(
-                    queue=self.notification_queue,
-                    durable=True
-                )
+                self.channel.queue_declare(queue=self.notification_queue, durable=True)
 
-                self.channel.basic_qos(
-                    prefetch_count=1
-                )
+                self.channel.basic_qos(prefetch_count=1)
 
-                logger.info(
-                    "RabbitMQ consumer connected successfully"
-                )
+                logger.info("RabbitMQ consumer connected successfully")
 
                 break
 
-            except (
-                AMQPConnectionError,
-                AMQPChannelError
-            ) as error:
+            except (AMQPConnectionError, AMQPChannelError) as error:
 
-                logger.error(
-                    "RabbitMQ connection failed: %s",
-                    str(error)
-                )
+                logger.error("RabbitMQ connection failed: %s", str(error))
 
-                logger.info(
-                    "Retrying connection in 5 seconds..."
-                )
+                logger.info("Retrying connection in 5 seconds...")
 
                 time.sleep(5)
 
     def reconnect(self):
 
-        logger.warning(
-            "Reconnecting RabbitMQ consumer..."
-        )
+        logger.warning("Reconnecting RabbitMQ consumer...")
 
         self.close()
 
         self.connect()
 
-    def process_message(
-        self,
-        ch,
-        method,
-        properties,
-        body
-    ):
+    def process_message(self, ch, method, properties, body):
 
         try:
 
             message = json.loads(body)
 
-            recipient = message.get(
-                "payload",
-                {}
-            ).get(
-                "recipient"
-            )
+            recipient = message.get("payload", {}).get("recipient")
 
-            subject = message.get(
-                "payload",
-                {}
-            ).get(
-                "subject"
-            )
+            subject = message.get("payload", {}).get("subject")
 
-            content = message.get(
-                "payload",
-                {}
-            ).get(
-                "content"
-            )
+            content = message.get("payload", {}).get("content")
 
-            correlation_id = message.get(
-                "correlation_id"
-            )
+            correlation_id = message.get("correlation_id")
 
             if not recipient:
 
-                raise ValueError(
-                    "Missing recipient in notification payload"
-                )
+                raise ValueError("Missing recipient in notification payload")
 
-            send_email(
-                recipient,
-                subject,
-                content
-            )
+            send_email(recipient, subject, content)
 
             logger.info(
-                "Notification sent successfully "
-                "to %s "
-                "correlation_id=%s",
+                "Notification sent successfully " "to %s " "correlation_id=%s",
                 recipient,
-                correlation_id
+                correlation_id,
             )
 
-            ch.basic_ack(
-                delivery_tag=method.delivery_tag
-            )
+            ch.basic_ack(delivery_tag=method.delivery_tag)
 
         except Exception as error:
 
-            logger.error(
-                "Notification processing failed: %s",
-                str(error)
-            )
+            logger.error("Notification processing failed: %s", str(error))
 
             try:
 
                 self.channel.basic_publish(
-
                     exchange="",
-
                     routing_key=self.retry_queue,
-
                     body=body,
-
-                    properties=pika.BasicProperties(
-                        delivery_mode=2
-                    )
+                    properties=pika.BasicProperties(delivery_mode=2),
                 )
 
             except Exception as retry_error:
 
-                logger.error(
-                    "Retry queue publish failed: %s",
-                    str(retry_error)
-                )
+                logger.error("Retry queue publish failed: %s", str(retry_error))
 
-            ch.basic_nack(
-                delivery_tag=method.delivery_tag,
-                requeue=False
-            )
+            ch.basic_nack(delivery_tag=method.delivery_tag, requeue=False)
 
     def start(self):
 
@@ -263,23 +165,18 @@ class NotificationConsumer:
 
             try:
 
-                logger.info(
-                    "Waiting for notification events..."
-                )
+                logger.info("Waiting for notification events...")
 
                 self.channel.basic_consume(
                     queue=self.notification_queue,
-                    on_message_callback=self.process_message
+                    on_message_callback=self.process_message,
                 )
 
                 self.channel.start_consuming()
 
             except Exception as error:
 
-                logger.error(
-                    "Consumer crashed: %s",
-                    str(error)
-                )
+                logger.error("Consumer crashed: %s", str(error))
 
                 time.sleep(5)
 
@@ -301,16 +198,11 @@ class NotificationConsumer:
 
                     self.connection.close()
 
-            logger.info(
-                "RabbitMQ consumer connection closed"
-            )
+            logger.info("RabbitMQ consumer connection closed")
 
         except Exception as error:
 
-            logger.error(
-                "Failed to close RabbitMQ connection: %s",
-                str(error)
-            )
+            logger.error("Failed to close RabbitMQ connection: %s", str(error))
 
 
 _consumer_instance = None

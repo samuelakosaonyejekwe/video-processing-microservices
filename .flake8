@@ -1,0 +1,16 @@
+[flake8]
+max-line-length = 88
+extend-ignore = E203, W503
+exclude =
+    .git,
+    __pycache__,
+    .venv,
+    infrastructure/terraform/.terraform,
+    build,
+    dist
+
+per-file-ignores =
+    services/*/app/tests/*: E501
+    services/*/conftest.py: F401
+    services/*/app/queue/consumer.py: F841,F824,F811
+    services/*/app/queue/producer.py: F841

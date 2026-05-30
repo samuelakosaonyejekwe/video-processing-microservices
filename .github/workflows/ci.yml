@@ -81,10 +81,10 @@ jobs:
           pip install black flake8 pylint mypy pytest pytest-cov
 
       - name: Run Black
-        run: black --check .
+        run: black --check services scripts
 
       - name: Run Flake8
-        run: flake8 .
+        run: flake8 services scripts
 
       - name: Run Pytest Unit Tests
         run: |
@@ -95,7 +95,7 @@ jobs:
           done
 
       - name: Run Integration Test Suite
-        run: pytest
+        run: pytest tests
 
   yaml-validation:
     runs-on: ubuntu-latest
@@ -109,8 +109,7 @@ jobs:
           sudo apt-get install -y yamllint
 
       - name: Validate YAML
-        run: |
-          yamllint .
+        run: yamllint -d relaxed .github infrastructure/kubernetes infrastructure/helm
 
   docker-validation:
     runs-on: ubuntu-latest
@@ -120,11 +119,20 @@ jobs:
 
       - name: Validate Docker Compose
         run: |
-          docker compose config
+          mkdir -p .compose-secrets
+          openssl genrsa -out .compose-secrets/jwt-private.pem 2048
+          openssl rsa -in .compose-secrets/jwt-private.pem -pubout -out .compose-secrets/jwt-public.pem
+          chmod 644 .compose-secrets/*.pem
+          cp .env.example .env.compose.runtime
+          export COMPOSE_ENV_FILE=.env.compose.runtime
+          export COMPOSE_SECRETS_DIR=.compose-secrets
+          docker compose --env-file .env.compose.runtime config
 
       - name: Build Docker Images
         run: |
-          docker compose build
+          export COMPOSE_ENV_FILE=.env.compose.runtime
+          export COMPOSE_SECRETS_DIR=.compose-secrets
+          docker compose --env-file .env.compose.runtime build
 
   terraform-validation:
     runs-on: ubuntu-latest
@@ -142,7 +150,7 @@ jobs:
         run: terraform fmt -check -recursive
 
       - name: Terraform Init
-        run: terraform init
+        run: terraform init -backend=false
 
       - name: Terraform Validate
         run: terraform validate

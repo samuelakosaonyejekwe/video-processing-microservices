@@ -4,7 +4,7 @@ from pydantic import BaseModel
 from app.jwt.token import (
     create_access_token,
     create_refresh_token,
-    verify_refresh_token
+    verify_refresh_token,
 )
 
 router = APIRouter(prefix="/auth", tags=["Authentication"])
@@ -22,8 +22,7 @@ async def refresh_token(body: RefreshRequest):
 
     if not payload:
         raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid refresh token"
+            status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid refresh token"
         )
 
     user_id = payload.get("sub")
@@ -31,22 +30,15 @@ async def refresh_token(body: RefreshRequest):
 
     if not user_id:
         raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid refresh token"
+            status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid refresh token"
         )
 
-    new_access_token = create_access_token(
-        user_id=user_id,
-        role=role
-    )
+    new_access_token = create_access_token(user_id=user_id, role=role)
 
-    new_refresh_token = create_refresh_token(
-        user_id=user_id,
-        role=role
-    )
+    new_refresh_token = create_refresh_token(user_id=user_id, role=role)
 
     return {
         "access_token": new_access_token,
         "refresh_token": new_refresh_token,
-        "token_type": "bearer"
+        "token_type": "bearer",
     }

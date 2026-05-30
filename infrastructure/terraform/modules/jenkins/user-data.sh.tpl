@@ -63,7 +63,7 @@ unzip awscliv2.zip
 KUBECTL_VERSION=$(curl -s ${kubectl_stable_url})
 
 curl -LO \
-  "${kubectl_binary_base_url}/${KUBECTL_VERSION}/bin/linux/amd64/kubectl"
+  "${kubectl_binary_base_url}/$${KUBECTL_VERSION}/bin/linux/amd64/kubectl"
 
 chmod +x kubectl
 

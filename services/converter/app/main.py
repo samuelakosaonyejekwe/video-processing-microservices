@@ -10,11 +10,15 @@ from app.queue.consumer import start_consumer
 from app.routes.convert import router as convert_router
 from app.routes.health import router as health_router
 
-_enable_docs = os.getenv("ENABLE_SWAGGER", "false").lower() in (
-    "true",
-    "1",
-    "yes",
-) or APP_ENV != "production"
+_enable_docs = (
+    os.getenv("ENABLE_SWAGGER", "false").lower()
+    in (
+        "true",
+        "1",
+        "yes",
+    )
+    or APP_ENV != "production"
+)
 
 
 @asynccontextmanager

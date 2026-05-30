@@ -38,6 +38,17 @@ gh_var_set() {
   fi
 }
 
+gh_var_sync() {
+  local name="$1"
+  local value="$2"
+  if [ -z "$value" ]; then
+    echo "SKIP var $name (empty)"
+    return
+  fi
+  gh variable set "$name" --body "$value"
+  echo "SYNC var $name"
+}
+
 gh_secret_set() {
   local name="$1"
   local value="$2"
@@ -77,8 +88,10 @@ gh_var_set JWT_ACTIVE_KID "${JWT_ACTIVE_KID:-default}"
 gh_var_set VIDEO_UPLOAD_QUEUE "${VIDEO_UPLOAD_QUEUE:-}"
 gh_var_set NOTIFICATION_QUEUE "${NOTIFICATION_QUEUE:-}"
 gh_var_set GATEWAY_EVENTS_QUEUE "${GATEWAY_EVENTS_QUEUE:-}"
-gh_var_set S3_UPLOAD_BUCKET "${S3_UPLOAD_BUCKET:-$(gh variable get AWS_S3_VIDEO_BUCKET 2>/dev/null || gh variable get AWS_S3_BUCKET 2>/dev/null || echo '')}"
-gh_var_set S3_AUDIO_BUCKET "${S3_AUDIO_BUCKET:-$(gh variable get AWS_S3_AUDIO_BUCKET 2>/dev/null || echo '')}"
+S3_UPLOAD_VALUE="${S3_UPLOAD_BUCKET:-$(gh variable get AWS_S3_VIDEO_BUCKET 2>/dev/null || gh variable get AWS_S3_BUCKET 2>/dev/null || echo '')}"
+S3_AUDIO_VALUE="${S3_AUDIO_BUCKET:-$(gh variable get AWS_S3_AUDIO_BUCKET 2>/dev/null || echo '')}"
+gh_var_sync S3_UPLOAD_BUCKET "${S3_UPLOAD_VALUE}"
+gh_var_sync S3_AUDIO_BUCKET "${S3_AUDIO_VALUE}"
 gh_var_set VPC_CIDR "${VPC_CIDR:-}"
 gh_var_set PUBLIC_SUBNET_CIDRS "${PUBLIC_SUBNET_CIDRS:-}"
 gh_var_set AVAILABILITY_ZONES "${AVAILABILITY_ZONES:-}"

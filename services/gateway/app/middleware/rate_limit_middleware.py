@@ -37,9 +37,7 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
 
             timestamps = self._requests[client_ip]
 
-            self._requests[client_ip] = [
-                ts for ts in timestamps if ts > window_start
-            ]
+            self._requests[client_ip] = [ts for ts in timestamps if ts > window_start]
 
             if len(self._requests[client_ip]) >= RATE_LIMIT_MAX_REQUESTS:
                 return JSONResponse(

@@ -18,21 +18,18 @@ def register(user: User):
     db: Session = SessionLocal()
 
     try:
-        existing = db.query(UserEntity).filter(
-            UserEntity.email == user.email
-        ).first()
+        existing = db.query(UserEntity).filter(UserEntity.email == user.email).first()
 
         if existing:
             raise HTTPException(
-                status_code=status.HTTP_409_CONFLICT,
-                detail="Email already registered"
+                status_code=status.HTTP_409_CONFLICT, detail="Email already registered"
             )
 
         db_user = UserEntity(
             username=user.username,
             email=user.email,
             password=pwd_context.hash(user.password),
-            role="user"
+            role="user",
         )
 
         db.add(db_user)
@@ -44,15 +41,14 @@ def register(user: User):
             "user": {
                 "id": db_user.id,
                 "username": db_user.username,
-                "email": db_user.email
-            }
+                "email": db_user.email,
+            },
         }
 
     except IntegrityError as exc:
         db.rollback()
         raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail="User already exists"
+            status_code=status.HTTP_409_CONFLICT, detail="User already exists"
         ) from exc
 
     finally:

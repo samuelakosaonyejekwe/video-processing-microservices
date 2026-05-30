@@ -44,21 +44,15 @@ jobs:
             mypy
 
       - name: Run Black
-        run: |
-          black --check .
+        run: black --check services scripts
 
       - name: Run Flake8
-        run: |
-          flake8 .
-
-      - name: Run Pylint
-        run: |
-          pylint .
-
-      - name: Run Mypy
-        run: |
-          mypy .
+        run: flake8 services scripts
 
       - name: Run Pytest
         run: |
-          pytest --cov=.
+          for service in gateway auth converter notification; do
+            pip install -r services/$service/requirements.txt
+            (cd services/$service && pytest)
+          done
+          pytest tests

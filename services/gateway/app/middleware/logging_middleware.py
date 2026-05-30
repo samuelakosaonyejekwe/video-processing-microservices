@@ -11,9 +11,7 @@ class LoggingMiddleware(BaseHTTPMiddleware):
 
     async def dispatch(self, request: Request, call_next):
 
-        logger.info(
-            f"{request.method} request to {request.url.path}"
-        )
+        logger.info(f"{request.method} request to {request.url.path}")
 
         response = await call_next(request)
 

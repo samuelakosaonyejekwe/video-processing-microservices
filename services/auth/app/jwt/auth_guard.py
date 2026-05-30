@@ -9,12 +9,7 @@ from jose import jwt
 from jose import JWTError
 from jose import ExpiredSignatureError
 
-from app.config import (
-    JWT_PUBLIC_KEY,
-    JWT_ISSUER,
-    JWT_AUDIENCE,
-    JWT_ALGORITHM
-)
+from app.config import JWT_PUBLIC_KEY, JWT_ISSUER, JWT_AUDIENCE, JWT_ALGORITHM
 
 # =========================================================
 # SECURITY SCHEME
@@ -27,9 +22,7 @@ security = HTTPBearer()
 # =========================================================
 
 
-async def is_token_revoked(
-    jti: str
-) -> bool:
+async def is_token_revoked(jti: str) -> bool:
 
     # Replace later with:
     #
@@ -49,47 +42,30 @@ async def is_token_revoked(
 # =========================================================
 
 
-async def verify_token(
-
-    credentials: HTTPAuthorizationCredentials = Depends(
-        security
-    )
-
-):
+async def verify_token(credentials: HTTPAuthorizationCredentials = Depends(security)):
 
     token = credentials.credentials
 
     try:
 
         payload = jwt.decode(
-
             token,
-
             JWT_PUBLIC_KEY,
-
             algorithms=[JWT_ALGORITHM],
-
             issuer=JWT_ISSUER,
-
-            audience=JWT_AUDIENCE
+            audience=JWT_AUDIENCE,
         )
 
-        if payload.get(
-            "type"
-        ) != "access":
+        if payload.get("type") != "access":
 
             raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Invalid token type"
+                status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token type"
             )
 
-        if await is_token_revoked(
-            payload["jti"]
-        ):
+        if await is_token_revoked(payload["jti"]):
 
             raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Token revoked"
+                status_code=status.HTTP_401_UNAUTHORIZED, detail="Token revoked"
             )
 
         return payload
@@ -97,31 +73,19 @@ async def verify_token(
     except ExpiredSignatureError as exc:
 
         raise HTTPException(
-
-            status_code=status.HTTP_401_UNAUTHORIZED,
-
-            detail="Token expired"
-
+            status_code=status.HTTP_401_UNAUTHORIZED, detail="Token expired"
         ) from exc
 
     except JWTError as exc:
 
         raise HTTPException(
-
-            status_code=status.HTTP_401_UNAUTHORIZED,
-
-            detail="Invalid token"
-
+            status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token"
         ) from exc
 
     except Exception as exc:
 
         raise HTTPException(
-
-            status_code=status.HTTP_401_UNAUTHORIZED,
-
-            detail="Authentication failed"
-
+            status_code=status.HTTP_401_UNAUTHORIZED, detail="Authentication failed"
         ) from exc
 
 
@@ -134,15 +98,10 @@ def require_roles(*roles):
 
     def role_checker(user):
 
-        if user.get(
-            "role"
-        ) not in roles:
+        if user.get("role") not in roles:
 
             raise HTTPException(
-
-                status_code=status.HTTP_403_FORBIDDEN,
-
-                detail="Insufficient permissions"
+                status_code=status.HTTP_403_FORBIDDEN, detail="Insufficient permissions"
             )
 
         return user
@@ -155,14 +114,6 @@ def require_roles(*roles):
 # =========================================================
 
 
-async def auth_guard(
+async def auth_guard(credentials: HTTPAuthorizationCredentials = Depends(security)):
 
-    credentials: HTTPAuthorizationCredentials = Depends(
-        security
-    )
-
-):
-
-    return await verify_token(
-        credentials
-    )
+    return await verify_token(credentials)

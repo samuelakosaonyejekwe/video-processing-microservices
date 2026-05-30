@@ -33,7 +33,9 @@ S3_AUDIO_BUCKET = first_env(
     "S3_AUDIO_BUCKET", "AWS_S3_AUDIO_BUCKET", default=S3_UPLOAD_BUCKET
 )
 
-TEMP_PROCESSING_DIR = first_env("TEMP_PROCESSING_DIR", "TEMP_STORAGE_PATH", default="/tmp/video-converter")
+TEMP_PROCESSING_DIR = first_env(
+    "TEMP_PROCESSING_DIR", "TEMP_STORAGE_PATH", default="/tmp/video-converter"
+)
 
 RABBITMQ_HOST = first_env("RABBITMQ_HOST", default="rabbitmq")
 
@@ -57,17 +59,13 @@ NOTIFICATION_QUEUE = first_env(
     default="notification-queue",
 )
 
-GATEWAY_EVENTS_QUEUE = first_env(
-    "GATEWAY_EVENTS_QUEUE", default="gateway-events-queue"
-)
+GATEWAY_EVENTS_QUEUE = first_env("GATEWAY_EVENTS_QUEUE", default="gateway-events-queue")
 
 VIDEO_COMPLETED_QUEUE = first_env(
     "VIDEO_COMPLETED_QUEUE", default="video-completed-queue"
 )
 
-VIDEO_FAILED_QUEUE = first_env(
-    "VIDEO_FAILED_QUEUE", default="video-failed-queue"
-)
+VIDEO_FAILED_QUEUE = first_env("VIDEO_FAILED_QUEUE", default="video-failed-queue")
 
 MONGO_HOST = first_env("MONGO_HOST", default="mongodb")
 

@@ -24,11 +24,15 @@ async def lifespan(app: FastAPI):
     print("Shutting down gateway service...")
 
 
-_enable_docs = os.getenv("ENABLE_SWAGGER", "false").lower() in (
-    "true",
-    "1",
-    "yes",
-) or APP_ENV != "production"
+_enable_docs = (
+    os.getenv("ENABLE_SWAGGER", "false").lower()
+    in (
+        "true",
+        "1",
+        "yes",
+    )
+    or APP_ENV != "production"
+)
 
 app = FastAPI(
     title=APP_NAME,

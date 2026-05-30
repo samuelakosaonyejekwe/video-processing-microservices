@@ -8,11 +8,15 @@ from prometheus_fastapi_instrumentator import Instrumentator
 from app.config import APP_ENV, APP_NAME, APP_PORT, CORS_ALLOWED_ORIGINS
 from app.queue.consumer import start_consumer
 
-_enable_docs = os.getenv("ENABLE_SWAGGER", "false").lower() in (
-    "true",
-    "1",
-    "yes",
-) or APP_ENV != "production"
+_enable_docs = (
+    os.getenv("ENABLE_SWAGGER", "false").lower()
+    in (
+        "true",
+        "1",
+        "yes",
+    )
+    or APP_ENV != "production"
+)
 
 
 @asynccontextmanager

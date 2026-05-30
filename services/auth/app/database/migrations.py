@@ -7,16 +7,14 @@ def create_users_table():
 
     cursor = connection.cursor()
 
-    cursor.execute(
-        """
+    cursor.execute("""
         CREATE TABLE IF NOT EXISTS users (
             id SERIAL PRIMARY KEY,
             username VARCHAR(100),
             email VARCHAR(255) UNIQUE,
             password VARCHAR(255)
         );
-        """
-    )
+        """)
 
     connection.commit()
 

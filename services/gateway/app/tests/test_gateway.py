@@ -10,9 +10,7 @@ def test_root():
 
     assert response.status_code == 200
 
-    assert response.json() == {
-        "message": "Gateway Service Running"
-    }
+    assert response.json() == {"message": "Gateway Service Running"}
 
 
 def test_health():

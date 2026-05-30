@@ -59,9 +59,7 @@ class AuthMiddleware(BaseHTTPMiddleware):
 
         try:
             decode_key = (
-                JWT_PUBLIC_KEY
-                if JWT_ALGORITHM.startswith("RS")
-                else JWT_SECRET
+                JWT_PUBLIC_KEY if JWT_ALGORITHM.startswith("RS") else JWT_SECRET
             )
 
             payload = jwt.decode(

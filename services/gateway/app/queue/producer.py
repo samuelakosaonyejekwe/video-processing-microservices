@@ -6,16 +6,9 @@ import uuid
 
 import pika
 
-from pika.exceptions import (
-    AMQPConnectionError,
-    AMQPChannelError
-)
+from pika.exceptions import AMQPConnectionError, AMQPChannelError
 
-
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s %(levelname)s %(message)s"
-)
+logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
 
 logger = logging.getLogger(__name__)
 
@@ -24,40 +17,21 @@ class GatewayEventProducer:
 
     def __init__(self):
 
-        self.rabbitmq_host = os.getenv(
-            "RABBITMQ_HOST"
-        )
+        self.rabbitmq_host = os.getenv("RABBITMQ_HOST")
 
-        self.rabbitmq_port = int(
-            os.getenv(
-                "RABBITMQ_PORT",
-                "5672"
-            )
-        )
+        self.rabbitmq_port = int(os.getenv("RABBITMQ_PORT", "5672"))
 
-        self.rabbitmq_username = os.getenv(
-            "RABBITMQ_USERNAME"
-        )
+        self.rabbitmq_username = os.getenv("RABBITMQ_USERNAME")
 
-        self.rabbitmq_password = os.getenv(
-            "RABBITMQ_PASSWORD"
-        )
+        self.rabbitmq_password = os.getenv("RABBITMQ_PASSWORD")
 
-        self.video_upload_queue = os.getenv(
-            "VIDEO_UPLOAD_QUEUE"
-        )
+        self.video_upload_queue = os.getenv("VIDEO_UPLOAD_QUEUE")
 
-        self.notification_queue = os.getenv(
-            "NOTIFICATION_QUEUE"
-        )
+        self.notification_queue = os.getenv("NOTIFICATION_QUEUE")
 
-        self.gateway_events_queue = os.getenv(
-            "GATEWAY_EVENTS_QUEUE"
-        )
+        self.gateway_events_queue = os.getenv("GATEWAY_EVENTS_QUEUE")
 
-        self.rabbitmq_exchange = os.getenv(
-            "RABBITMQ_EXCHANGE"
-        )
+        self.rabbitmq_exchange = os.getenv("RABBITMQ_EXCHANGE")
 
         self.connection = None
 
@@ -70,22 +44,14 @@ class GatewayEventProducer:
     def validate_environment(self):
 
         required_environment_variables = [
-
             "RABBITMQ_HOST",
-
             "RABBITMQ_PORT",
-
             "RABBITMQ_USERNAME",
-
             "RABBITMQ_PASSWORD",
-
             "VIDEO_UPLOAD_QUEUE",
-
             "NOTIFICATION_QUEUE",
-
             "GATEWAY_EVENTS_QUEUE",
-
-            "RABBITMQ_EXCHANGE"
+            "RABBITMQ_EXCHANGE",
         ]
 
         missing_variables = []
@@ -99,8 +65,7 @@ class GatewayEventProducer:
         if missing_variables:
 
             raise ValueError(
-                f"Missing required environment variables: "
-                f"{missing_variables}"
+                f"Missing required environment variables: " f"{missing_variables}"
             )
 
     def connect(self):
@@ -109,13 +74,10 @@ class GatewayEventProducer:
 
             try:
 
-                logger.info(
-                    "Connecting gateway producer to RabbitMQ..."
-                )
+                logger.info("Connecting gateway producer to RabbitMQ...")
 
                 credentials = pika.PlainCredentials(
-                    username=self.rabbitmq_username,
-                    password=self.rabbitmq_password
+                    username=self.rabbitmq_username, password=self.rabbitmq_password
                 )
 
                 parameters = pika.ConnectionParameters(
@@ -125,275 +87,167 @@ class GatewayEventProducer:
                     heartbeat=600,
                     blocked_connection_timeout=300,
                     connection_attempts=5,
-                    retry_delay=5
+                    retry_delay=5,
                 )
 
-                self.connection = pika.BlockingConnection(
-                    parameters
-                )
+                self.connection = pika.BlockingConnection(parameters)
 
                 self.channel = self.connection.channel()
 
-                self.channel.queue_declare(
-                    queue=self.video_upload_queue,
-                    durable=True
-                )
+                self.channel.queue_declare(queue=self.video_upload_queue, durable=True)
+
+                self.channel.queue_declare(queue=self.notification_queue, durable=True)
 
                 self.channel.queue_declare(
-                    queue=self.notification_queue,
-                    durable=True
+                    queue=self.gateway_events_queue, durable=True
                 )
 
-                self.channel.queue_declare(
-                    queue=self.gateway_events_queue,
-                    durable=True
-                )
-
-                logger.info(
-                    "Gateway RabbitMQ producer connected successfully"
-                )
+                logger.info("Gateway RabbitMQ producer connected successfully")
 
                 break
 
-            except (
-                AMQPConnectionError,
-                AMQPChannelError
-            ) as error:
+            except (AMQPConnectionError, AMQPChannelError) as error:
 
-                logger.error(
-                    "RabbitMQ connection failed: %s",
-                    str(error)
-                )
+                logger.error("RabbitMQ connection failed: %s", str(error))
 
-                logger.info(
-                    "Retrying RabbitMQ connection in 5 seconds..."
-                )
+                logger.info("Retrying RabbitMQ connection in 5 seconds...")
 
                 time.sleep(5)
 
     def reconnect(self):
 
-        logger.warning(
-            "Reconnecting gateway producer..."
-        )
+        logger.warning("Reconnecting gateway producer...")
 
         self.close()
 
         self.connect()
 
-    def publish_video_upload_event(
-        self,
-        user_id,
-        filename,
-        s3_key,
-        content_type
-    ):
+    def publish_video_upload_event(self, user_id, filename, s3_key, content_type):
 
         try:
 
-            correlation_id = str(
-                uuid.uuid4()
-            )
+            correlation_id = str(uuid.uuid4())
 
             event = {
-
-                "event_id": str(
-                    uuid.uuid4()
-                ),
-
+                "event_id": str(uuid.uuid4()),
                 "correlation_id": correlation_id,
-
                 "event_type": "video_uploaded",
-
-                "timestamp": int(
-                    time.time()
-                ),
-
+                "timestamp": int(time.time()),
                 "payload": {
-
                     "user_id": user_id,
-
                     "filename": filename,
-
                     "s3_key": s3_key,
-
-                    "content_type": content_type
-                }
+                    "content_type": content_type,
+                },
             }
 
             self.channel.basic_publish(
-
                 exchange="",
-
                 routing_key=self.video_upload_queue,
-
                 body=json.dumps(event),
-
                 properties=pika.BasicProperties(
-
                     delivery_mode=2,
-
                     content_type="application/json",
-
-                    correlation_id=correlation_id
-                )
+                    correlation_id=correlation_id,
+                ),
             )
 
             logger.info(
-                "Video upload event published successfully "
-                "correlation_id=%s",
-                correlation_id
+                "Video upload event published successfully " "correlation_id=%s",
+                correlation_id,
             )
 
             return correlation_id
 
         except Exception as error:
 
-            logger.error(
-                "Failed to publish video upload event: %s",
-                str(error)
-            )
+            logger.error("Failed to publish video upload event: %s", str(error))
 
             self.reconnect()
 
             raise error
 
-    def publish_notification_event(
-        self,
-        recipient,
-        subject,
-        content
-    ):
+    def publish_notification_event(self, recipient, subject, content):
 
         try:
 
-            correlation_id = str(
-                uuid.uuid4()
-            )
+            correlation_id = str(uuid.uuid4())
 
             event = {
-
-                "event_id": str(
-                    uuid.uuid4()
-                ),
-
+                "event_id": str(uuid.uuid4()),
                 "correlation_id": correlation_id,
-
                 "event_type": "notification_requested",
-
-                "timestamp": int(
-                    time.time()
-                ),
-
+                "timestamp": int(time.time()),
                 "payload": {
-
                     "recipient": recipient,
-
                     "subject": subject,
-
-                    "content": content
-                }
+                    "content": content,
+                },
             }
 
             self.channel.basic_publish(
-
                 exchange="",
-
                 routing_key=self.notification_queue,
-
                 body=json.dumps(event),
-
                 properties=pika.BasicProperties(
-
                     delivery_mode=2,
-
                     content_type="application/json",
-
-                    correlation_id=correlation_id
-                )
+                    correlation_id=correlation_id,
+                ),
             )
 
             logger.info(
-                "Notification event published successfully "
-                "correlation_id=%s",
-                correlation_id
+                "Notification event published successfully " "correlation_id=%s",
+                correlation_id,
             )
 
             return correlation_id
 
         except Exception as error:
 
-            logger.error(
-                "Failed to publish notification event: %s",
-                str(error)
-            )
+            logger.error("Failed to publish notification event: %s", str(error))
 
             self.reconnect()
 
             raise error
 
-    def publish_gateway_event(
-        self,
-        event_type,
-        payload
-    ):
+    def publish_gateway_event(self, event_type, payload):
 
         try:
 
-            correlation_id = str(
-                uuid.uuid4()
-            )
+            correlation_id = str(uuid.uuid4())
 
             event = {
-
-                "event_id": str(
-                    uuid.uuid4()
-                ),
-
+                "event_id": str(uuid.uuid4()),
                 "correlation_id": correlation_id,
-
                 "event_type": event_type,
-
-                "timestamp": int(
-                    time.time()
-                ),
-
-                "payload": payload
+                "timestamp": int(time.time()),
+                "payload": payload,
             }
 
             self.channel.basic_publish(
-
                 exchange="",
-
                 routing_key=self.gateway_events_queue,
-
                 body=json.dumps(event),
-
                 properties=pika.BasicProperties(
-
                     delivery_mode=2,
-
                     content_type="application/json",
-
-                    correlation_id=correlation_id
-                )
+                    correlation_id=correlation_id,
+                ),
             )
 
             logger.info(
                 "Gateway event published successfully "
                 "event_type=%s correlation_id=%s",
                 event_type,
-                correlation_id
+                correlation_id,
             )
 
             return correlation_id
 
         except Exception as error:
 
-            logger.error(
-                "Failed to publish gateway event: %s",
-                str(error)
-            )
+            logger.error("Failed to publish gateway event: %s", str(error))
 
             self.reconnect()
 
@@ -415,16 +269,11 @@ class GatewayEventProducer:
 
                     self.connection.close()
 
-            logger.info(
-                "Gateway RabbitMQ producer connection closed"
-            )
+            logger.info("Gateway RabbitMQ producer connection closed")
 
         except Exception as error:
 
-            logger.error(
-                "Failed to close RabbitMQ connection: %s",
-                str(error)
-            )
+            logger.error("Failed to close RabbitMQ connection: %s", str(error))
 
 
 _producer_instance = None

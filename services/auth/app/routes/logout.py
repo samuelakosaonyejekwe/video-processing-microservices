@@ -8,56 +8,34 @@ from fastapi import status
 
 from app.jwt.auth_guard import verify_token
 
-router = APIRouter(
-    prefix="/auth",
-    tags=["Authentication"]
-)
+router = APIRouter(prefix="/auth", tags=["Authentication"])
 
 # =========================================================
 # LOGOUT ROUTE
 # =========================================================
 
 
-@router.post(
-    "/logout"
-)
-async def logout(
-
-    payload: dict = Depends(
-        verify_token
-    )
-):
+@router.post("/logout")
+async def logout(payload: dict = Depends(verify_token)):
 
     try:
 
-        user_id = payload.get(
-            "sub"
-        )
+        user_id = payload.get("sub")
 
-        jti = payload.get(
-            "jti"
-        )
+        jti = payload.get("jti")
 
-        token_type = payload.get(
-            "type"
-        )
+        token_type = payload.get("type")
 
         if not user_id:
 
             raise HTTPException(
-
-                status_code=status.HTTP_401_UNAUTHORIZED,
-
-                detail="Invalid token payload"
+                status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token payload"
             )
 
         if token_type != "access":
 
             raise HTTPException(
-
-                status_code=status.HTTP_401_UNAUTHORIZED,
-
-                detail="Invalid token type"
+                status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token type"
             )
 
         # =================================================
@@ -81,18 +59,11 @@ async def logout(
         # =================================================
 
         return {
-
             "success": True,
-
             "message": "Logout successful",
-
             "user_id": user_id,
-
             "revoked_token_id": jti,
-
-            "timestamp": datetime.now(
-                timezone.utc
-            ).isoformat()
+            "timestamp": datetime.now(timezone.utc).isoformat(),
         }
 
     except HTTPException:
@@ -102,9 +73,5 @@ async def logout(
     except Exception as exc:
 
         raise HTTPException(
-
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-
-            detail="Logout failed"
-
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Logout failed"
         ) from exc

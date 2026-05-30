@@ -1,10 +1,6 @@
 import asyncio
 import websockets
-from app.config import (
-    WEBSOCKET_HOST,
-    WEBSOCKET_PORT
-)
-
+from app.config import WEBSOCKET_HOST, WEBSOCKET_PORT
 
 connected_clients = set()
 
@@ -17,9 +13,7 @@ async def handler(websocket):
 
         async for message in websocket:
 
-            print(
-                f"Received message: {message}"
-            )
+            print(f"Received message: {message}")
 
     finally:
 
@@ -28,15 +22,9 @@ async def handler(websocket):
 
 async def start_server():
 
-    async with websockets.serve(
-        handler,
-        WEBSOCKET_HOST,
-        WEBSOCKET_PORT
-    ):
+    async with websockets.serve(handler, WEBSOCKET_HOST, WEBSOCKET_PORT):
 
-        print(
-            f"WebSocket server running on port {WEBSOCKET_PORT}"
-        )
+        print(f"WebSocket server running on port {WEBSOCKET_PORT}")
 
         await asyncio.Future()
 

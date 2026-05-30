@@ -1,0 +1,23 @@
+[tool.black]
+line-length = 88
+target-version = ["py312"]
+include = '\.pyi?$'
+extend-exclude = '''
+/(
+    \.venv
+  | infrastructure/terraform/.terraform
+  | \.git
+)/
+'''
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-ra -q --disable-warnings"
+markers = [
+    "integration",
+    "e2e",
+    "kubernetes",
+    "load",
+    "chaos",
+    "observability",
+]

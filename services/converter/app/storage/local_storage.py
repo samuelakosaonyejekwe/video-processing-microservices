@@ -2,12 +2,9 @@ import os
 import shutil
 
 
-
 def save_uploaded_file(source_path: str, filename: str):
 
-    destination = os.path.join(
-        filename
-    )
+    destination = os.path.join(filename)
 
     shutil.copy(source_path, destination)
 
@@ -16,9 +13,7 @@ def save_uploaded_file(source_path: str, filename: str):
 
 def save_converted_file(source_path: str, filename: str):
 
-    destination = os.path.join(
-        filename
-    )
+    destination = os.path.join(filename)
 
     shutil.copy(source_path, destination)
 
