@@ -34,6 +34,12 @@ spec:
 
     spec:
 
+      securityContext:
+
+        fsGroup: 70
+
+        fsGroupChangePolicy: OnRootMismatch
+
       containers:
 
         - name: postgresql
