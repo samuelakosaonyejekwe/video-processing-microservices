@@ -71,7 +71,7 @@ data:
 
   API_BASE_URL: ${API_BASE_URL}
 
-  CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS}
+  CORS_ALLOWED_ORIGINS: "${CORS_ALLOWED_ORIGINS}"
 
   # =========================================================
   # SECURITY

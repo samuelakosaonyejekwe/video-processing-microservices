@@ -30,8 +30,9 @@ kubectl apply -f "${RENDERED}/secrets/"
 # Deploy workloads first; full configmaps applied last so they are not overwritten.
 for dir in gateway auth converter notification redis; do
   for kind in deployment service ingress hpa; do
-    if [ -d "${RENDERED}/${dir}" ]; then
-      find "${RENDERED}/${dir}" -maxdepth 1 -name "${kind}.yaml" -print -exec kubectl apply -f {} \;
+    manifest="${RENDERED}/${dir}/${kind}.yaml"
+    if [ -f "${manifest}" ]; then
+      kubectl apply -f "${manifest}"
     fi
   done
 done

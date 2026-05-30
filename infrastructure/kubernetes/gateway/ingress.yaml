@@ -16,7 +16,7 @@ metadata:
 
     alb.ingress.kubernetes.io/target-type: ${ALB_TARGET_TYPE}
 
-    alb.ingress.kubernetes.io/listen-ports: ${ALB_LISTEN_PORTS}
+    alb.ingress.kubernetes.io/listen-ports: '${ALB_LISTEN_PORTS}'
 
 spec:
 
