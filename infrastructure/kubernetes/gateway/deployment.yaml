@@ -25,6 +25,7 @@ spec:
         environment: ${APP_ENV}
 
     spec:
+      serviceAccountName: gateway-service-account
       imagePullSecrets:
         - name: ${DOCKER_REGISTRY_SECRET_NAME}
 
@@ -49,7 +50,7 @@ spec:
 
           ports:
             - name: http
-              containerPort: 8000
+              containerPort: 8080
               protocol: TCP
 
           envFrom:
@@ -101,7 +102,7 @@ spec:
           readinessProbe:
             httpGet:
               path: /health
-              port: 8000
+              port: 8080
             initialDelaySeconds: 10
             periodSeconds: 10
             timeoutSeconds: 5
@@ -110,7 +111,7 @@ spec:
           livenessProbe:
             httpGet:
               path: /health
-              port: 8000
+              port: 8080
             initialDelaySeconds: 30
             periodSeconds: 20
             timeoutSeconds: 5

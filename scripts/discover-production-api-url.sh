@@ -10,8 +10,15 @@ namespace="${K8S_NAMESPACE:-video-processing}"
 ingress_name="${GATEWAY_INGRESS_NAME:-gateway-ingress}"
 service_name="${GATEWAY_SERVICE_NAME:-gateway-service}"
 configured="${API_BASE_URL:-}"
+scheme="http"
 
-if [ -n "${configured}" ] && [ "${configured}" != "https://api.your-domain.com" ]; then
+if [[ "${ALB_LISTEN_PORTS:-}" == *"HTTPS"* ]] || [[ "${configured}" == https://* ]]; then
+  scheme="https"
+fi
+
+if [ -n "${configured}" ] \
+  && [ "${configured}" != "https://api.your-domain.com" ] \
+  && [[ "${configured}" != *"localhost"* ]]; then
   printf '%s' "${configured}"
   exit 0
 fi
@@ -26,7 +33,7 @@ if [ -z "${host}" ]; then
 fi
 
 if [ -n "${host}" ]; then
-  printf 'https://%s' "${host}"
+  printf '%s://%s' "${scheme}" "${host}"
   exit 0
 fi
 

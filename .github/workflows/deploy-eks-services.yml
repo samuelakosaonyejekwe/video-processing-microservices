@@ -2,15 +2,10 @@ name: Deploy EKS Services
 
 on:
   workflow_dispatch:
-  workflow_run:
-    workflows: ["Terraform EKS Infrastructure"]
-    types: [completed]
-    branches: [main]
 
 jobs:
   deploy:
     name: Deploy Microservices to EKS
-    if: github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success'
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -29,7 +24,6 @@ jobs:
       DOCKER_IMAGE_REGISTRY: ${{ vars.DOCKER_IMAGE_REGISTRY }}
       DOCKER_IMAGE_NAMESPACE: ${{ vars.DOCKER_IMAGE_NAMESPACE }}
       IMAGE_TAG: ${{ vars.IMAGE_TAG }}
-      GATEWAY_RELEASE_NAME: gateway
       DOCKER_USERNAME: ${{ vars.DOCKER_IMAGE_NAMESPACE }}
       DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
       JWT_PRIVATE_KEY: ${{ secrets.JWT_PRIVATE_KEY }}
@@ -44,6 +38,7 @@ jobs:
       RABBITMQ_URI: ${{ secrets.RABBITMQ_URI }}
       SMTP_USERNAME: ${{ secrets.SMTP_USERNAME }}
       SMTP_PASSWORD: ${{ secrets.SMTP_PASSWORD }}
+      REDIS_PASSWORD: ${{ secrets.REDIS_PASSWORD }}
 
     steps:
       - name: Checkout Repository

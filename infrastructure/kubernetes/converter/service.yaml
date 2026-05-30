@@ -9,7 +9,7 @@ metadata:
 spec:
 
   selector:
-    app: converter
+    app: converter-service
 
   ports:
 

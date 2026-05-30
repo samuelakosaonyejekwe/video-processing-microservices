@@ -126,3 +126,17 @@ spec:
             failureThreshold: 30
 
             periodSeconds: 10
+
+          volumeMounts:
+
+            - name: rabbitmq-data
+
+              mountPath: /var/lib/rabbitmq
+
+      volumes:
+
+        - name: rabbitmq-data
+
+          persistentVolumeClaim:
+
+            claimName: rabbitmq-pvc

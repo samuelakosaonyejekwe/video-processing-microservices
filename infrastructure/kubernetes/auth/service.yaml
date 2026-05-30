@@ -9,7 +9,7 @@ metadata:
 spec:
 
   selector:
-    app: auth
+    app: auth-service
 
   ports:
 

@@ -11,7 +11,7 @@ spec:
   scaleTargetRef:
     apiVersion: apps/v1
     kind: Deployment
-    name: converter-deployment
+    name: converter-service
 
   minReplicas: 2
 

@@ -13,7 +13,7 @@ kubectl get ingress -A
 
 echo "=== Core deployment rollouts ==="
 for deploy in gateway-deployment auth-service converter-service notification-deployment; do
-  kubectl rollout status "deployment/${deploy}" -n "${K8S_NAMESPACE}" --timeout=600s || true
+  kubectl rollout status "deployment/${deploy}" -n "${K8S_NAMESPACE}" --timeout=600s
 done
 
 echo "=== RabbitMQ validation ==="

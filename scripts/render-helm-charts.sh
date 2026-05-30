@@ -1,5 +1,5 @@
 #!/bin/bash
-# Render Helm chart values and templates with envsubst before install.
+# Render Helm chart values with envsubst before install.
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -25,10 +25,7 @@ render_chart() {
   done
 
   if [ -d "${src}/templates" ]; then
-    for file in "${src}/templates"/*; do
-      [ -f "$file" ] || continue
-      envsubst < "$file" > "${dest}/templates/$(basename "$file")"
-    done
+    cp -r "${src}/templates/." "${dest}/templates/"
   fi
 }
 

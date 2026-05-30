@@ -18,6 +18,7 @@ spec:
         app: converter-service
 
     spec:
+      serviceAccountName: converter-service-account
       imagePullSecrets:
         - name: ${DOCKER_REGISTRY_SECRET_NAME}
 

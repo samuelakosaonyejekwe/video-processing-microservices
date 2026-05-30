@@ -15,16 +15,29 @@ if [ -f "${ROOT_DIR}/.env" ]; then
   source "${ROOT_DIR}/scripts/lib/env-aliases.sh"
 fi
 
+if [ -z "${AWS_ACCOUNT_ID:-}" ] && command -v aws >/dev/null 2>&1; then
+  export AWS_ACCOUNT_ID="$(aws sts get-caller-identity --query Account --output text 2>/dev/null || true)"
+fi
+
 bash "${ROOT_DIR}/scripts/render-k8s-manifests.sh" "${ROOT_DIR}/.rendered-k8s"
 
-kubectl apply -f "${ROOT_DIR}/.rendered-k8s/infrastructure/kubernetes/namespaces/"
-kubectl apply -f "${ROOT_DIR}/.rendered-k8s/infrastructure/kubernetes/serviceaccounts/"
-kubectl apply -f "${ROOT_DIR}/.rendered-k8s/infrastructure/kubernetes/secrets/"
-kubectl apply -f "${ROOT_DIR}/.rendered-k8s/infrastructure/kubernetes/configmaps/"
-kubectl apply -f "${ROOT_DIR}/.rendered-k8s/infrastructure/kubernetes/gateway/"
-kubectl apply -f "${ROOT_DIR}/.rendered-k8s/infrastructure/kubernetes/auth/"
-kubectl apply -f "${ROOT_DIR}/.rendered-k8s/infrastructure/kubernetes/converter/"
-kubectl apply -f "${ROOT_DIR}/.rendered-k8s/infrastructure/kubernetes/notification/"
-kubectl apply -f "${ROOT_DIR}/.rendered-k8s/infrastructure/kubernetes/redis/"
+RENDERED="${ROOT_DIR}/.rendered-k8s/infrastructure/kubernetes"
+
+kubectl apply -f "${RENDERED}/namespaces/"
+kubectl apply -f "${RENDERED}/serviceaccounts/"
+kubectl apply -f "${RENDERED}/secrets/"
+
+# Deploy workloads first; full configmaps applied last so they are not overwritten.
+for dir in gateway auth converter notification redis; do
+  for kind in deployment service ingress hpa; do
+    if [ -d "${RENDERED}/${dir}" ]; then
+      find "${RENDERED}/${dir}" -maxdepth 1 -name "${kind}.yaml" -print -exec kubectl apply -f {} \;
+    fi
+  done
+done
+
+if [ -d "${RENDERED}/configmaps" ]; then
+  kubectl apply -f "${RENDERED}/configmaps/"
+fi
 
 echo "Microservices deployed successfully."

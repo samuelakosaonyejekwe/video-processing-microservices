@@ -151,6 +151,7 @@ jobs:
           RABBITMQ_URI: ${{ secrets.RABBITMQ_URI }}
           SMTP_USERNAME: ${{ secrets.SMTP_USERNAME }}
           SMTP_PASSWORD: ${{ secrets.SMTP_PASSWORD }}
+          REDIS_PASSWORD: ${{ secrets.REDIS_PASSWORD }}
         run: |
           chmod +x scripts/deploy-eks.sh scripts/deploy-services.sh scripts/create-docker-registry-secret.sh scripts/run-production-validation.sh scripts/discover-production-api-url.sh
           bash scripts/create-docker-registry-secret.sh

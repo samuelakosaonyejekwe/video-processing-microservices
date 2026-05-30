@@ -1,6 +1,6 @@
 global:
 
-  namespace: video-converter
+  namespace: ${K8S_NAMESPACE}
 
   environment: ${APP_ENV}
 
