@@ -14,6 +14,55 @@ helm repo add metrics-server https://kubernetes-sigs.github.io/metrics-server/ 2
 helm repo add autoscaler https://kubernetes.github.io/autoscaler 2>/dev/null || true
 helm repo update
 
+echo "Installing EBS CSI driver via EKS addon..."
+if aws eks describe-addon \
+  --cluster-name "${EKS_CLUSTER_NAME}" \
+  --addon-name aws-ebs-csi-driver \
+  --region "${AWS_REGION}" >/dev/null 2>&1; then
+  aws eks update-addon \
+    --cluster-name "${EKS_CLUSTER_NAME}" \
+    --addon-name aws-ebs-csi-driver \
+    --resolve-conflicts OVERWRITE \
+    --region "${AWS_REGION}" >/dev/null || true
+else
+  aws eks create-addon \
+    --cluster-name "${EKS_CLUSTER_NAME}" \
+    --addon-name aws-ebs-csi-driver \
+    --resolve-conflicts OVERWRITE \
+    --region "${AWS_REGION}" >/dev/null || true
+fi
+
+for _ in $(seq 1 30); do
+  status="$(aws eks describe-addon \
+    --cluster-name "${EKS_CLUSTER_NAME}" \
+    --addon-name aws-ebs-csi-driver \
+    --region "${AWS_REGION}" \
+    --query 'addon.status' --output text 2>/dev/null || echo "CREATING")"
+  if [ "${status}" = "ACTIVE" ]; then
+    echo "EBS CSI driver addon is ACTIVE"
+    break
+  fi
+  echo "Waiting for EBS CSI addon (status=${status})..."
+  sleep 10
+done
+
+# Ensure a default StorageClass exists for PVC binding
+if ! kubectl get storageclass 2>/dev/null | grep -q '(default)'; then
+  kubectl apply -f - <<EOF || true
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: gp2
+  annotations:
+    storageclass.kubernetes.io/is-default-class: "true"
+provisioner: ebs.csi.aws.com
+parameters:
+  type: gp2
+volumeBindingMode: WaitForFirstConsumer
+allowVolumeExpansion: true
+EOF
+fi
+
 helm upgrade --install aws-load-balancer-controller eks/aws-load-balancer-controller \
   --namespace kube-system \
   --set clusterName="${EKS_CLUSTER_NAME}" \
@@ -30,13 +79,7 @@ if [ "${CLUSTER_AUTOSCALER_ENABLED:-true}" = "true" ]; then
     --namespace kube-system \
     --set "autoDiscovery.clusterName=${EKS_CLUSTER_NAME}" \
     --set "awsRegion=${AWS_REGION}" \
-    --wait --timeout 10m
+    --wait --timeout 10m || echo "Cluster autoscaler install deferred"
 fi
-
-helm repo add aws-ebs-csi-driver https://kubernetes-sigs.github.io/aws-ebs-csi-driver 2>/dev/null || true
-helm upgrade --install aws-ebs-csi-driver aws-ebs-csi-driver/aws-ebs-csi-driver \
-  --namespace kube-system \
-  --set controller.serviceAccount.create=true \
-  --wait --timeout 10m || echo "EBS CSI driver install deferred (may need IRSA)"
 
 echo "Cluster add-ons installed."

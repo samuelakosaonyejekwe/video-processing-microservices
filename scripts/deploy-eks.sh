@@ -14,6 +14,6 @@ aws eks update-kubeconfig \
   --region "${AWS_REGION}" \
   --name "${EKS_CLUSTER_NAME}"
 
-bash "${ROOT_DIR}/scripts/deploy-helm.sh"
-
 bash "${ROOT_DIR}/scripts/install-cluster-addons.sh"
+
+bash "${ROOT_DIR}/scripts/deploy-helm.sh"
