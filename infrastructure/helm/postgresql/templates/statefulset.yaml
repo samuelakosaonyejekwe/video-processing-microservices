@@ -86,6 +86,10 @@ spec:
 
                   key: POSTGRES_DB
 
+            - name: PGDATA
+
+              value: /var/lib/postgresql/data/pgdata
+
           resources:
 
             {{- toYaml .Values.resources | nindent 12 }}
