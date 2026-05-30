@@ -34,6 +34,8 @@ spec:
 
     spec:
 
+      enableServiceLinks: false
+
       serviceAccountName: ${AUTH_SERVICE_ACCOUNT}
 
       terminationGracePeriodSeconds: 30
@@ -80,6 +82,12 @@ spec:
                   key: LOG_LEVEL
 
             - name: AUTH_APP_PORT
+              valueFrom:
+                configMapKeyRef:
+                  name: auth-config
+                  key: AUTH_APP_PORT
+
+            - name: APP_PORT
               valueFrom:
                 configMapKeyRef:
                   name: auth-config
