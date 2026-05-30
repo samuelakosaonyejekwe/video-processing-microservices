@@ -13,6 +13,8 @@ module "eks" {
 
   enable_irsa = true
 
+  enable_cluster_creator_admin_permissions = true
+
   cluster_endpoint_private_access = var.endpoint_private_access
 
   cluster_endpoint_public_access = var.endpoint_public_access
