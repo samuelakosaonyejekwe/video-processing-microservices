@@ -4,6 +4,10 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 # shellcheck source=scripts/lib/env-aliases.sh
 source "${ROOT_DIR}/scripts/lib/env-aliases.sh"
+# shellcheck source=scripts/setup-production-test-endpoints.sh
+source "${ROOT_DIR}/scripts/setup-production-test-endpoints.sh"
+
+trap cleanup_production_test_endpoints EXIT
 
 echo "=== Kubernetes cluster validation ==="
 kubectl get nodes
@@ -21,14 +25,8 @@ messaging_ns="${MESSAGING_NAMESPACE:-messaging}"
 kubectl get pods -n "${messaging_ns}" 2>/dev/null || kubectl get pods -A | grep -i rabbit || true
 kubectl get svc -n "${messaging_ns}" 2>/dev/null || true
 
-echo "=== Discover API URL ==="
-api_url="$(bash "${ROOT_DIR}/scripts/discover-production-api-url.sh" || true)"
-if [ -n "${api_url}" ]; then
-  export GATEWAY_BASE_URL="${api_url}"
-  export AUTH_BASE_URL="${api_url}"
-  echo "Using API URL: ${api_url}"
-  curl -sfk "${api_url}/health" && echo ""
-fi
+echo "=== Configure production test endpoints ==="
+setup_production_test_endpoints
 
 echo "=== Production E2E tests ==="
 export INTEGRATION_TESTS=true
