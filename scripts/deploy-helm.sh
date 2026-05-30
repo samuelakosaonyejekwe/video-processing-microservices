@@ -56,5 +56,6 @@ bash "${ROOT_DIR}/scripts/sync-postgres-password.sh"
 
 echo "Deploying RabbitMQ Helm Chart..."
 deploy_chart "${RABBITMQ_RELEASE_NAME}" "${HELM_DIR}/rabbitmq" "${MESSAGING_NAMESPACE}"
+bash "${ROOT_DIR}/scripts/sync-rabbitmq-credentials.sh"
 
 echo "Helm deployments completed."
