@@ -10,11 +10,12 @@ cd "${ROOT_DIR}"
 source "${ROOT_DIR}/scripts/lib/env-aliases.sh"
 
 RUNTIME_ENV="${ROOT_DIR}/.env.compose.runtime"
-if [ -f "${ROOT_DIR}/.env" ]; then
-  grep -v '^JWT_PRIVATE_KEY=' "${ROOT_DIR}/.env" | grep -v '^JWT_PUBLIC_KEY=' > "${RUNTIME_ENV}" || cp "${ROOT_DIR}/.env" "${RUNTIME_ENV}"
+if [ -f "${ROOT_DIR}/jwt-private.pem" ]; then
+  grep -v '^JWT_PRIVATE_KEY=' "${ROOT_DIR}/.env" | grep -v '^JWT_PUBLIC_KEY=' | grep -v '^JWT_ALGORITHM=' > "${RUNTIME_ENV}" || cp "${ROOT_DIR}/.env" "${RUNTIME_ENV}"
 else
-  cp "${ROOT_DIR}/.env.example" "${RUNTIME_ENV}"
+  grep -v '^JWT_PRIVATE_KEY=' "${ROOT_DIR}/.env" 2>/dev/null | grep -v '^JWT_PUBLIC_KEY=' > "${RUNTIME_ENV}" || cp "${ROOT_DIR}/.env" "${RUNTIME_ENV}"
 fi
+echo "JWT_ALGORITHM=RS256" >> "${RUNTIME_ENV}"
 
 SECRETS_DIR="${ROOT_DIR}/.compose-secrets"
 mkdir -p "${SECRETS_DIR}"
