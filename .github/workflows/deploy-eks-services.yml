@@ -17,6 +17,9 @@ jobs:
 
     env:
       AWS_REGION: ${{ vars.AWS_REGION }}
+      APP_DOMAIN: ${{ vars.APP_DOMAIN }}
+      S3_UPLOAD_BUCKET: ${{ vars.AWS_S3_VIDEO_BUCKET }}
+      S3_AUDIO_BUCKET: ${{ vars.AWS_S3_AUDIO_BUCKET }}
       EKS_CLUSTER_NAME: ${{ vars.EKS_CLUSTER_NAME }}
       K8S_NAMESPACE: ${{ vars.K8S_NAMESPACE }}
       APP_ENV: ${{ vars.APP_ENV }}
@@ -65,6 +68,7 @@ jobs:
       - name: Configure kubectl
         run: |
           aws eks update-kubeconfig --region "${AWS_REGION}" --name "${EKS_CLUSTER_NAME}"
+          echo "AWS_ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)" >> "$GITHUB_ENV"
           kubectl get nodes
 
       - name: Deploy Stack
@@ -73,6 +77,7 @@ jobs:
           bash scripts/create-docker-registry-secret.sh
           bash scripts/deploy-eks.sh
           bash scripts/deploy-services.sh
+          bash scripts/verify-deployment.sh
 
       - name: Production Validation
         run: bash scripts/run-production-validation.sh

@@ -18,6 +18,7 @@ fi
 bash "${ROOT_DIR}/scripts/render-k8s-manifests.sh" "${ROOT_DIR}/.rendered-k8s"
 
 kubectl apply -f "${ROOT_DIR}/.rendered-k8s/infrastructure/kubernetes/namespaces/"
+kubectl apply -f "${ROOT_DIR}/.rendered-k8s/infrastructure/kubernetes/serviceaccounts/"
 kubectl apply -f "${ROOT_DIR}/.rendered-k8s/infrastructure/kubernetes/secrets/"
 kubectl apply -f "${ROOT_DIR}/.rendered-k8s/infrastructure/kubernetes/configmaps/"
 kubectl apply -f "${ROOT_DIR}/.rendered-k8s/infrastructure/kubernetes/gateway/"

@@ -1,0 +1,45 @@
+#!/bin/bash
+# Render Helm chart values and templates with envsubst before install.
+set -euo pipefail
+
+ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+OUTPUT_DIR="${1:-${ROOT_DIR}/.rendered-helm}"
+
+# shellcheck source=scripts/lib/env-aliases.sh
+source "${ROOT_DIR}/scripts/lib/env-aliases.sh"
+
+render_chart() {
+  local rel_src="$1"
+  local src="${ROOT_DIR}/${rel_src}"
+  local dest="${OUTPUT_DIR}/${rel_src}"
+
+  mkdir -p "${dest}/templates"
+
+  if [ -f "${src}/Chart.yaml" ]; then
+    cp "${src}/Chart.yaml" "${dest}/Chart.yaml"
+  fi
+
+  for file in "${src}"/*.yaml "${src}"/*.yml; do
+    [ -f "$file" ] || continue
+    envsubst < "$file" > "${dest}/$(basename "$file")"
+  done
+
+  if [ -d "${src}/templates" ]; then
+    for file in "${src}/templates"/*; do
+      [ -f "$file" ] || continue
+      envsubst < "$file" > "${dest}/templates/$(basename "$file")"
+    done
+  fi
+}
+
+rm -rf "${OUTPUT_DIR}/infrastructure/helm"
+mkdir -p "${OUTPUT_DIR}/infrastructure/helm"
+
+for chart in mongodb postgresql rabbitmq; do
+  render_chart "infrastructure/helm/${chart}"
+done
+
+envsubst < "${ROOT_DIR}/infrastructure/helm/global-values.yaml" \
+  > "${OUTPUT_DIR}/infrastructure/helm/global-values.yaml"
+
+echo "Rendered Helm charts to ${OUTPUT_DIR}"

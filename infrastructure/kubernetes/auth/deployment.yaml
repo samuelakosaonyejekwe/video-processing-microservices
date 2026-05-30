@@ -53,7 +53,7 @@ spec:
 
         - name: auth-service
 
-          image: ${AUTH_IMAGE}
+          image: ${DOCKER_IMAGE_REGISTRY}/${DOCKER_IMAGE_NAMESPACE}/auth-service:${IMAGE_TAG}
 
           imagePullPolicy: Always
 

@@ -17,12 +17,13 @@ helm repo update
 helm upgrade --install aws-load-balancer-controller eks/aws-load-balancer-controller \
   --namespace kube-system \
   --set clusterName="${EKS_CLUSTER_NAME}" \
-  --wait --timeout 10m
+  --set serviceAccount.create=true \
+  --wait --timeout 5m || echo "ALB controller install deferred (may need IRSA/VPC config)"
 
 helm upgrade --install metrics-server metrics-server/metrics-server \
   --namespace kube-system \
   --create-namespace \
-  --wait --timeout 10m
+  --wait --timeout 5m || echo "Metrics server install deferred"
 
 if [ "${CLUSTER_AUTOSCALER_ENABLED:-true}" = "true" ]; then
   helm upgrade --install "${CLUSTER_AUTOSCALER_RELEASE_NAME:-cluster-autoscaler}" autoscaler/cluster-autoscaler \

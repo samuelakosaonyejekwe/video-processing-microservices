@@ -17,5 +17,3 @@ aws eks update-kubeconfig \
 bash "${ROOT_DIR}/scripts/deploy-helm.sh"
 
 bash "${ROOT_DIR}/scripts/install-cluster-addons.sh"
-
-bash "${ROOT_DIR}/scripts/verify-deployment.sh"
