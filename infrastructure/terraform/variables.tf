@@ -350,324 +350,269 @@ variable "acm_certificate_arn" {
     error_message = "acm_certificate_arn must not be empty."
   }
 }
-# Auto-added missing variables for terraform validate
+
 variable "ami_type" {
-  type = any
+  type    = string
+  default = "AL2_x86_64"
 }
 
 variable "aws_load_balancer_controller_chart" {
-  type = any
+  type    = string
+  default = "aws-load-balancer-controller"
 }
 
 variable "aws_load_balancer_controller_name" {
-  type = any
+  type    = string
+  default = "aws-load-balancer-controller"
 }
 
 variable "aws_load_balancer_controller_namespace" {
-  type = any
+  type    = string
+  default = "kube-system"
 }
 
 variable "aws_load_balancer_controller_repository" {
-  type = any
+  type    = string
+  default = "https://aws.github.io/eks-charts"
 }
 
 variable "awscli_zip_url" {
-  type = any
+  type    = string
+  default = "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip"
 }
 
 variable "capacity_type" {
-  type = any
+  type    = string
+  default = "ON_DEMAND"
 }
 
 variable "cluster_autoscaler_chart" {
-  type = any
+  type    = string
+  default = "cluster-autoscaler"
 }
 
 variable "cluster_autoscaler_namespace" {
-  type = any
+  type    = string
+  default = "kube-system"
 }
 
 variable "cluster_autoscaler_release_name" {
-  type = any
+  type    = string
+  default = "cluster-autoscaler"
 }
 
 variable "cluster_autoscaler_repository" {
-  type = any
+  type    = string
+  default = "https://kubernetes.github.io/autoscaler"
 }
 
 variable "cluster_autoscaler_timeout" {
-  type = any
-}
-
-variable "cluster_name" {
-  type = any
-}
-
-variable "cluster_version" {
-  type = any
-}
-
-variable "common_tags" {
-  type = any
+  type    = number
+  default = 600
 }
 
 variable "docker_gpg_url" {
-  type = any
+  type    = string
+  default = "https://download.docker.com/linux/ubuntu/gpg"
 }
 
 variable "docker_repo_url" {
-  type = any
-}
-
-variable "ebs_csi_driver_atomic" {
-  type = any
-}
-
-variable "ebs_csi_driver_chart" {
-  type = any
-}
-
-variable "ebs_csi_driver_cleanup_on_fail" {
-  type = any
-}
-
-variable "ebs_csi_driver_create_namespace" {
-  type = any
-}
-
-variable "ebs_csi_driver_dependency_update" {
-  type = any
-}
-
-variable "ebs_csi_driver_namespace" {
-  type = any
-}
-
-variable "ebs_csi_driver_release_name" {
-  type = any
-}
-
-variable "ebs_csi_driver_repository" {
-  type = any
-}
-
-variable "ebs_csi_driver_timeout" {
-  type = any
-}
-
-variable "ebs_csi_driver_wait" {
-  type = any
+  type    = string
+  default = "https://download.docker.com/linux/ubuntu"
 }
 
 variable "ecr_repositories" {
-  type = any
-}
-
-variable "eks_capacity_type" {
-  type = any
-}
-
-variable "eks_desired_capacity" {
-  type = any
-}
-
-variable "eks_log_retention_days" {
-  type = any
-}
-
-variable "eks_max_capacity" {
-  type = any
-}
-
-variable "eks_max_unavailable_percentage" {
-  type = any
-}
-
-variable "eks_min_capacity" {
-  type = any
-}
-
-variable "eks_node_ami_type" {
-  type = any
-}
-
-variable "eks_node_disk_size" {
-  type = any
-}
-
-variable "eks_node_instance_types" {
-  type = any
-}
-
-variable "eks_private_endpoint_enabled" {
-  type = any
-}
-
-variable "eks_public_endpoint_enabled" {
-  type = any
-}
-
-variable "eks_service_ipv4_cidr" {
-  type = any
+  type = list(string)
+  default = [
+    "gateway-service",
+    "auth-service",
+    "converter-service",
+    "notification-service",
+  ]
 }
 
 variable "eksctl_download_url" {
-  type = any
+  type    = string
+  default = "https://github.com/weaveworks/eksctl/releases/latest/download/eksctl_Linux_amd64.tar.gz"
 }
 
 variable "enable_cluster_log_types" {
-  type = any
+  type    = list(string)
+  default = ["api", "audit"]
 }
 
 variable "endpoint_private_access" {
-  type = any
+  type    = bool
+  default = true
 }
 
 variable "endpoint_public_access" {
-  type = any
+  type    = bool
+  default = true
 }
 
 variable "hashicorp_gpg_url" {
-  type = any
+  type    = string
+  default = "https://apt.releases.hashicorp.com/gpg"
 }
 
 variable "hashicorp_repo_url" {
-  type = any
+  type    = string
+  default = "https://apt.releases.hashicorp.com"
 }
 
 variable "helm_install_script_url" {
-  type = any
+  type    = string
+  default = "https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3"
 }
 
 variable "jenkins_agent_port" {
-  type = any
+  type    = number
+  default = 50000
 }
 
 variable "jenkins_container_image" {
-  type = any
+  type    = string
+  default = "jenkins/jenkins:lts"
 }
 
 variable "jenkins_container_name" {
-  type = any
+  type    = string
+  default = "jenkins"
 }
 
 variable "jenkins_gpg_url" {
-  type = any
+  type    = string
+  default = "https://pkg.jenkins.io/debian-stable/jenkins.io-2023.key"
 }
 
 variable "jenkins_host_port" {
-  type = any
+  type    = number
+  default = 8080
 }
 
 variable "jenkins_instance_type" {
-  type = any
+  type    = string
+  default = "t3.medium"
 }
 
 variable "jenkins_repo_url" {
-  type = any
+  type    = string
+  default = "https://pkg.jenkins.io/debian-stable binary/"
 }
 
 variable "jenkins_root_volume_size" {
-  type = any
+  type    = number
+  default = 50
 }
 
 variable "jenkins_volume_name" {
-  type = any
-}
-
-variable "kms_deletion_window_in_days" {
-  type = any
+  type    = string
+  default = "jenkins-data"
 }
 
 variable "kubectl_binary_base_url" {
-  type = any
+  type    = string
+  default = "https://dl.k8s.io/release"
 }
 
 variable "kubectl_stable_url" {
-  type = any
+  type    = string
+  default = "https://dl.k8s.io/release/stable.txt"
 }
 
 variable "kubernetes_namespace" {
-  type = any
+  type    = string
+  default = "video-processing"
 }
 
 variable "kubernetes_version" {
-  type = any
+  type    = string
+  default = "1.29"
 }
 
 variable "max_unavailable" {
-  type = any
+  type    = number
+  default = 1
 }
 
 variable "metrics_server_atomic" {
-  type = any
+  type    = bool
+  default = true
 }
 
 variable "metrics_server_chart" {
-  type = any
+  type    = string
+  default = "metrics-server"
 }
 
 variable "metrics_server_cleanup_on_fail" {
-  type = any
+  type    = bool
+  default = true
 }
 
 variable "metrics_server_create_namespace" {
-  type = any
+  type    = bool
+  default = true
 }
 
 variable "metrics_server_dependency_update" {
-  type = any
+  type    = bool
+  default = true
 }
 
 variable "metrics_server_namespace" {
-  type = any
+  type    = string
+  default = "kube-system"
 }
 
 variable "metrics_server_release_name" {
-  type = any
+  type    = string
+  default = "metrics-server"
 }
 
 variable "metrics_server_repository" {
-  type = any
+  type    = string
+  default = "https://kubernetes-sigs.github.io/metrics-server/"
 }
 
 variable "metrics_server_timeout" {
-  type = any
+  type    = number
+  default = 600
 }
 
 variable "metrics_server_wait" {
-  type = any
+  type    = bool
+  default = true
 }
 
 variable "node_disk_size" {
-  type = any
-}
-
-variable "private_subnet_ids" {
-  type = any
+  type    = number
+  default = 50
 }
 
 variable "public_access_cidrs" {
-  type = any
+  type    = list(string)
+  default = ["0.0.0.0/0"]
 }
 
 variable "s3_bucket_name" {
-  type = any
+  type    = string
+  default = "samuel-video-processing-video"
 }
 
 variable "tags" {
-  type = any
+  type    = map(string)
+  default = {}
 }
 
 variable "ubuntu_ami_name_filter" {
-  type = any
+  type    = list(string)
+  default = ["ubuntu/images/hvm-ssd/ubuntu-jammy-22.04-amd64-server-*"]
 }
 
 variable "ubuntu_ami_owners" {
-  type = any
-}
-
-variable "vpc_id" {
-  type = any
+  type    = list(string)
+  default = ["099720109477"]
 }
 

@@ -111,7 +111,7 @@ export CLUSTER_AUTOSCALER_ENABLED="${CLUSTER_AUTOSCALER_ENABLED:-true}"
 
 # Toolchain URL defaults
 export UBUNTU_AMI_OWNERS="${UBUNTU_AMI_OWNERS:-[\"099720109477\"]}"
-export UBUNTU_AMI_NAME_FILTER="${UBUNTU_AMI_NAME_FILTER:-ubuntu/images/hvm-ssd/ubuntu-jammy-22.04-amd64-server-*}"
+export UBUNTU_AMI_NAME_FILTER="${UBUNTU_AMI_NAME_FILTER:-[\"ubuntu/images/hvm-ssd/ubuntu-jammy-22.04-amd64-server-*\"]}"
 export DOCKER_GPG_URL="${DOCKER_GPG_URL:-https://download.docker.com/linux/ubuntu/gpg}"
 export DOCKER_REPO_URL="${DOCKER_REPO_URL:-https://download.docker.com/linux/ubuntu}"
 export JENKINS_GPG_URL="${JENKINS_GPG_URL:-https://pkg.jenkins.io/debian-stable/jenkins.io-2023.key}"
