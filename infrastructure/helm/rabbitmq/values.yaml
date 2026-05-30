@@ -34,7 +34,7 @@ rabbitmq:
 
   auth:
 
-    username: ${RABBITMQ_USERNAME}
+    username: "${RABBITMQ_USERNAME}"
 
 
 resources:

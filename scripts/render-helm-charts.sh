@@ -8,6 +8,17 @@ OUTPUT_DIR="${1:-${ROOT_DIR}/.rendered-helm}"
 # shellcheck source=scripts/lib/env-aliases.sh
 source "${ROOT_DIR}/scripts/lib/env-aliases.sh"
 
+_yaml_safe() {
+  printf '%s' "${1}" | tr -d '\000-\010\013\014\016-\037' | sed 's/"/\\"/g'
+}
+
+for key in RABBITMQ_PASSWORD RABBITMQ_USERNAME RABBITMQ_ERLANG_COOKIE \
+  POSTGRES_PASSWORD POSTGRES_USER MONGO_PASSWORD MONGO_USERNAME; do
+  if [ -n "${!key:-}" ]; then
+    export "${key}=$(_yaml_safe "${!key}")"
+  fi
+done
+
 render_chart() {
   local rel_src="$1"
   local src="${ROOT_DIR}/${rel_src}"
