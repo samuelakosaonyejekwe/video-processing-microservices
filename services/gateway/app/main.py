@@ -11,7 +11,13 @@ from fastapi.middleware.cors import CORSMiddleware
 from prometheus_fastapi_instrumentator import Instrumentator
 
 from app.config import APP_ENV, CORS_ALLOWED_ORIGINS
-from app.config import JWT_ALGORITHM, JWT_AUDIENCE, JWT_ISSUER, JWT_PUBLIC_KEY, JWT_SECRET
+from app.config import (
+    JWT_ALGORITHM,
+    JWT_AUDIENCE,
+    JWT_ISSUER,
+    JWT_PUBLIC_KEY,
+    JWT_SECRET,
+)
 from app.middleware.auth_middleware import AuthMiddleware
 from app.middleware.rate_limit_middleware import RateLimitMiddleware
 from app.routes.auth_routes import router as auth_router

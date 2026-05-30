@@ -66,7 +66,9 @@ class AuthMiddleware(BaseHTTPMiddleware):
                 decode_key,
                 algorithms=[algorithm],
                 issuer=jwt_config.JWT_ISSUER if algorithm.startswith("RS") else None,
-                audience=jwt_config.JWT_AUDIENCE if algorithm.startswith("RS") else None,
+                audience=(
+                    jwt_config.JWT_AUDIENCE if algorithm.startswith("RS") else None
+                ),
             )
 
             token_type = payload.get("type")

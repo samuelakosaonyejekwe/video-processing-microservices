@@ -2,10 +2,6 @@
 
 set -euo pipefail
 
-terraform init
-
-terraform fmt -recursive
-
-terraform validate
+cd infrastructure/terraform
 
 terraform plan
