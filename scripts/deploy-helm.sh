@@ -18,7 +18,7 @@ helm upgrade --install "${MONGODB_RELEASE_NAME}" \
   --namespace "${DATABASE_NAMESPACE}" \
   --create-namespace \
   -f "${GLOBAL_VALUES}" \
-  --wait --timeout 15m
+  --wait --timeout 20m
 
 echo "Deploying PostgreSQL Helm Chart..."
 
@@ -27,7 +27,7 @@ helm upgrade --install "${POSTGRESQL_RELEASE_NAME}" \
   --namespace "${DATABASE_NAMESPACE}" \
   --create-namespace \
   -f "${GLOBAL_VALUES}" \
-  --wait --timeout 15m
+  --wait --timeout 20m
 
 echo "Deploying RabbitMQ Helm Chart..."
 
@@ -36,6 +36,6 @@ helm upgrade --install "${RABBITMQ_RELEASE_NAME}" \
   --namespace "${MESSAGING_NAMESPACE}" \
   --create-namespace \
   -f "${GLOBAL_VALUES}" \
-  --wait --timeout 15m
+  --wait --timeout 20m
 
 echo "Helm deployments completed."

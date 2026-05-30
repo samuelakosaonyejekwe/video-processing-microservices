@@ -66,6 +66,9 @@ module "eks" {
     kube-proxy = {
       most_recent = true
     }
+    aws-ebs-csi-driver = {
+      most_recent = true
+    }
   }
 
   tags = merge(

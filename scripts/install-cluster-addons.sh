@@ -32,7 +32,8 @@ else
     --region "${AWS_REGION}" >/dev/null || true
 fi
 
-for _ in $(seq 1 30); do
+status="CREATING"
+for _ in $(seq 1 90); do
   status="$(aws eks describe-addon \
     --cluster-name "${EKS_CLUSTER_NAME}" \
     --addon-name aws-ebs-csi-driver \
@@ -42,13 +43,32 @@ for _ in $(seq 1 30); do
     echo "EBS CSI driver addon is ACTIVE"
     break
   fi
+  if [ "${status}" = "CREATE_FAILED" ] || [ "${status}" = "DEGRADED" ]; then
+    aws eks describe-addon \
+      --cluster-name "${EKS_CLUSTER_NAME}" \
+      --addon-name aws-ebs-csi-driver \
+      --region "${AWS_REGION}" \
+      --query 'addon.statusReason' --output text 2>/dev/null || true
+    echo "ERROR: EBS CSI addon failed (status=${status})"
+    exit 1
+  fi
   echo "Waiting for EBS CSI addon (status=${status})..."
   sleep 10
 done
 
+if [ "${status}" != "ACTIVE" ]; then
+  echo "ERROR: EBS CSI addon did not become ACTIVE within timeout (status=${status})"
+  exit 1
+fi
+
+kubectl wait --for=condition=ready pod \
+  -l app.kubernetes.io/name=aws-ebs-csi-driver \
+  -n kube-system \
+  --timeout=300s || echo "EBS CSI pods not ready yet"
+
 # Ensure a default StorageClass exists for PVC binding
 if ! kubectl get storageclass 2>/dev/null | grep -q '(default)'; then
-  kubectl apply -f - <<EOF || true
+  kubectl apply -f - <<EOF
 apiVersion: storage.k8s.io/v1
 kind: StorageClass
 metadata:
@@ -58,7 +78,7 @@ metadata:
 provisioner: ebs.csi.aws.com
 parameters:
   type: gp2
-volumeBindingMode: WaitForFirstConsumer
+volumeBindingMode: Immediate
 allowVolumeExpansion: true
 EOF
 fi
