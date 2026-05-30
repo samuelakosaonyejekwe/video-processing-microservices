@@ -52,10 +52,8 @@ deploy_chart "${MONGODB_RELEASE_NAME}" "${HELM_DIR}/mongodb" "${DATABASE_NAMESPA
 
 echo "Deploying PostgreSQL Helm Chart..."
 deploy_chart "${POSTGRESQL_RELEASE_NAME}" "${HELM_DIR}/postgresql" "${DATABASE_NAMESPACE}"
-bash "${ROOT_DIR}/scripts/sync-postgres-password.sh"
 
 echo "Deploying RabbitMQ Helm Chart..."
 deploy_chart "${RABBITMQ_RELEASE_NAME}" "${HELM_DIR}/rabbitmq" "${MESSAGING_NAMESPACE}"
-bash "${ROOT_DIR}/scripts/sync-rabbitmq-credentials.sh"
 
 echo "Helm deployments completed."

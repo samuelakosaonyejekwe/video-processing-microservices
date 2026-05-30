@@ -27,6 +27,9 @@ kubectl apply -f "${RENDERED}/namespaces/"
 kubectl apply -f "${RENDERED}/serviceaccounts/"
 kubectl apply -f "${RENDERED}/secrets/"
 
+bash "${ROOT_DIR}/scripts/sync-rabbitmq-credentials.sh"
+bash "${ROOT_DIR}/scripts/sync-postgres-password.sh"
+
 if [ -d "${RENDERED}/configmaps" ]; then
   kubectl apply -f "${RENDERED}/configmaps/"
 fi

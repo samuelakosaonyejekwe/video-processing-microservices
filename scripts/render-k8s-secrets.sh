@@ -8,24 +8,8 @@ SECRETS_DIR="${OUTPUT_DIR}/infrastructure/kubernetes/secrets"
 
 # shellcheck source=scripts/lib/env-aliases.sh
 source "${ROOT_DIR}/scripts/lib/env-aliases.sh"
-
-_strip_control_chars() {
-  printf '%s' "${1}" | tr -d '\000-\010\013\014\016-\037'
-}
-
-_sanitize_secret_env() {
-  local key
-  for key in \
-    JWT_SECRET JWT_PRIVATE_KEY JWT_PUBLIC_KEY JWT_REFRESH_TOKEN_SECRET JWT_SESSION_SECRET \
-    POSTGRES_PASSWORD POSTGRES_USER MONGO_PASSWORD MONGO_USERNAME \
-    RABBITMQ_PASSWORD RABBITMQ_USERNAME RABBITMQ_ERLANG_COOKIE \
-    RABBITMQ_DEFAULT_USER RABBITMQ_DEFAULT_PASS \
-    SMTP_USERNAME SMTP_PASSWORD SMTP_EMAIL REDIS_PASSWORD; do
-    if [ -n "${!key:-}" ]; then
-      export "${key}=$(_strip_control_chars "${!key}")"
-    fi
-  done
-}
+# shellcheck source=scripts/lib/secret-sanitize.sh
+source "${ROOT_DIR}/scripts/lib/secret-sanitize.sh"
 
 _create_secret() {
   local name="$1"
@@ -54,7 +38,7 @@ _create_secret() {
     --dry-run=client -o yaml > "${dest}"
 }
 
-_sanitize_secret_env
+sanitize_secret_env
 
 export POSTGRES_URI="${POSTGRES_URI:-postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@${POSTGRES_HOST}:${POSTGRES_PORT}/${POSTGRES_DB}?sslmode=${POSTGRES_SSL_MODE}}"
 
