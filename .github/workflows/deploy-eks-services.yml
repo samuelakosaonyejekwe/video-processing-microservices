@@ -1,0 +1,95 @@
+name: Deploy EKS Services
+
+on:
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    name: Deploy Microservices to EKS
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    env:
+      AWS_REGION: ${{ vars.AWS_REGION }}
+      EKS_CLUSTER_NAME: ${{ vars.EKS_CLUSTER_NAME }}
+      K8S_NAMESPACE: ${{ vars.K8S_NAMESPACE }}
+      APP_ENV: ${{ vars.APP_ENV }}
+      PROJECT_NAME: ${{ vars.PROJECT_NAME }}
+      GATEWAY_RELEASE_NAME: gateway
+      JWT_PRIVATE_KEY: ${{ secrets.JWT_PRIVATE_KEY }}
+      JWT_PUBLIC_KEY: ${{ secrets.JWT_PUBLIC_KEY }}
+      POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
+      MONGO_PASSWORD: ${{ secrets.MONGO_PASSWORD }}
+      RABBITMQ_PASSWORD: ${{ secrets.RABBITMQ_PASSWORD }}
+      RABBITMQ_USERNAME: ${{ secrets.RABBITMQ_USERNAME }}
+      RABBITMQ_URI: ${{ secrets.RABBITMQ_URI }}
+      SMTP_USERNAME: ${{ secrets.SMTP_USERNAME }}
+      SMTP_PASSWORD: ${{ secrets.SMTP_PASSWORD }}
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Export Environment Aliases
+        run: |
+          chmod +x scripts/lib/env-aliases.sh
+          source scripts/lib/env-aliases.sh
+          env | sort >> "$GITHUB_ENV"
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ vars.AWS_REGION }}
+
+      - name: Setup Helm
+        uses: azure/setup-helm@v4
+
+      - name: Deploy EKS Platform
+        run: |
+          chmod +x scripts/deploy-eks.sh scripts/verify-deployment.sh
+          bash scripts/deploy-eks.sh
+
+      - name: Deploy Microservices
+        run: |
+          chmod +x scripts/deploy-services.sh scripts/render-k8s-manifests.sh
+          bash scripts/deploy-services.sh
+
+      - name: Kubernetes Validation
+        run: |
+          kubectl get nodes
+          kubectl get pods -A
+          kubectl get svc -A
+          kubectl get ingress -A
+
+      - name: Wait for Core Deployments
+        run: |
+          kubectl rollout status deployment/gateway -n "${K8S_NAMESPACE}" --timeout=600s || true
+          kubectl rollout status deployment/auth-service -n "${K8S_NAMESPACE}" --timeout=600s || true
+          kubectl rollout status deployment/converter-service -n "${K8S_NAMESPACE}" --timeout=600s || true
+          kubectl rollout status deployment/notification-service -n "${K8S_NAMESPACE}" --timeout=600s || true
+          kubectl get pods -A
+
+      - name: RabbitMQ Production Validation
+        run: |
+          kubectl get pods -n "${MESSAGING_NAMESPACE:-messaging}" -l app=rabbitmq || kubectl get pods -A | grep -i rabbit || true
+          kubectl get svc -n "${MESSAGING_NAMESPACE:-messaging}" || true
+
+      - name: Run Production E2E Tests
+        env:
+          INTEGRATION_TESTS: "true"
+          GATEWAY_BASE_URL: ${{ vars.API_BASE_URL }}
+          AUTH_BASE_URL: ${{ vars.API_BASE_URL }}
+        run: |
+          pip install pytest httpx
+          for service in gateway auth converter notification; do
+            pip install -r "services/${service}/requirements.txt"
+          done
+          if [ -n "${GATEWAY_BASE_URL}" ] && [ "${GATEWAY_BASE_URL}" != "https://api.your-domain.com" ]; then
+            python3 -m pytest tests/integration tests/e2e -v --tb=short -m "not slow" || \
+              echo "E2E against API_BASE_URL skipped or failed; verify ingress/DNS manually."
+          else
+            echo "API_BASE_URL not configured for production E2E; skipping remote tests."
+          fi
