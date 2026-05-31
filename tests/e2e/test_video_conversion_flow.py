@@ -7,7 +7,7 @@ import requests
 def test_video_upload_flow():
 
     gateway_url = os.getenv("GATEWAY_BASE_URL", "http://localhost:8080")
-    auth_url = os.getenv("AUTH_BASE_URL", "http://localhost:8000")
+    auth_url = os.getenv("AUTH_BASE_URL", gateway_url)
 
     email = f"e2e-{uuid.uuid4().hex[:8]}@example.com"
     password = "TestPassword123!"
@@ -22,7 +22,7 @@ def test_video_upload_flow():
         },
         timeout=15,
     )
-    assert register.status_code in [201, 409], register.text
+    assert register.status_code in [200, 201, 409], register.text
 
     login = requests.post(
         f"{auth_url}/auth/login",

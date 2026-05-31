@@ -7,10 +7,12 @@ ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 source "${ROOT_DIR}/scripts/lib/env-aliases.sh"
 
 if [ -f "${ROOT_DIR}/.env" ]; then
+  set +u
   set -a
   # shellcheck disable=SC1091
   source "${ROOT_DIR}/.env"
   set +a
+  set -u
   # shellcheck source=scripts/lib/env-aliases.sh
   source "${ROOT_DIR}/scripts/lib/env-aliases.sh"
 fi
@@ -35,7 +37,7 @@ if [ -d "${RENDERED}/configmaps" ]; then
 fi
 
 # Deploy workloads after configmaps so pods can mount required config.
-for dir in gateway auth converter notification redis; do
+for dir in gateway auth converter notification redis frontend; do
   for kind in deployment service ingress hpa; do
     manifest="${RENDERED}/${dir}/${kind}.yaml"
     if [ -f "${manifest}" ]; then

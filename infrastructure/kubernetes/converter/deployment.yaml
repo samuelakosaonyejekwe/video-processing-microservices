@@ -94,4 +94,12 @@ spec:
               memory: "${CONVERTER_MEMORY_LIMIT}"
               cpu: "${CONVERTER_CPU_LIMIT}"
 
+          volumeMounts:
+            - name: converter-tmp
+              mountPath: /tmp/converter
+
+      volumes:
+        - name: converter-tmp
+          emptyDir: {}
+
       restartPolicy: Always

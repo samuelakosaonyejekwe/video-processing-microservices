@@ -9,10 +9,12 @@ source "${ROOT_DIR}/scripts/lib/env-aliases.sh"
 
 # Load local .env when present (never commit this file)
 if [ -f "${ROOT_DIR}/.env" ]; then
+  set +u
   set -a
   # shellcheck disable=SC1091
   source "${ROOT_DIR}/.env"
   set +a
+  set -u
   # shellcheck source=scripts/lib/env-aliases.sh
   source "${ROOT_DIR}/scripts/lib/env-aliases.sh"
 fi
@@ -66,9 +68,15 @@ done
 
 bash "${ROOT_DIR}/scripts/render-k8s-secrets.sh" "${OUTPUT_DIR}"
 
-ingress_file="${OUTPUT_DIR}/infrastructure/kubernetes/gateway/ingress.yaml"
-if [ -f "${ingress_file}" ] && { [ -z "${ACM_CERTIFICATE_ARN:-}" ] || [[ "${ACM_CERTIFICATE_ARN}" == *"placeholder"* ]]; }; then
-  sed -i '/certificate-arn/d;/ssl-redirect/d' "${ingress_file}"
-fi
+_strip_ingress_tls() {
+  local file="$1"
+  local cert_var="$2"
+  if [ -f "${file}" ] && { [ -z "${!cert_var:-}" ] || [[ "${!cert_var}" == *"placeholder"* ]]; }; then
+    sed -i '/certificate-arn/d;/ssl-redirect/d' "${file}"
+  fi
+}
+
+_strip_ingress_tls "${OUTPUT_DIR}/infrastructure/kubernetes/gateway/ingress.yaml" ACM_CERTIFICATE_ARN
+_strip_ingress_tls "${OUTPUT_DIR}/infrastructure/kubernetes/frontend/ingress.yaml" FRONTEND_ACM_CERTIFICATE_ARN
 
 echo "Rendered manifests ready in ${OUTPUT_DIR}"

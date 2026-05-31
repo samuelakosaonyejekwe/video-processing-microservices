@@ -1,53 +1,30 @@
 apiVersion: networking.k8s.io/v1
-
 kind: Ingress
 
 metadata:
-
-  name: ${GATEWAY_INGRESS_NAME}
-
+  name: ${FRONTEND_INGRESS_NAME}
   namespace: ${K8S_NAMESPACE}
-
   annotations:
-
     kubernetes.io/ingress.class: ${INGRESS_CLASS_NAME}
-
     alb.ingress.kubernetes.io/scheme: ${ALB_SCHEME}
-
     alb.ingress.kubernetes.io/target-type: ${ALB_TARGET_TYPE}
-
     alb.ingress.kubernetes.io/group.name: ${ALB_INGRESS_GROUP_NAME}
-
-    alb.ingress.kubernetes.io/group.order: "10"
-
+    alb.ingress.kubernetes.io/group.order: "20"
     alb.ingress.kubernetes.io/listen-ports: '${ALB_LISTEN_PORTS}'
-
-    alb.ingress.kubernetes.io/certificate-arn: "${ACM_CERTIFICATE_ARN}"
-
+    alb.ingress.kubernetes.io/certificate-arn: "${FRONTEND_ACM_CERTIFICATE_ARN}"
     alb.ingress.kubernetes.io/ssl-redirect: '${ALB_SSL_REDIRECT_PORT}'
 
 spec:
-
   ingressClassName: ${INGRESS_CLASS_NAME}
 
   rules:
-
-    - host: ${DOMAIN_NAME}
-
+    - host: ${FRONTEND_DOMAIN_NAME}
       http:
-
         paths:
-
           - path: /
-
             pathType: Prefix
-
             backend:
-
               service:
-
-                name: ${GATEWAY_SERVICE_NAME}
-
+                name: frontend-service
                 port:
-
-                  number: ${GATEWAY_SERVICE_PORT}
+                  number: 80

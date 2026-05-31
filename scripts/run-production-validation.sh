@@ -16,7 +16,7 @@ kubectl get svc -A
 kubectl get ingress -A
 
 echo "=== Core deployment rollouts ==="
-for deploy in gateway-deployment auth-service converter-service notification-deployment; do
+for deploy in gateway-deployment auth-service converter-service notification-deployment frontend-deployment; do
   kubectl rollout status "deployment/${deploy}" -n "${K8S_NAMESPACE}" --timeout=600s
 done
 
@@ -30,10 +30,15 @@ setup_production_test_endpoints
 
 echo "=== Production E2E tests ==="
 export INTEGRATION_TESTS=true
+if [ ! -d "${ROOT_DIR}/.venv" ]; then
+  python3 -m venv "${ROOT_DIR}/.venv"
+fi
+# shellcheck disable=SC1091
+source "${ROOT_DIR}/.venv/bin/activate"
 pip install -q pytest httpx requests
 for service in gateway auth converter notification; do
   pip install -q -r "${ROOT_DIR}/services/${service}/requirements.txt"
 done
-python3 -m pytest "${ROOT_DIR}/tests/integration" "${ROOT_DIR}/tests/e2e" -v --tb=short
+python -m pytest "${ROOT_DIR}/tests/integration" "${ROOT_DIR}/tests/e2e" -v --tb=short
 
 echo "=== Production validation completed ==="

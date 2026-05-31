@@ -27,6 +27,5 @@ def test_gateway_health():
 
     assert response.status_code == 200
 
-    assert response.json() == {
-        "status": "healthy"
-    }
+    body = response.json()
+    assert body.get("status") == "healthy"

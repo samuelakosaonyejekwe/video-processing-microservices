@@ -5,6 +5,10 @@ services:
       context: .
       dockerfile: services/gateway/Dockerfile
     container_name: ${GATEWAY_CONTAINER_NAME:-gateway}
+    networks:
+      default:
+        aliases:
+          - gateway-service
     restart: unless-stopped
     env_file:
       - ${COMPOSE_ENV_FILE:-.env}

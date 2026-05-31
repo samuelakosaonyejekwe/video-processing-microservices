@@ -1,0 +1,68 @@
+apiVersion: apps/v1
+kind: Deployment
+
+metadata:
+  name: frontend-deployment
+  namespace: ${K8S_NAMESPACE}
+  labels:
+    app: frontend
+    service: frontend-service
+    environment: ${APP_ENV}
+
+spec:
+  replicas: ${FRONTEND_REPLICA_COUNT}
+  revisionHistoryLimit: 5
+
+  selector:
+    matchLabels:
+      app: frontend
+
+  template:
+    metadata:
+      labels:
+        app: frontend
+        service: frontend-service
+        environment: ${APP_ENV}
+
+    spec:
+      imagePullSecrets:
+        - name: ${DOCKER_REGISTRY_SECRET_NAME}
+
+      containers:
+        - name: frontend
+          image: ${FRONTEND_IMAGE}
+          imagePullPolicy: Always
+
+          ports:
+            - name: http
+              containerPort: 3000
+              protocol: TCP
+
+          resources:
+            requests:
+              cpu: "${FRONTEND_CPU_REQUEST}"
+              memory: "${FRONTEND_MEMORY_REQUEST}"
+            limits:
+              cpu: "${FRONTEND_CPU_LIMIT}"
+              memory: "${FRONTEND_MEMORY_LIMIT}"
+
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 3000
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            timeoutSeconds: 3
+            failureThreshold: 3
+
+          livenessProbe:
+            httpGet:
+              path: /
+              port: 3000
+            initialDelaySeconds: 15
+            periodSeconds: 20
+            timeoutSeconds: 3
+            failureThreshold: 3
+
+      restartPolicy: Always
+      terminationGracePeriodSeconds: 30

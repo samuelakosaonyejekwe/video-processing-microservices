@@ -52,27 +52,27 @@ setup_production_test_endpoints() {
     gateway_url="${discovered_url}"
   fi
 
-  if [ -z "${gateway_url}" ]; then
+  if [ -n "${gateway_url}" ]; then
+    echo "Using discovered gateway URL: ${gateway_url}"
+    _wait_for_http "${gateway_url}/health"
+  else
     echo "External gateway URL unavailable; using kubectl port-forward for gateway-service..."
     _start_port_forward "${GATEWAY_SERVICE_NAME:-gateway-service}" "${gateway_port}" 80
     gateway_url="http://127.0.0.1:${gateway_port}"
     _wait_for_http "${gateway_url}/health"
-  else
-    echo "Using discovered gateway URL: ${gateway_url}"
-    _wait_for_http "${gateway_url}/health"
   fi
 
-  echo "Starting kubectl port-forward for auth-service on 127.0.0.1:${auth_port}..."
-  _start_port_forward "${AUTH_APP_NAME:-auth-service}" "${auth_port}" 80
-  _wait_for_http "http://127.0.0.1:${auth_port}/health"
-
-  echo "Starting kubectl port-forward for converter-service on 127.0.0.1:${converter_port}..."
-  _start_port_forward "${CONVERTER_APP_NAME:-converter-service}" "${converter_port}" 80
-  _wait_for_http "http://127.0.0.1:${converter_port}/health"
-
   export GATEWAY_BASE_URL="${gateway_url}"
-  export AUTH_BASE_URL="http://127.0.0.1:${auth_port}"
-  export CONVERTER_BASE_URL="http://127.0.0.1:${converter_port}"
+  export AUTH_BASE_URL="${gateway_url}"
+
+  if [ "${PRODUCTION_TEST_USE_PORT_FORWARD:-true}" = "true" ]; then
+    echo "Starting kubectl port-forward for converter-service on 127.0.0.1:${converter_port}..."
+    _start_port_forward "${CONVERTER_APP_NAME:-converter-service}" "${converter_port}" 80
+    _wait_for_http "http://127.0.0.1:${converter_port}/health"
+    export CONVERTER_BASE_URL="http://127.0.0.1:${converter_port}"
+  else
+    export CONVERTER_BASE_URL="${gateway_url}"
+  fi
 
   echo "Production test endpoints:"
   echo "  GATEWAY_BASE_URL=${GATEWAY_BASE_URL}"

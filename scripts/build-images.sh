@@ -12,4 +12,6 @@ docker build -t converter-service ./services/converter
 echo "Building Notification Service Image..."
 docker build -t notification-service ./services/notification
 
+docker build -t frontend -f services/frontend/Dockerfile .
+
 echo "All Docker images built successfully."

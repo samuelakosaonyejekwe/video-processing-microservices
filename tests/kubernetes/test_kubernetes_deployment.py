@@ -6,7 +6,8 @@ import subprocess
 def test_gateway_deployment_exists():
 
     namespace = os.getenv(
-        "K8S_NAMESPACE"
+        "K8S_NAMESPACE",
+        "video-processing",
     )
 
     result = subprocess.run(
@@ -14,12 +15,12 @@ def test_gateway_deployment_exists():
             "kubectl",
             "get",
             "deployment",
-            "gateway",
+            "gateway-deployment",
             "-n",
-            namespace
+            namespace,
         ],
         capture_output=True,
-        text=True
+        text=True,
     )
 
     assert result.returncode == 0
