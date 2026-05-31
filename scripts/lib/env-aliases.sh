@@ -97,6 +97,12 @@ export AVAILABILITY_ZONES="${AVAILABILITY_ZONES:-[\"eu-central-1a\",\"eu-central
 export ECR_REPOSITORIES="${ECR_REPOSITORIES:-[\"gateway-service\",\"auth-service\",\"converter-service\",\"notification-service\"]}"
 export JENKINS_INSTANCE_TYPE="${JENKINS_INSTANCE_TYPE:-t3.medium}"
 export JENKINS_ASG_NAME="${JENKINS_ASG_NAME:-${PROJECT_NAME:-video-processing}-jenkins-asg}"
+
+# EKS node group scaling defaults (used by start/stop EKS scripts)
+export EKS_NODE_GROUP_NAME="${EKS_NODE_GROUP_NAME:-default}"
+export EKS_DESIRED_SIZE="${EKS_DESIRED_SIZE:-2}"
+export EKS_MIN_SIZE="${EKS_MIN_SIZE:-1}"
+export EKS_MAX_SIZE="${EKS_MAX_SIZE:-2}"
 export STRESS_TEST_REQUEST_COUNT="${STRESS_TEST_REQUEST_COUNT:-10}"
 export RABBITMQ_TEST_MESSAGE_COUNT="${RABBITMQ_TEST_MESSAGE_COUNT:-5}"
 export CLUSTER_AUTOSCALER_HELM_REPOSITORY="${CLUSTER_AUTOSCALER_HELM_REPOSITORY:-https://kubernetes.github.io/autoscaler}"

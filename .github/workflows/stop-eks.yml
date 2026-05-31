@@ -1,0 +1,39 @@
+name: Stop EKS
+
+on:
+  workflow_dispatch:
+
+env:
+  AWS_REGION: ${{ vars.AWS_REGION }}
+  EKS_CLUSTER_NAME: ${{ vars.EKS_CLUSTER_NAME }}
+  EKS_NODE_GROUP_NAME: ${{ vars.EKS_NODE_GROUP_NAME }}
+  EKS_MAX_SIZE: ${{ vars.EKS_MAX_SIZE }}
+
+jobs:
+  stop:
+    name: Scale EKS Workers to Zero
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Export Environment Aliases
+        run: |
+          chmod +x scripts/lib/env-aliases.sh scripts/export-github-env.sh
+          source scripts/lib/env-aliases.sh
+          bash scripts/export-github-env.sh
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ vars.AWS_REGION }}
+
+      - name: Stop EKS Worker Nodes
+        run: |
+          chmod +x scripts/stop-eks-nodes.sh
+          bash scripts/stop-eks-nodes.sh

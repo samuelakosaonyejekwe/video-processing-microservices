@@ -1,0 +1,41 @@
+name: Start EKS
+
+on:
+  workflow_dispatch:
+
+env:
+  AWS_REGION: ${{ vars.AWS_REGION }}
+  EKS_CLUSTER_NAME: ${{ vars.EKS_CLUSTER_NAME }}
+  EKS_NODE_GROUP_NAME: ${{ vars.EKS_NODE_GROUP_NAME }}
+  EKS_DESIRED_SIZE: ${{ vars.EKS_DESIRED_SIZE }}
+  EKS_MIN_SIZE: ${{ vars.EKS_MIN_SIZE }}
+  EKS_MAX_SIZE: ${{ vars.EKS_MAX_SIZE }}
+
+jobs:
+  start:
+    name: Scale EKS Workers Up
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Export Environment Aliases
+        run: |
+          chmod +x scripts/lib/env-aliases.sh scripts/export-github-env.sh
+          source scripts/lib/env-aliases.sh
+          bash scripts/export-github-env.sh
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ vars.AWS_REGION }}
+
+      - name: Start EKS Worker Nodes
+        run: |
+          chmod +x scripts/start-eks-nodes.sh
+          bash scripts/start-eks-nodes.sh
