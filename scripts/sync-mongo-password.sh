@@ -74,12 +74,24 @@ _reset_mongo_data() {
   kubectl delete pod "${pod}" -n "${db_namespace}" --ignore-not-found --wait=false
   kubectl delete pvc mongodb-pvc -n "${db_namespace}" --ignore-not-found --wait=true
 
+  helm_dir="${ROOT_DIR}/.rendered-helm/infrastructure/helm"
+  global_values="${helm_dir}/global-values.yaml"
+  if [ ! -d "${helm_dir}/mongodb" ]; then
+    bash "${ROOT_DIR}/scripts/render-helm-charts.sh" "${ROOT_DIR}/.rendered-helm"
+  fi
+
+  echo "Recreating MongoDB storage and waiting for pod readiness..."
+  helm upgrade --install "${MONGODB_RELEASE_NAME:-mongodb}" "${helm_dir}/mongodb" \
+    --namespace "${db_namespace}" \
+    -f "${global_values}" \
+    --wait --timeout 20m
+
   if ! kubectl wait --for=condition=ready "pod/${pod}" -n "${db_namespace}" --timeout=300s >/dev/null 2>&1; then
     echo "ERROR: MongoDB pod did not become ready after PVC reset." >&2
     return 1
   fi
 
-  sleep 10
+  sleep 15
 }
 
 if _mongo_auth_ok; then
