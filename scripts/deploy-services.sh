@@ -105,14 +105,26 @@ if [ "${APPLY_NETWORK_POLICIES:-true}" = "true" ]; then
   bash "${ROOT_DIR}/scripts/deploy-network-policies.sh"
 fi
 
-if kubectl get crd scaledobjects.keda.sh >/dev/null 2>&1; then
-  scaling_dir="${RENDERED}/autoscaling"
-  if [ -d "${scaling_dir}" ]; then
+if [ "${INSTALL_KEDA:-true}" = "true" ]; then
+  bash "${ROOT_DIR}/scripts/install-keda.sh"
+fi
+
+scaling_dir="${RENDERED}/autoscaling"
+if [ -d "${scaling_dir}" ]; then
+  if kubectl get crd scaledobjects.keda.sh >/dev/null 2>&1; then
     echo "Applying KEDA ScaledObjects..."
     kubectl apply -f "${scaling_dir}/"
+    if kubectl get scaledobject "${CONVERTER_SCALEDOBJECT_NAME:-converter-worker-scaler}" \
+      -n "${K8S_NAMESPACE}" >/dev/null 2>&1; then
+      kubectl wait --for=condition=Ready \
+        "scaledobject/${CONVERTER_SCALEDOBJECT_NAME:-converter-worker-scaler}" \
+        -n "${K8S_NAMESPACE}" \
+        --timeout=90s
+    fi
+  else
+    echo "ERROR: KEDA CRD missing after install step." >&2
+    exit 1
   fi
-else
-  echo "KEDA CRD not found; skipping ScaledObject apply."
 fi
 
 if [ "${DEPLOY_MONITORING_STACK:-true}" = "true" ] && [ -n "${GRAFANA_ADMIN_PASSWORD:-}" ] && [ "${GRAFANA_ADMIN_PASSWORD}" != "changeme" ]; then

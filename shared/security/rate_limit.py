@@ -15,6 +15,15 @@ def _redis_enabled() -> bool:
     return bool(os.getenv("REDIS_HOST", "").strip())
 
 
+def _fail_closed() -> bool:
+    explicit = os.getenv("RATE_LIMIT_FAIL_CLOSED", "").strip().lower()
+    if explicit in ("1", "true", "yes"):
+        return True
+    if explicit in ("0", "false", "no"):
+        return False
+    return os.getenv("APP_ENV") == "production" and _redis_enabled()
+
+
 def _get_redis():
     global _redis_client
 
@@ -47,6 +56,12 @@ def is_rate_limited(
     """Return True when the key exceeds the allowed request count."""
     client = _get_redis()
     if client is None:
+        if _redis_enabled() and _fail_closed():
+            logger.warning(
+                "Rate limit fail-closed: Redis client unavailable key=%s",
+                key,
+            )
+            return True
         return False
 
     now = time.time()
@@ -62,4 +77,6 @@ def is_rate_limited(
         return int(count) > max_requests
     except Exception as error:
         logger.warning("Redis rate limit check failed key=%s: %s", key, error)
+        if _fail_closed():
+            return True
         return False

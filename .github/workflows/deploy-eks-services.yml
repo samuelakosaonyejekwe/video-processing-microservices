@@ -110,6 +110,8 @@ jobs:
           DEPLOY_MONITORING_STACK: "false"
           SKIP_INFRA_DEPLOY: "true"
           SKIP_MONGO_PASSWORD_SYNC: "true"
+          INSTALL_KEDA: "true"
+          KEDA_INSTALL_TIMEOUT: "90s"
           DEPLOY_ROLLOUT_TIMEOUT: "90s"
           WORKER_ROLLOUT_TIMEOUT: "90s"
           RUN_POSTGRES_MIGRATIONS: "true"

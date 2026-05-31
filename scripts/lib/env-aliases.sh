@@ -226,6 +226,8 @@ export WEBSOCKET_HOST="${WEBSOCKET_HOST:-0.0.0.0}"
 export WEBSOCKET_PORT="${WEBSOCKET_PORT:-8081}"
 export GATEWAY_WORKER_REPLICAS="${GATEWAY_WORKER_REPLICAS:-2}"
 export TRUST_PROXY_HEADERS="${TRUST_PROXY_HEADERS:-true}"
+export INSTALL_KEDA="${INSTALL_KEDA:-true}"
+export KEDA_INSTALL_TIMEOUT="${KEDA_INSTALL_TIMEOUT:-90s}"
 export NOTIFICATION_APP_NAME="${NOTIFICATION_APP_NAME:-notification-service}"
 export NOTIFICATION_POD_LABEL="${NOTIFICATION_POD_LABEL:-notification}"
 export NOTIFICATION_WORKER_POD_LABEL="${NOTIFICATION_WORKER_POD_LABEL:-notification-worker}"
@@ -517,6 +519,12 @@ if [ "${APP_ENV:-development}" = "production" ] && [ "${POSTGRES_SSL_MODE:-disab
   else
     export POSTGRES_SSL_MODE="require"
   fi
+fi
+
+if [ "${APP_ENV:-development}" = "production" ]; then
+  export RATE_LIMIT_FAIL_CLOSED="${RATE_LIMIT_FAIL_CLOSED:-true}"
+else
+  export RATE_LIMIT_FAIL_CLOSED="${RATE_LIMIT_FAIL_CLOSED:-false}"
 fi
 
 # SMTP alias

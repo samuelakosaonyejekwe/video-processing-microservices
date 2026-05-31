@@ -95,6 +95,8 @@ data:
 
   TRUST_PROXY_HEADERS: "${TRUST_PROXY_HEADERS}"
 
+  RATE_LIMIT_FAIL_CLOSED: "${RATE_LIMIT_FAIL_CLOSED}"
+
   # =========================================================
   # HEALTHCHECK
   # =========================================================
