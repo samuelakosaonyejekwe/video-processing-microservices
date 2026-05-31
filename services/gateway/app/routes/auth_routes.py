@@ -3,6 +3,7 @@ import os
 import jwt
 import httpx
 from jwt.exceptions import PyJWTError
+from shared.http.internal_client import internal_http_client
 from fastapi import APIRouter, HTTPException, Request, Response
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, EmailStr
@@ -59,7 +60,7 @@ class RefreshRequest(BaseModel):
 async def _post_auth(
     path: str, json_data: dict, headers: dict | None = None
 ) -> httpx.Response:
-    async with httpx.AsyncClient(timeout=30.0) as client:
+    async with internal_http_client() as client:
         return await client.post(
             f"{JWT_AUTH_SERVICE_URL}{path}",
             json=json_data,
@@ -214,7 +215,7 @@ async def logout(request: Request):
     logout_body = {"refresh_token": refresh_token} if refresh_token else {}
 
     try:
-        async with httpx.AsyncClient(timeout=30.0) as client:
+        async with internal_http_client() as client:
             response = await client.post(
                 f"{JWT_AUTH_SERVICE_URL}/auth/logout",
                 headers={"Authorization": authorization},

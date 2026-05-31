@@ -22,7 +22,7 @@ if [ -f "${grafana_secret_template}" ]; then
   envsubst < "${grafana_secret_template}" | kubectl apply -f -
 fi
 
-for manifest in prometheus-configmap.yaml prometheus.yaml grafana.yaml; do
+for manifest in prometheus-configmap.yaml prometheus.yaml grafana.yaml gateway-servicemonitor.yaml auth-servicemonitor.yaml converter-servicemonitor.yaml notification-servicemonitor.yaml; do
   if [ -f "${RENDERED}/${manifest}" ]; then
     kubectl apply -f "${RENDERED}/${manifest}"
   fi

@@ -91,7 +91,7 @@ jobs:
           for service in gateway auth converter notification; do
             echo "Testing $service..."
             pip install -r services/$service/requirements.txt
-            (cd services/$service && APP_ENV=test PYTHONPATH=../../.:../.. pytest --cov=app --cov-report=term-missing --cov-fail-under=28)
+            (cd services/$service && APP_ENV=test PYTHONPATH=../../.:../.. pytest --cov=app --cov-report=term-missing --cov-fail-under=30)
           done
 
       - name: Validate production config

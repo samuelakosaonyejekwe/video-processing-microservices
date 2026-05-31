@@ -21,8 +21,13 @@ spec:
             - -c
             - |
               from app.database.job_repository import ensure_job_indexes
+              from shared.outbox.upload_outbox import ensure_upload_outbox_indexes
+              from app.database.mongo_client import get_database
               ensure_job_indexes()
-              print("MongoDB job indexes ensured")
+              database = get_database()
+              if database is not None:
+                  ensure_upload_outbox_indexes(database)
+              print("MongoDB job and outbox indexes ensured")
           envFrom:
             - configMapRef:
                 name: gateway-config

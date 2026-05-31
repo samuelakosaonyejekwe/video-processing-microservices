@@ -53,7 +53,6 @@ class ConverterEventProducer:
             "RABBITMQ_PASSWORD",
             "VIDEO_UPLOAD_QUEUE",
             "NOTIFICATION_QUEUE",
-            "GATEWAY_EVENTS_QUEUE",
             "VIDEO_COMPLETED_QUEUE",
             "VIDEO_FAILED_QUEUE",
         ]
@@ -109,6 +108,7 @@ class ConverterEventProducer:
                     video_failed_queue=self.video_failed_queue,
                     declare_video_failed=True,
                     declare_upload_pipeline=True,
+                    declare_gateway_events=False,
                 )
 
                 logger.info("Converter RabbitMQ producer connected successfully")

@@ -1,0 +1,75 @@
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: gateway-internal-tls
+  namespace: ${K8S_NAMESPACE}
+spec:
+  secretName: gateway-internal-tls
+  duration: 2160h
+  renewBefore: 360h
+  commonName: gateway-service.${K8S_NAMESPACE}.svc.cluster.local
+  dnsNames:
+    - gateway-service
+    - gateway-service.${K8S_NAMESPACE}
+    - gateway-service.${K8S_NAMESPACE}.svc
+    - gateway-service.${K8S_NAMESPACE}.svc.cluster.local
+  issuerRef:
+    name: video-processing-internal-issuer
+    kind: ClusterIssuer
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: auth-internal-tls
+  namespace: ${K8S_NAMESPACE}
+spec:
+  secretName: auth-internal-tls
+  duration: 2160h
+  renewBefore: 360h
+  commonName: auth-service.${K8S_NAMESPACE}.svc.cluster.local
+  dnsNames:
+    - auth-service
+    - auth-service.${K8S_NAMESPACE}
+    - auth-service.${K8S_NAMESPACE}.svc
+    - auth-service.${K8S_NAMESPACE}.svc.cluster.local
+  issuerRef:
+    name: video-processing-internal-issuer
+    kind: ClusterIssuer
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: converter-internal-tls
+  namespace: ${K8S_NAMESPACE}
+spec:
+  secretName: converter-internal-tls
+  duration: 2160h
+  renewBefore: 360h
+  commonName: converter-service.${K8S_NAMESPACE}.svc.cluster.local
+  dnsNames:
+    - converter-service
+    - converter-service.${K8S_NAMESPACE}
+    - converter-service.${K8S_NAMESPACE}.svc
+    - converter-service.${K8S_NAMESPACE}.svc.cluster.local
+  issuerRef:
+    name: video-processing-internal-issuer
+    kind: ClusterIssuer
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: notification-internal-tls
+  namespace: ${K8S_NAMESPACE}
+spec:
+  secretName: notification-internal-tls
+  duration: 2160h
+  renewBefore: 360h
+  commonName: notification-service.${K8S_NAMESPACE}.svc.cluster.local
+  dnsNames:
+    - notification-service
+    - notification-service.${K8S_NAMESPACE}
+    - notification-service.${K8S_NAMESPACE}.svc
+    - notification-service.${K8S_NAMESPACE}.svc.cluster.local
+  issuerRef:
+    name: video-processing-internal-issuer
+    kind: ClusterIssuer

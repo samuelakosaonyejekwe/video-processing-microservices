@@ -35,6 +35,7 @@ kubectl apply -f "${RENDERED}/serviceaccounts/"
 kubectl apply -f "${RENDERED}/secrets/"
 
 bash "${ROOT_DIR}/scripts/sync-rabbitmq-credentials.sh"
+bash "${ROOT_DIR}/scripts/sync-rabbitmq-definitions.sh"
 bash "${ROOT_DIR}/scripts/sync-postgres-password.sh"
 if [ "${SKIP_MONGO_PASSWORD_SYNC:-false}" != "true" ]; then
   bash "${ROOT_DIR}/scripts/sync-mongo-password.sh"
@@ -107,6 +108,14 @@ fi
 
 if [ "${INSTALL_KEDA:-true}" = "true" ]; then
   bash "${ROOT_DIR}/scripts/install-keda.sh"
+fi
+
+if [ "${DEPLOY_TRACING_STACK:-false}" = "true" ]; then
+  bash "${ROOT_DIR}/scripts/deploy-tracing.sh"
+fi
+
+if [ "${DEPLOY_MTLS_STACK:-false}" = "true" ]; then
+  bash "${ROOT_DIR}/scripts/deploy-mtls.sh"
 fi
 
 scaling_dir="${RENDERED}/autoscaling"

@@ -5,9 +5,11 @@ import uuid
 
 from fastapi import APIRouter, File, HTTPException, Request, UploadFile
 
+from app.database.mongo_client import get_database
 from app.database.job_repository import create_job, delete_job
-from app.queue.producer import get_gateway_producer
+from app.outbox.upload_relay import relay_upload_outbox_for_job
 from app.storage.s3_storage import delete_object, upload_video_to_s3, _video_bucket
+from shared.outbox.upload_outbox import enqueue_upload_outbox
 from shared.security.upload_validation import (
     sanitize_filename,
     validate_content_type,
@@ -115,14 +117,20 @@ async def upload_video(
         if not job_persisted:
             raise RuntimeError("Failed to persist job metadata")
 
-        correlation_id = await asyncio.to_thread(
-            _publish_upload,
-            job_id,
-            user_id,
-            safe_filename,
-            s3_key,
-            content_type,
-        )
+        database = get_database()
+        outbox_payload = {
+            "job_id": job_id,
+            "user_id": user_id,
+            "filename": safe_filename,
+            "s3_key": s3_key,
+            "content_type": content_type,
+        }
+        if database is not None and not enqueue_upload_outbox(
+            database, job_id=job_id, payload=outbox_payload
+        ):
+            raise RuntimeError("Failed to persist upload outbox entry")
+
+        correlation_id = await asyncio.to_thread(relay_upload_outbox_for_job, job_id)
     except HTTPException:
         raise
     except Exception as exc:
@@ -151,18 +159,5 @@ async def upload_video(
     return {
         "job_id": job_id,
         "status": "uploaded",
-        "s3_key": s3_key,
         "correlation_id": correlation_id,
     }
-
-
-def _publish_upload(job_id, user_id, filename, s3_key, content_type):
-
-    producer = get_gateway_producer()
-    return producer.publish_video_upload_event(
-        job_id=job_id,
-        user_id=user_id,
-        filename=filename,
-        s3_key=s3_key,
-        content_type=content_type,
-    )

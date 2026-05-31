@@ -55,7 +55,6 @@ class GatewayEventProducer:
             "RABBITMQ_PASSWORD",
             "VIDEO_UPLOAD_QUEUE",
             "NOTIFICATION_QUEUE",
-            "GATEWAY_EVENTS_QUEUE",
             "RABBITMQ_EXCHANGE",
         ]
 
@@ -108,6 +107,7 @@ class GatewayEventProducer:
                     notification_queue=self.notification_queue,
                     video_upload_queue=self.video_upload_queue,
                     declare_upload_pipeline=True,
+                    declare_gateway_events=bool(self.gateway_events_queue),
                 )
 
                 logger.info("Gateway RabbitMQ producer connected successfully")

@@ -116,6 +116,9 @@ jobs:
           DEPLOY_JOB_WAIT_TIMEOUT: "120s"
           DEPLOY_ROLLOUT_TIMEOUT: "120s"
           WORKER_ROLLOUT_TIMEOUT: "120s"
+          DEPLOY_TRACING_STACK: "true"
+          DEPLOY_MTLS_STACK: "true"
+          SYNC_RABBITMQ_DEFINITIONS: "true"
           RUN_POSTGRES_MIGRATIONS: "true"
         run: |
           chmod +x scripts/*.sh scripts/lib/*.sh
@@ -126,6 +129,7 @@ jobs:
           bash scripts/validate-hpa.sh
           bash scripts/validate-keda.sh
           bash scripts/validate-queue-workers.sh
+          bash scripts/verify-production-health.sh
 
       - name: Production Validation
         if: ${{ vars.RUN_PRODUCTION_VALIDATION == 'true' }}

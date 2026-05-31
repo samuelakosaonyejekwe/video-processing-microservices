@@ -347,6 +347,16 @@ class GatewayEventConsumer:
                     on_message_callback=self.process_message,
                 )
 
+                if self.gateway_events_queue:
+                    self.channel.basic_consume(
+                        queue=self.gateway_events_queue,
+                        on_message_callback=self.process_message,
+                    )
+                    logger.info(
+                        "Gateway consumer also listening on queue=%s",
+                        self.gateway_events_queue,
+                    )
+
                 self._ready_event.set()
 
                 self.channel.start_consuming()
@@ -429,6 +439,22 @@ def start_consumer(on_ready=None):
                     name="gateway-consumer-ready",
                     daemon=True,
                 ).start()
+
+            def _relay_outbox_loop():
+                while _consumer_instance and not _consumer_instance._should_stop:
+                    try:
+                        from app.outbox.upload_relay import relay_upload_outbox
+
+                        relay_upload_outbox(limit=20)
+                    except Exception as relay_error:
+                        logger.warning("Upload outbox relay loop error: %s", relay_error)
+                    time.sleep(30)
+
+            threading.Thread(
+                target=_relay_outbox_loop,
+                name="gateway-upload-outbox-relay",
+                daemon=True,
+            ).start()
 
             _consumer_instance.start()
         except Exception as error:

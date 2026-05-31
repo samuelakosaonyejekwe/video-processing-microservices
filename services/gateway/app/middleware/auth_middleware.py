@@ -1,3 +1,5 @@
+import os
+
 from fastapi import Request
 from fastapi.responses import JSONResponse
 
@@ -7,6 +9,10 @@ import jwt
 from jwt.exceptions import ExpiredSignatureError, PyJWTError
 
 from shared.security.token_revocation import is_token_revoked
+
+
+def _strict_cookie_auth_enabled() -> bool:
+    return os.getenv("STRICT_COOKIE_AUTH", "false").lower() in ("true", "1", "yes")
 
 
 class AuthMiddleware(BaseHTTPMiddleware):
@@ -35,6 +41,12 @@ class AuthMiddleware(BaseHTTPMiddleware):
 
         token = request.cookies.get("access_token")
         authorization = request.headers.get("Authorization")
+
+        if authorization and _strict_cookie_auth_enabled():
+            return JSONResponse(
+                status_code=401,
+                content={"detail": "Bearer tokens are disabled; use cookie session"},
+            )
 
         if authorization:
             try:
