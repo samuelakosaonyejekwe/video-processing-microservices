@@ -7,6 +7,8 @@ ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 source "${ROOT_DIR}/scripts/lib/env-aliases.sh"
 # shellcheck source=scripts/lib/secret-sanitize.sh
 source "${ROOT_DIR}/scripts/lib/secret-sanitize.sh"
+# shellcheck source=scripts/lib/k8s-pvc-cleanup.sh
+source "${ROOT_DIR}/scripts/lib/k8s-pvc-cleanup.sh"
 
 pod="${MONGODB_RELEASE_NAME:-mongodb}-0"
 db_namespace="${DATABASE_NAMESPACE:-database}"
@@ -72,7 +74,7 @@ _reset_mongo_data() {
   echo "WARNING: Existing conversion job history in MongoDB will be lost."
 
   kubectl delete pod "${pod}" -n "${db_namespace}" --ignore-not-found --wait=false
-  kubectl delete pvc mongodb-pvc -n "${db_namespace}" --ignore-not-found --wait=true
+  delete_pvc_and_wait mongodb-pvc "${db_namespace}" 300
 
   helm_dir="${ROOT_DIR}/.rendered-helm/infrastructure/helm"
   global_values="${helm_dir}/global-values.yaml"

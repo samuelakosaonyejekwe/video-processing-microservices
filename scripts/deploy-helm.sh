@@ -5,6 +5,8 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 # shellcheck source=scripts/lib/env-aliases.sh
 source "${ROOT_DIR}/scripts/lib/env-aliases.sh"
+# shellcheck source=scripts/lib/k8s-pvc-cleanup.sh
+source "${ROOT_DIR}/scripts/lib/k8s-pvc-cleanup.sh"
 
 bash "${ROOT_DIR}/scripts/render-helm-charts.sh" "${ROOT_DIR}/.rendered-helm"
 
@@ -27,10 +29,8 @@ reset_unhealthy_release() {
   kubectl delete pod "${release}-0" -n "${namespace}" --ignore-not-found --wait=false 2>/dev/null || true
 
   if [ "${release}" = "mongodb" ]; then
-    kubectl delete pvc mongodb-pvc -n "${namespace}" --ignore-not-found --wait=false 2>/dev/null || true
+    delete_pvc_and_wait mongodb-pvc "${namespace}" 300
   fi
-
-  sleep 5
 }
 
 deploy_chart() {
@@ -39,6 +39,12 @@ deploy_chart() {
   local namespace="$3"
 
   reset_unhealthy_release "${release}" "${namespace}"
+
+  if [ "${release}" = "mongodb" ] && kubectl get pvc mongodb-pvc -n "${namespace}" >/dev/null 2>&1; then
+    if kubectl get pvc mongodb-pvc -n "${namespace}" -o jsonpath='{.metadata.deletionTimestamp}' 2>/dev/null | grep -q .; then
+      wait_for_pvc_removal mongodb-pvc "${namespace}" 300
+    fi
+  fi
 
   helm upgrade --install "${release}" "${chart_path}" \
     --namespace "${namespace}" \
