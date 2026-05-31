@@ -4,6 +4,8 @@ import jwt
 import httpx
 from jwt.exceptions import PyJWTError
 from shared.http.internal_client import internal_http_client
+from shared.http.upstream_errors import upstream_error_detail
+from shared.security.client_ip import get_client_ip
 from fastapi import APIRouter, HTTPException, Request, Response
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, EmailStr
@@ -58,14 +60,31 @@ class RefreshRequest(BaseModel):
     reraise=True,
 )
 async def _post_auth(
-    path: str, json_data: dict, headers: dict | None = None
+    path: str,
+    json_data: dict,
+    headers: dict | None = None,
+    *,
+    request: Request | None = None,
 ) -> httpx.Response:
+    outbound_headers = dict(headers or {})
+    if request is not None:
+        client_ip = get_client_ip(request)
+        if client_ip and client_ip != "unknown":
+            outbound_headers.setdefault("X-Forwarded-For", client_ip)
+
     async with internal_http_client() as client:
         return await client.post(
             f"{JWT_AUTH_SERVICE_URL}{path}",
             json=json_data,
-            headers=headers or {},
+            headers=outbound_headers,
         )
+
+
+def _raise_upstream_error(response: httpx.Response, default: str) -> None:
+    raise HTTPException(
+        status_code=response.status_code,
+        detail=upstream_error_detail(response, default),
+    )
 
 
 def _apply_auth_cookies(response: JSONResponse, tokens: dict) -> None:
@@ -135,19 +154,24 @@ async def session(request: Request):
 
 
 @router.post("/login")
-async def login(data: LoginRequest):
+async def login(data: LoginRequest, request: Request):
     try:
-        response = await _post_auth("/auth/login", data.model_dump())
+        response = await _post_auth(
+            "/auth/login",
+            data.model_dump(),
+            request=request,
+        )
     except (httpx.ConnectError, httpx.ReadTimeout) as error:
+        raise HTTPException(
+            status_code=503, detail="Auth service unavailable"
+        ) from error
+    except httpx.HTTPError as error:
         raise HTTPException(
             status_code=503, detail="Auth service unavailable"
         ) from error
 
     if response.status_code != 200:
-        raise HTTPException(
-            status_code=response.status_code,
-            detail=response.json().get("detail", "Login failed"),
-        )
+        _raise_upstream_error(response, "Login failed")
 
     payload = response.json()
     json_response = _cookie_auth_response(str(data.email))
@@ -156,19 +180,24 @@ async def login(data: LoginRequest):
 
 
 @router.post("/register")
-async def register(data: RegisterRequest):
+async def register(data: RegisterRequest, request: Request):
     try:
-        response = await _post_auth("/auth/register", data.model_dump())
+        response = await _post_auth(
+            "/auth/register",
+            data.model_dump(),
+            request=request,
+        )
     except (httpx.ConnectError, httpx.ReadTimeout) as error:
+        raise HTTPException(
+            status_code=503, detail="Auth service unavailable"
+        ) from error
+    except httpx.HTTPError as error:
         raise HTTPException(
             status_code=503, detail="Auth service unavailable"
         ) from error
 
     if response.status_code not in (200, 201):
-        raise HTTPException(
-            status_code=response.status_code,
-            detail=response.json().get("detail", "Registration failed"),
-        )
+        _raise_upstream_error(response, "Registration failed")
 
     return response.json()
 
@@ -180,17 +209,22 @@ async def refresh(data: RefreshRequest, request: Request):
         raise HTTPException(status_code=401, detail="Refresh token missing")
 
     try:
-        response = await _post_auth("/auth/refresh", {"refresh_token": refresh_token})
+        response = await _post_auth(
+            "/auth/refresh",
+            {"refresh_token": refresh_token},
+            request=request,
+        )
     except (httpx.ConnectError, httpx.ReadTimeout) as error:
+        raise HTTPException(
+            status_code=503, detail="Auth service unavailable"
+        ) from error
+    except httpx.HTTPError as error:
         raise HTTPException(
             status_code=503, detail="Auth service unavailable"
         ) from error
 
     if response.status_code != 200:
-        raise HTTPException(
-            status_code=response.status_code,
-            detail=response.json().get("detail", "Refresh failed"),
-        )
+        _raise_upstream_error(response, "Refresh failed")
 
     payload = response.json()
     json_response = _cookie_auth_response()
@@ -227,10 +261,7 @@ async def logout(request: Request):
         return response
 
     if response.status_code != 200:
-        raise HTTPException(
-            status_code=response.status_code,
-            detail=response.json().get("detail", "Logout failed"),
-        )
+        _raise_upstream_error(response, "Logout failed")
 
     json_response = JSONResponse(content=response.json())
     _clear_auth_cookies(json_response)

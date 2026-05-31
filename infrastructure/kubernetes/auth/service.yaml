@@ -13,8 +13,14 @@ spec:
 
   ports:
 
-    - protocol: TCP
+    - name: http
+      protocol: TCP
       port: 80
       targetPort: ${AUTH_APP_PORT}
+
+    - name: https
+      protocol: TCP
+      port: ${INTERNAL_TLS_PORT}
+      targetPort: ${INTERNAL_TLS_PORT}
 
   type: ClusterIP

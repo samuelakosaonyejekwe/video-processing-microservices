@@ -323,6 +323,41 @@ spec:
                   name: redis-secret
                   key: REDIS_PASSWORD
 
+            - name: TRUST_PROXY_HEADERS
+              valueFrom:
+                configMapKeyRef:
+                  name: auth-config
+                  key: TRUST_PROXY_HEADERS
+
+            - name: RATE_LIMIT_FAIL_CLOSED
+              valueFrom:
+                configMapKeyRef:
+                  name: auth-config
+                  key: RATE_LIMIT_FAIL_CLOSED
+
+            - name: INTERNAL_SERVICE_TLS_ENABLED
+              valueFrom:
+                configMapKeyRef:
+                  name: auth-config
+                  key: INTERNAL_SERVICE_TLS_ENABLED
+
+            - name: INTERNAL_TLS_PORT
+              valueFrom:
+                configMapKeyRef:
+                  name: auth-config
+                  key: INTERNAL_TLS_PORT
+
+            - name: INTERNAL_TLS_CERT_PATH
+              value: /etc/internal-tls/tls.crt
+
+            - name: INTERNAL_TLS_KEY_PATH
+              value: /etc/internal-tls/tls.key
+
+          volumeMounts:
+            - name: auth-internal-tls
+              mountPath: /etc/internal-tls
+              readOnly: true
+
           resources:
 
             requests:
@@ -382,6 +417,12 @@ spec:
             periodSeconds: 10
 
       restartPolicy: Always
+
+      volumes:
+        - name: auth-internal-tls
+          secret:
+            secretName: auth-internal-tls
+            optional: true
 
       imagePullSecrets:
 

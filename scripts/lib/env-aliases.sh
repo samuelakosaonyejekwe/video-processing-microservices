@@ -228,6 +228,8 @@ export DEPLOY_MTLS_STACK="${DEPLOY_MTLS_STACK:-false}"
 export SYNC_RABBITMQ_DEFINITIONS="${SYNC_RABBITMQ_DEFINITIONS:-true}"
 export STRICT_COOKIE_AUTH="${STRICT_COOKIE_AUTH:-false}"
 export INTERNAL_TLS_CA_PATH="${INTERNAL_TLS_CA_PATH:-}"
+export INTERNAL_SERVICE_TLS_ENABLED="${INTERNAL_SERVICE_TLS_ENABLED:-false}"
+export INTERNAL_TLS_PORT="${INTERNAL_TLS_PORT:-8443}"
 export UPLOAD_OUTBOX_RELAY_INTERVAL_SECONDS="${UPLOAD_OUTBOX_RELAY_INTERVAL_SECONDS:-30}"
 export REDIS_PVC_NAME="${REDIS_PVC_NAME:-redis-data}"
 export REDIS_STORAGE_SIZE="${REDIS_STORAGE_SIZE:-1Gi}"
@@ -547,8 +549,15 @@ if [ "${DEPLOY_TRACING_STACK:-false}" = "true" ] && [ -z "${OTEL_EXPORTER_OTLP_E
   export OTEL_EXPORTER_OTLP_ENDPOINT="http://otel-collector.${TRACING_NAMESPACE}.svc.cluster.local:4318"
 fi
 
-if [ "${DEPLOY_MTLS_STACK:-false}" = "true" ] && [ -z "${INTERNAL_TLS_CA_PATH:-}" ]; then
-  export INTERNAL_TLS_CA_PATH="/etc/internal-tls/ca.crt"
+if [ "${DEPLOY_MTLS_STACK:-false}" = "true" ]; then
+  export INTERNAL_SERVICE_TLS_ENABLED="${INTERNAL_SERVICE_TLS_ENABLED:-true}"
+  if [ -z "${INTERNAL_TLS_CA_PATH:-}" ]; then
+    export INTERNAL_TLS_CA_PATH="/etc/internal-tls/ca.crt"
+  fi
+  _default_http_auth_url="http://auth-service.${K8S_NAMESPACE}.svc.cluster.local:${AUTH_K8S_SERVICE_PORT}"
+  if [ -z "${JWT_AUTH_SERVICE_URL:-}" ] || [ "${JWT_AUTH_SERVICE_URL}" = "${_default_http_auth_url}" ]; then
+    export JWT_AUTH_SERVICE_URL="https://auth-service.${K8S_NAMESPACE}.svc.cluster.local:${INTERNAL_TLS_PORT}"
+  fi
 fi
 
 if [ "${APP_ENV:-development}" = "production" ]; then

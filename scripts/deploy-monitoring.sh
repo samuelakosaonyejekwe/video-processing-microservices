@@ -11,6 +11,8 @@ if [ "${DEPLOY_MONITORING_STACK:-true}" != "true" ]; then
   exit 0
 fi
 
+bash "${ROOT_DIR}/scripts/install-prometheus-operator-crds.sh"
+
 RENDERED="${ROOT_DIR}/.rendered-k8s/infrastructure/kubernetes/monitoring"
 
 bash "${ROOT_DIR}/scripts/render-k8s-manifests.sh" "${ROOT_DIR}/.rendered-k8s"

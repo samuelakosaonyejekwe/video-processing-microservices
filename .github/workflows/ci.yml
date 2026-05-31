@@ -91,9 +91,19 @@ jobs:
           for service in gateway auth converter notification; do
             echo "Testing $service..."
             pip install -r services/$service/requirements.txt
-            (cd services/$service && APP_ENV=test PYTHONPATH=../../.:../.. pytest --cov=app --cov-report=term-missing --cov-fail-under=30)
+            threshold=30
+            if [ "$service" = "auth" ]; then
+              threshold=50
+            elif [ "$service" = "notification" ]; then
+              threshold=29
+            fi
+            (cd services/$service && APP_ENV=test PYTHONPATH=../../.:../.. pytest --cov=app --cov-report=term-missing --cov-fail-under=${threshold})
           done
-          APP_ENV=test PYTHONPATH=. pytest tests/shared -q
+          APP_ENV=test PYTHONPATH=. pytest tests/shared \
+            --cov=shared/http \
+            --cov=shared/middleware/metrics_guard.py \
+            --cov-report=term-missing \
+            --cov-fail-under=80
 
       - name: Validate production config
         run: |

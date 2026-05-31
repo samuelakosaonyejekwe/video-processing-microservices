@@ -5,6 +5,9 @@ ENV PYTHONUNBUFFERED=1
 ENV APP_HOME=/app
 ENV GATEWAY_SERVICE_PORT=8080
 ENV GATEWAY_GUNICORN_WORKERS=2
+ENV APP_MODULE=app.main:app
+ENV APP_PORT=8080
+ENV INTERNAL_TLS_PORT=8443
 
 WORKDIR /app
 
@@ -23,16 +26,18 @@ RUN pip install --no-cache-dir --upgrade pip && \
 
 COPY shared ./shared
 COPY services/gateway/ .
+COPY scripts/docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
 
-RUN chown -R appuser:appgroup /app
+RUN chmod +x /usr/local/bin/docker-entrypoint.sh && \
+    chown -R appuser:appgroup /app
 
 USER appuser
 
-EXPOSE 8080
+EXPOSE 8080 8443
 
 HEALTHCHECK --interval=30s --timeout=10s --start-period=20s --retries=3 \
   CMD curl -f http://localhost:8080/health || exit 1
 
 ENTRYPOINT ["/usr/bin/tini", "--"]
 
-CMD gunicorn app.main:app -k uvicorn.workers.UvicornWorker --bind 0.0.0.0:8080 --workers 2
+CMD ["/usr/local/bin/docker-entrypoint.sh"]

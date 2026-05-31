@@ -1,8 +1,13 @@
+import logging
+
 from fastapi import APIRouter, HTTPException, status
+from jwt.exceptions import PyJWTError
 from passlib.context import CryptContext
 from pydantic import BaseModel, EmailStr
+from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 
+from app.config import JWT_PRIVATE_KEY, JWT_PUBLIC_KEY
 from app.database.connection import SessionLocal
 from app.jwt.revocation import refresh_token_ttl_seconds
 from app.jwt.token import (
@@ -14,6 +19,7 @@ from app.models.user_entity import UserEntity
 from shared.security.token_revocation import store_refresh_token
 
 router = APIRouter(prefix="/auth", tags=["Authentication"])
+logger = logging.getLogger(__name__)
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
@@ -37,6 +43,12 @@ def get_db():
 
 @router.post("/login")
 def login(data: LoginRequest):
+
+    if not JWT_PRIVATE_KEY or not JWT_PUBLIC_KEY:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Authentication service misconfigured",
+        )
 
     db: Session = SessionLocal()
 
@@ -73,6 +85,27 @@ def login(data: LoginRequest):
             "refresh_token": refresh_token,
             "token_type": "bearer",
         }
+
+    except HTTPException:
+        raise
+    except SQLAlchemyError as error:
+        logger.exception("Database error during login for email=%s", data.email)
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Authentication service temporarily unavailable",
+        ) from error
+    except (PyJWTError, ValueError) as error:
+        logger.exception("Token generation failed during login for email=%s", data.email)
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Authentication service temporarily unavailable",
+        ) from error
+    except Exception as error:
+        logger.exception("Unexpected error during login for email=%s", data.email)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Login failed",
+        ) from error
 
     finally:
         db.close()
