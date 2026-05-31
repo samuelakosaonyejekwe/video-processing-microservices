@@ -5,23 +5,13 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 # shellcheck source=scripts/lib/env-aliases.sh
 source "${ROOT_DIR}/scripts/lib/env-aliases.sh"
+# shellcheck source=scripts/lib/resolve-eks-nodegroup.sh
+source "${ROOT_DIR}/scripts/lib/resolve-eks-nodegroup.sh"
 
 : "${AWS_REGION:?Missing AWS_REGION}"
 : "${EKS_CLUSTER_NAME:?Missing EKS_CLUSTER_NAME}"
 
-nodegroup="${EKS_NODE_GROUP_NAME:-}"
-if [ -z "${nodegroup}" ]; then
-  nodegroup="$(aws eks list-nodegroups \
-    --cluster-name "${EKS_CLUSTER_NAME}" \
-    --region "${AWS_REGION}" \
-    --query 'nodegroups[0]' \
-    --output text)"
-fi
-
-if [ -z "${nodegroup}" ] || [ "${nodegroup}" = "None" ]; then
-  echo "ERROR: Could not determine EKS node group for cluster ${EKS_CLUSTER_NAME}" >&2
-  exit 1
-fi
+nodegroup="$(resolve_eks_nodegroup "${EKS_CLUSTER_NAME}" "${AWS_REGION}" "${EKS_NODE_GROUP_NAME:-}")"
 
 max_size="${EKS_MAX_SIZE:-2}"
 
