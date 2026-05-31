@@ -53,6 +53,35 @@ _mongo_auth_ok() {
       --quiet --eval 'db.runCommand({ping:1}).ok'" 2>/dev/null | grep -q '^1$'
 }
 
+_sync_password_in_mongo() {
+  kubectl exec -n "${db_namespace}" "${pod}" -- sh -c \
+    "mongosh 'mongodb://127.0.0.1:27017/${mongo_auth_source}' \
+      -u '${mongo_user}' \
+      -p \"\$(printf '%s' '${password_b64}' | base64 -d)\" \
+      --quiet --eval \"
+        const password = Buffer.from('${password_b64}', 'base64').toString();
+        db.changeUserPassword('${mongo_user}', password);
+        if ('${mongo_database}' !== '${mongo_auth_source}') {
+          db.getSiblingDB('${mongo_database}').changeUserPassword('${mongo_user}', password);
+        }
+      \"" >/dev/null 2>&1
+}
+
+_reset_mongo_data() {
+  echo "WARNING: Resetting MongoDB data volume to align credentials."
+  echo "WARNING: Existing conversion job history in MongoDB will be lost."
+
+  kubectl delete pod "${pod}" -n "${db_namespace}" --ignore-not-found --wait=false
+  kubectl delete pvc mongodb-pvc -n "${db_namespace}" --ignore-not-found --wait=true
+
+  if ! kubectl wait --for=condition=ready "pod/${pod}" -n "${db_namespace}" --timeout=300s >/dev/null 2>&1; then
+    echo "ERROR: MongoDB pod did not become ready after PVC reset." >&2
+    return 1
+  fi
+
+  sleep 10
+}
+
 if _mongo_auth_ok; then
   echo "MongoDB credentials already aligned for user ${mongo_user}."
   exit 0
@@ -60,58 +89,17 @@ fi
 
 echo "Syncing MongoDB password for user ${mongo_user} in ${db_namespace}..."
 
-kubectl exec -n "${db_namespace}" "${pod}" -- sh -c \
-  "mongosh --quiet <<'EOSQL'
-const password = Buffer.from('${password_b64}', 'base64').toString();
-const user = '${mongo_user}';
-const adminDb = db.getSiblingDB('${mongo_auth_source}');
-const appDb = db.getSiblingDB('${mongo_database}');
+if _sync_password_in_mongo && _mongo_auth_ok; then
+  echo "MongoDB password synced."
+  exit 0
+fi
 
-function ensureAdminPassword(database) {
-  try {
-    database.changeUserPassword(user, password);
-    print('Updated password for ' + user + ' in ' + database.getName());
-  } catch (error) {
-    if (String(error).includes('UserNotFound')) {
-      database.createUser({
-        user: user,
-        pwd: password,
-        roles: [{ role: 'root', db: 'admin' }],
-      });
-      print('Created admin user ' + user);
-    } else {
-      throw error;
-    }
-  }
-}
-
-function ensureAppPassword(database) {
-  try {
-    database.changeUserPassword(user, password);
-    print('Updated password for ' + user + ' in ' + database.getName());
-  } catch (error) {
-    if (String(error).includes('UserNotFound')) {
-      database.createUser({
-        user: user,
-        pwd: password,
-        roles: [{ role: 'readWrite', db: database.getName() }],
-      });
-      print('Created user ' + user + ' in ' + database.getName());
-    } else {
-      throw error;
-    }
-  }
-}
-
-ensureAdminPassword(adminDb);
-if ('${mongo_database}' !== '${mongo_auth_source}') {
-  ensureAppPassword(appDb);
-}
-EOSQL"
+echo "MongoDB password change with current credentials failed; reinitializing data volume..."
+_reset_mongo_data
 
 if ! _mongo_auth_ok; then
-  echo "ERROR: MongoDB password sync failed for user ${mongo_user}." >&2
+  echo "ERROR: MongoDB password sync failed for user ${mongo_user} after PVC reset." >&2
   exit 1
 fi
 
-echo "MongoDB password synced."
+echo "MongoDB password synced after data volume reset."
