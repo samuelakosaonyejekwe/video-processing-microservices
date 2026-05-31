@@ -9,11 +9,12 @@ on:
 
 permissions:
   contents: read
-  packages: write
 
 env:
   DOCKER_USERNAME: ${{ vars.DOCKER_USERNAME }}
   IMAGE_TAG: ${{ github.sha }}
+  AWS_REGION: ${{ vars.AWS_REGION }}
+  PROJECT_NAME: ${{ vars.PROJECT_NAME }}
 
 jobs:
 
@@ -23,10 +24,7 @@ jobs:
 
     runs-on: ubuntu-latest
 
-    timeout-minutes: 30
-
-    strategy:
-      fail-fast: true
+    timeout-minutes: 45
 
     steps:
 
@@ -37,6 +35,15 @@ jobs:
         run: |
           test -n "${{ vars.DOCKER_USERNAME }}"
           test -n "${{ secrets.DOCKER_PASSWORD }}"
+          test -n "${{ vars.AWS_REGION }}"
+          test -n "${{ vars.PROJECT_NAME }}"
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ vars.AWS_REGION }}
 
       - name: Set Up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -47,77 +54,14 @@ jobs:
           username: ${{ vars.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
 
-      - name: Build Gateway Image
+      - name: Build and Push Images
+        env:
+          DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
         run: |
-          docker build \
-            --pull \
-            --no-cache \
-            -t ${DOCKER_USERNAME}/gateway-service:${IMAGE_TAG} \
-            -t ${DOCKER_USERNAME}/gateway-service:latest \
-            -f services/gateway/Dockerfile .
-
-      - name: Push Gateway Image
-        run: |
-          docker push ${DOCKER_USERNAME}/gateway-service:${IMAGE_TAG}
-          docker push ${DOCKER_USERNAME}/gateway-service:latest
-
-      - name: Build Auth Image
-        run: |
-          docker build \
-            --pull \
-            --no-cache \
-            -t ${DOCKER_USERNAME}/auth-service:${IMAGE_TAG} \
-            -t ${DOCKER_USERNAME}/auth-service:latest \
-            -f services/auth/Dockerfile .
-
-      - name: Push Auth Image
-        run: |
-          docker push ${DOCKER_USERNAME}/auth-service:${IMAGE_TAG}
-          docker push ${DOCKER_USERNAME}/auth-service:latest
-
-      - name: Build Converter Image
-        run: |
-          docker build \
-            --pull \
-            --no-cache \
-            -t ${DOCKER_USERNAME}/converter-service:${IMAGE_TAG} \
-            -t ${DOCKER_USERNAME}/converter-service:latest \
-            -f services/converter/Dockerfile .
-
-      - name: Push Converter Image
-        run: |
-          docker push ${DOCKER_USERNAME}/converter-service:${IMAGE_TAG}
-          docker push ${DOCKER_USERNAME}/converter-service:latest
-
-      - name: Build Notification Image
-        run: |
-          docker build \
-            --pull \
-            --no-cache \
-            -t ${DOCKER_USERNAME}/notification-service:${IMAGE_TAG} \
-            -t ${DOCKER_USERNAME}/notification-service:latest \
-            -f services/notification/Dockerfile .
-
-      - name: Push Notification Image
-        run: |
-          docker push ${DOCKER_USERNAME}/notification-service:${IMAGE_TAG}
-          docker push ${DOCKER_USERNAME}/notification-service:latest
-
-      - name: Build Frontend Image
-        run: |
-          docker build \
-            --pull \
-            --no-cache \
-            -t ${DOCKER_USERNAME}/frontend:${IMAGE_TAG} \
-            -t ${DOCKER_USERNAME}/frontend:latest \
-            -f services/frontend/Dockerfile .
-
-      - name: Push Frontend Image
-        run: |
-          docker push ${DOCKER_USERNAME}/frontend:${IMAGE_TAG}
-          docker push ${DOCKER_USERNAME}/frontend:latest
+          chmod +x scripts/publish-docker-images.sh scripts/lib/env-aliases.sh
+          bash scripts/publish-docker-images.sh
 
       - name: Deployment Summary
         run: |
-          echo "Docker images built and pushed successfully."
+          echo "Docker images built and pushed to ECR and Docker Hub."
           echo "Images tagged with latest and ${IMAGE_TAG}"

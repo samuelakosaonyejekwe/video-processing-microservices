@@ -99,9 +99,23 @@ s3_buckets = {
   video = {
     bucket_name = "${S3_VIDEO_BUCKET_NAME}"
     enable_cors = true
+    prefix_lifecycle_rules = [
+      {
+        id              = "expire-uploaded-videos"
+        prefix          = "uploads/videos/"
+        expiration_days = ${S3_VIDEO_UPLOAD_EXPIRATION_DAYS:-7}
+      }
+    ]
   }
   audio = {
     bucket_name = "${S3_AUDIO_BUCKET_NAME}"
+    prefix_lifecycle_rules = [
+      {
+        id              = "expire-converted-audio"
+        prefix          = "outputs/audio/"
+        expiration_days = ${S3_AUDIO_OUTPUT_EXPIRATION_DAYS:-7}
+      }
+    ]
   }
 }
 kubernetes_namespace  = "${KUBERNETES_NAMESPACE}"

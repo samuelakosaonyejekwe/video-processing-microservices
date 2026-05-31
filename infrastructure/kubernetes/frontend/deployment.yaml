@@ -30,7 +30,7 @@ spec:
 
       containers:
         - name: frontend
-          image: ${FRONTEND_IMAGE}
+          image: ${DOCKER_IMAGE_REGISTRY}/${DOCKER_IMAGE_NAMESPACE}/frontend:${IMAGE_TAG}
           imagePullPolicy: Always
 
           ports:

@@ -60,6 +60,11 @@ variable "s3_buckets" {
     cors_allowed_origins               = optional(list(string), ["*"])
     cors_expose_headers                = optional(list(string), [])
     cors_max_age_seconds               = optional(number, 3000)
+    prefix_lifecycle_rules = optional(list(object({
+      id              = string
+      prefix          = string
+      expiration_days = number
+    })), [])
   }))
 }
 

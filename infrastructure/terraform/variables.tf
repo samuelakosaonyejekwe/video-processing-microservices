@@ -628,15 +628,34 @@ variable "s3_buckets" {
     cors_allowed_origins               = optional(list(string), ["*"])
     cors_expose_headers                = optional(list(string), [])
     cors_max_age_seconds               = optional(number, 3000)
+    prefix_lifecycle_rules = optional(list(object({
+      id              = string
+      prefix          = string
+      expiration_days = number
+    })), [])
   }))
 
   default = {
     video = {
       bucket_name = "samuel-video-processing-video"
       enable_cors = true
+      prefix_lifecycle_rules = [
+        {
+          id              = "expire-uploaded-videos"
+          prefix          = "uploads/videos/"
+          expiration_days = 7
+        }
+      ]
     }
     audio = {
       bucket_name = "samuel-video-processing-audio"
+      prefix_lifecycle_rules = [
+        {
+          id              = "expire-converted-audio"
+          prefix          = "outputs/audio/"
+          expiration_days = 7
+        }
+      ]
     }
   }
 }

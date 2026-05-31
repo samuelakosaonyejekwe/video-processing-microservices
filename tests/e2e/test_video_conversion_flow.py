@@ -5,6 +5,8 @@ from pathlib import Path
 
 import requests
 
+from shared.storage.s3_client import create_s3_client
+
 FIXTURE_PATH = (
     Path(__file__).resolve().parent.parent / "fixtures" / "sample-with-audio.mp4"
 )
@@ -45,11 +47,9 @@ def _require_production_buckets() -> tuple[str, str]:
 
 
 def _assert_s3_object_exists(bucket: str, key: str) -> None:
-    import boto3
     from botocore.exceptions import ClientError
 
-    region = os.getenv("AWS_REGION", "eu-central-1")
-    client = boto3.client("s3", region_name=region)
+    client = create_s3_client()
 
     try:
         client.head_object(Bucket=bucket, Key=key)
@@ -60,11 +60,8 @@ def _assert_s3_object_exists(bucket: str, key: str) -> None:
 
 
 def _list_mp3_keys(bucket: str) -> set[str]:
-    import boto3
-
     prefix = os.getenv("S3_AUDIO_OUTPUT_PREFIX", "outputs/audio/").rstrip("/") + "/"
-    region = os.getenv("AWS_REGION", "eu-central-1")
-    client = boto3.client("s3", region_name=region)
+    client = create_s3_client()
     keys: set[str] = set()
 
     paginator = client.get_paginator("list_objects_v2")

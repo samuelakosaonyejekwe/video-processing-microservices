@@ -152,7 +152,6 @@ resource "aws_s3_bucket_lifecycle_configuration" "this" {
   bucket = each.value.id
 
   rule {
-
     id = "default-lifecycle"
 
     status = lookup(
@@ -228,6 +227,27 @@ resource "aws_s3_bucket_lifecycle_configuration" "this" {
         "noncurrent_version_expiration_days",
         30
       )
+    }
+  }
+
+  dynamic "rule" {
+    for_each = lookup(
+      var.s3_buckets[each.key],
+      "prefix_lifecycle_rules",
+      []
+    )
+
+    content {
+      id     = rule.value.id
+      status = "Enabled"
+
+      filter {
+        prefix = rule.value.prefix
+      }
+
+      expiration {
+        days = rule.value.expiration_days
+      }
     }
   }
 }

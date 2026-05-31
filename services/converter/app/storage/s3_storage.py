@@ -1,8 +1,8 @@
 import os
 
-import boto3
-
 from botocore.exceptions import ClientError
+
+from shared.storage.s3_client import create_s3_client
 
 # ==========================================================
 # ENVIRONMENT VARIABLES
@@ -39,7 +39,7 @@ if missing_env_vars:
 # S3 CLIENT
 # ==========================================================
 
-s3_client = boto3.client("s3", region_name=AWS_REGION)
+s3_client = create_s3_client()
 
 # ==========================================================
 # GENERIC S3 UPLOAD

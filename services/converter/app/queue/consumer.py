@@ -6,12 +6,12 @@ import tempfile
 import time
 import uuid
 
-import boto3
 import pika
 
 from pika.exceptions import AMQPConnectionError, AMQPChannelError
 
 from app.queue.producer import get_converter_producer
+from shared.storage.s3_client import create_s3_client
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
 
@@ -54,7 +54,7 @@ class ConverterEventConsumer:
 
         self.channel = None
 
-        self.s3_client = boto3.client("s3", region_name=self.aws_region)
+        self.s3_client = create_s3_client()
 
         self.validate_environment()
 
