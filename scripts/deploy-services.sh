@@ -21,7 +21,8 @@ if [ -z "${AWS_ACCOUNT_ID:-}" ] && command -v aws >/dev/null 2>&1; then
   export AWS_ACCOUNT_ID="$(aws sts get-caller-identity --query Account --output text 2>/dev/null || true)"
 fi
 
-bash "${ROOT_DIR}/scripts/resolve-ecr-registry.sh"
+# shellcheck source=scripts/resolve-ecr-registry.sh
+source "${ROOT_DIR}/scripts/resolve-ecr-registry.sh"
 
 bash "${ROOT_DIR}/scripts/render-k8s-manifests.sh" "${ROOT_DIR}/.rendered-k8s"
 

@@ -77,6 +77,10 @@ jobs:
         run: |
           aws eks update-kubeconfig --region "${AWS_REGION}" --name "${EKS_CLUSTER_NAME}"
           echo "AWS_ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)" >> "$GITHUB_ENV"
+          source scripts/lib/env-aliases.sh
+          source scripts/resolve-ecr-registry.sh
+          echo "DOCKER_IMAGE_REGISTRY=${DOCKER_IMAGE_REGISTRY}" >> "$GITHUB_ENV"
+          echo "DOCKER_IMAGE_NAMESPACE=${DOCKER_IMAGE_NAMESPACE}" >> "$GITHUB_ENV"
           kubectl get nodes
 
       - name: Deploy Stack

@@ -12,7 +12,8 @@ kubectl create namespace "${K8S_NAMESPACE}" --dry-run=client -o yaml | kubectl a
 SECRET_NAME="${DOCKER_REGISTRY_SECRET_NAME:-docker-registry-secret}"
 REGISTRY="${DOCKER_IMAGE_REGISTRY:-docker.io}"
 
-bash "${ROOT_DIR}/scripts/resolve-ecr-registry.sh"
+# shellcheck source=scripts/resolve-ecr-registry.sh
+source "${ROOT_DIR}/scripts/resolve-ecr-registry.sh"
 REGISTRY="${DOCKER_IMAGE_REGISTRY:-${REGISTRY}}"
 
 if [[ "${REGISTRY}" == *".amazonaws.com"* ]]; then
