@@ -462,6 +462,64 @@ pipeline {
         }
 
         /*
+        ======================================================
+        DEPLOY KUBERNETES SERVICES
+        ======================================================
+        */
+
+        stage('Deploy') {
+
+            steps {
+
+                sh '''
+                    chmod +x scripts/deploy-eks.sh scripts/deploy-services.sh
+
+                    export IMAGE_TAG=${IMAGE_TAG}
+
+                    export APP_ENV=${APP_ENV}
+
+                    export EKS_CLUSTER_NAME=${CLUSTER_NAME}
+
+                    bash scripts/deploy-eks.sh
+
+                    bash scripts/deploy-services.sh
+                '''
+            }
+        }
+
+        /*
+        ======================================================
+        VERIFY DEPLOYMENT
+        ======================================================
+        */
+
+        stage('Verify Deployment') {
+
+            steps {
+
+                sh '''
+                    kubectl get pods -A
+
+                    kubectl get svc -A
+
+                    kubectl get deployments -A
+
+                    kubectl rollout status deployment/gateway-deployment \
+                        -n ${K8S_NAMESPACE}
+
+                    kubectl rollout status deployment/auth-service \
+                        -n ${K8S_NAMESPACE}
+
+                    kubectl rollout status deployment/converter-service \
+                        -n ${K8S_NAMESPACE}
+
+                    kubectl rollout status deployment/notification-deployment \
+                        -n ${K8S_NAMESPACE}
+                '''
+            }
+        }
+
+        /*
         =====================================================
         INTEGRATION TESTS
         =====================================================
@@ -561,51 +619,6 @@ pipeline {
 
         /*
         ======================================================
-        DEPLOY KUBERNETES SERVICES
-        ======================================================
-        */
-
-        stage('Deploy') {
-
-            steps {
-
-                sh '''
-                    chmod +x scripts/deploy-eks.sh
-
-                    export IMAGE_TAG=${IMAGE_TAG}
-
-                    export APP_ENV=${APP_ENV}
-
-                    bash scripts/deploy-eks.sh
-                '''
-            }
-        }
-
-        /*
-        ======================================================
-        VERIFY DEPLOYMENT
-        ======================================================
-        */
-
-        stage('Verify Deployment') {
-
-            steps {
-
-                sh '''
-                    kubectl get pods -A
-
-                    kubectl get svc -A
-
-                    kubectl get deployments -A
-
-                    kubectl rollout status deployment/gateway \
-                        -n ${K8S_NAMESPACE}
-                '''
-            }
-        }
-
-        /*
-        ======================================================
         ROLLBACK ON FAILURE
         ======================================================
         */
@@ -622,7 +635,10 @@ pipeline {
             steps {
 
                 sh '''
-                    helm rollback gateway || true
+                    for deployment in gateway-deployment auth-service converter-service notification-deployment; do
+                        kubectl rollout undo deployment/${deployment} \
+                            -n ${K8S_NAMESPACE} || true
+                    done
                 '''
             }
         }

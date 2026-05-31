@@ -21,6 +21,8 @@ spec:
         values:
           - ${GATEWAY_POD_LABEL}
           - ${GATEWAY_WORKER_POD_LABEL}
+          - mongodb-index-setup
+          - s3-orphan-cleanup
 
   policyTypes:
     - Ingress

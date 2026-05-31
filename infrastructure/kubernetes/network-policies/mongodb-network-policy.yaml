@@ -25,8 +25,11 @@ spec:
                 operator: In
                 values:
                   - ${CONVERTER_APP_NAME}
+                  - ${CONVERTER_WORKER_POD_LABEL}
                   - ${GATEWAY_POD_LABEL}
                   - ${GATEWAY_WORKER_POD_LABEL}
+                  - mongodb-index-setup
+                  - s3-orphan-cleanup
 
       ports:
         - protocol: TCP

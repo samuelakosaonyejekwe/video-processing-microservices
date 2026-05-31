@@ -36,10 +36,36 @@ def claim_job_notification(job_id: str, ttl_seconds: int = 604800) -> bool:
 
     key = f"notification:job:{job_id}"
     try:
+        current = client.get(key)
+        if current == "sent":
+            return False
+        if current == "queued":
+            return True
         return bool(client.set(key, "queued", nx=True, ex=ttl_seconds))
     except Exception as error:
         logger.warning("Notification claim failed job_id=%s: %s", job_id, error)
         return True
+
+
+def release_job_notification_claim(job_id: str) -> None:
+    """Release an in-progress claim so retry delivery can proceed."""
+    if not job_id:
+        return
+
+    client = _get_redis_client()
+    if client is None:
+        return
+
+    key = f"notification:job:{job_id}"
+    try:
+        if client.get(key) == "queued":
+            client.delete(key)
+    except Exception as error:
+        logger.warning(
+            "Failed to release notification claim job_id=%s: %s",
+            job_id,
+            error,
+        )
 
 
 def mark_job_notification_sent(job_id: str, ttl_seconds: int = 604800) -> None:

@@ -105,6 +105,9 @@ async def login(data: LoginRequest):
     json_response = _cookie_auth_response(str(data.email))
     _apply_auth_cookies(json_response, payload)
     return json_response
+
+
+@router.post("/register")
 async def register(data: RegisterRequest):
     try:
         response = await _post_auth("/auth/register", data.model_dump())
@@ -156,11 +159,15 @@ async def logout(request: Request):
         _clear_auth_cookies(response)
         return response
 
+    refresh_token = request.cookies.get(REFRESH_COOKIE)
+    logout_body = {"refresh_token": refresh_token} if refresh_token else {}
+
     try:
         async with httpx.AsyncClient(timeout=30.0) as client:
             response = await client.post(
                 f"{JWT_AUTH_SERVICE_URL}/auth/logout",
                 headers={"Authorization": authorization},
+                json=logout_body,
             )
     except (httpx.ConnectError, httpx.ReadTimeout):
         response = JSONResponse(content={"detail": "Logged out"})

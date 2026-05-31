@@ -13,6 +13,9 @@ spec:
     spec:
       ttlSecondsAfterFinished: 3600
       template:
+        metadata:
+          labels:
+            app: s3-orphan-cleanup
         spec:
           restartPolicy: OnFailure
           containers:
@@ -27,3 +30,11 @@ spec:
                     name: gateway-config
                 - secretRef:
                     name: gateway-secret
+                - secretRef:
+                    name: mongodb-secret
+              env:
+                - name: MONGO_URI
+                  valueFrom:
+                    secretKeyRef:
+                      name: mongodb-secret
+                      key: MONGO_URI

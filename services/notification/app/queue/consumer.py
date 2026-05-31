@@ -13,6 +13,7 @@ from app.cache.redis_state import (
     mark_job_notification_sent,
     notification_already_sent,
     record_notification_delivery,
+    release_job_notification_claim,
 )
 from app.email.send_email import send_email
 from app.websocket.events import broadcast_event_sync
@@ -243,6 +244,9 @@ class NotificationConsumer:
             if job_id and notification_already_sent(job_id):
                 ch.basic_ack(delivery_tag=method.delivery_tag)
                 return
+
+            if job_id:
+                release_job_notification_claim(job_id)
 
             try:
                 self.channel.basic_publish(

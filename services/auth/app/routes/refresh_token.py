@@ -1,6 +1,9 @@
+import os
+
 from fastapi import APIRouter, HTTPException, status
 from pydantic import BaseModel
 
+from app.config import APP_ENV
 from app.jwt.revocation import refresh_token_ttl_seconds
 from app.jwt.token import (
     create_access_token,
@@ -49,8 +52,17 @@ async def refresh_token(body: RefreshRequest):
             detail="Refresh token has been revoked",
         )
 
+    refresh_binding_required = APP_ENV == "production" and bool(
+        os.getenv("REDIS_HOST", "").strip()
+    )
     stored_jti = get_stored_refresh_jti(str(user_id))
-    if stored_jti and refresh_jti and stored_jti != refresh_jti:
+    if refresh_binding_required:
+        if not stored_jti or not refresh_jti or stored_jti != refresh_jti:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Refresh token has been revoked",
+            )
+    elif stored_jti and refresh_jti and stored_jti != refresh_jti:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Refresh token has been revoked",
