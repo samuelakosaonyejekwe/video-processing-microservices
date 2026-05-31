@@ -24,7 +24,9 @@ def upload_video_to_s3(local_file_path: str, object_key: str, content_type: str)
 
     try:
         if extra_args:
-            client.upload_file(local_file_path, bucket, object_key, ExtraArgs=extra_args)
+            client.upload_file(
+                local_file_path, bucket, object_key, ExtraArgs=extra_args
+            )
         else:
             client.upload_file(local_file_path, bucket, object_key)
     except ClientError as error:

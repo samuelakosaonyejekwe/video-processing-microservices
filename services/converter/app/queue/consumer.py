@@ -172,9 +172,7 @@ class ConverterEventConsumer:
             audio_s3_key,
         )
 
-        self.s3_client.upload_file(
-            local_audio_path, self.s3_audio_bucket, audio_s3_key
-        )
+        self.s3_client.upload_file(local_audio_path, self.s3_audio_bucket, audio_s3_key)
 
     def convert_video_to_audio(self, input_video_path, output_audio_path):
 
