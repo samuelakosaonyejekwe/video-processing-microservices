@@ -255,6 +255,17 @@ export WEBSOCKET_NOTIFICATIONS_ENABLED="${WEBSOCKET_NOTIFICATIONS_ENABLED:-true}
 export HEALTHCHECK_PATH="${HEALTHCHECK_PATH:-/health}"
 export APP_NAME="${APP_NAME:-notification-service}"
 export CORS_ALLOWED_ORIGINS="${CORS_ALLOWED_ORIGINS:-*}"
+if [ "${APP_ENV:-development}" = "production" ] && [ "${CORS_ALLOWED_ORIGINS}" = "*" ]; then
+  if [ -n "${FRONTEND_URL:-}" ] && [ "${FRONTEND_URL}" != "http://localhost:3000" ]; then
+    export CORS_ALLOWED_ORIGINS="${FRONTEND_URL}"
+  elif [ -n "${FRONTEND_DOMAIN_NAME:-}" ] && [ "${FRONTEND_DOMAIN_NAME}" != "localhost" ]; then
+    export CORS_ALLOWED_ORIGINS="https://${FRONTEND_DOMAIN_NAME}"
+  elif [ -n "${DOMAIN_NAME:-}" ] && [ "${DOMAIN_NAME}" != "api.example.com" ]; then
+    export CORS_ALLOWED_ORIGINS="https://${DOMAIN_NAME}"
+  elif [ -n "${API_BASE_URL:-}" ]; then
+    export CORS_ALLOWED_ORIGINS="${API_BASE_URL}"
+  fi
+fi
 export API_PREFIX="${API_PREFIX:-/api/v1}"
 export REFRESH_TOKEN_EXPIRE_DAYS="${REFRESH_TOKEN_EXPIRE_DAYS:-7}"
 export MAX_VIDEO_UPLOAD_SIZE_MB="${MAX_VIDEO_UPLOAD_SIZE_MB:-500}"

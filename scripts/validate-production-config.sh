@@ -24,7 +24,9 @@ validate_production_config() {
   _reject_default MONGO_PASSWORD "${MONGO_PASSWORD:-}" mongo
   _reject_default RABBITMQ_PASSWORD "${RABBITMQ_PASSWORD:-}" guest
   _reject_default REDIS_PASSWORD "${REDIS_PASSWORD:-}" redis
-  _reject_default GRAFANA_ADMIN_PASSWORD "${GRAFANA_ADMIN_PASSWORD:-}" changeme
+  if [ "${DEPLOY_MONITORING_STACK:-true}" = "true" ] && [ -n "${GRAFANA_ADMIN_PASSWORD:-}" ]; then
+    _reject_default GRAFANA_ADMIN_PASSWORD "${GRAFANA_ADMIN_PASSWORD}" changeme
+  fi
 
   if [ "${CORS_ALLOWED_ORIGINS:-*}" = "*" ]; then
     echo "Production config error: CORS_ALLOWED_ORIGINS must not be '*' in production" >&2

@@ -101,7 +101,7 @@ if [ "${APPLY_NETWORK_POLICIES:-true}" = "true" ]; then
   bash "${ROOT_DIR}/scripts/deploy-network-policies.sh"
 fi
 
-if [ "${DEPLOY_MONITORING_STACK:-true}" = "true" ]; then
+if [ "${DEPLOY_MONITORING_STACK:-true}" = "true" ] && [ -n "${GRAFANA_ADMIN_PASSWORD:-}" ] && [ "${GRAFANA_ADMIN_PASSWORD}" != "changeme" ]; then
   bash "${ROOT_DIR}/scripts/deploy-monitoring.sh"
 fi
 
