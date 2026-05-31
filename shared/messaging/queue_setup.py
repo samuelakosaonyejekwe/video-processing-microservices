@@ -12,12 +12,22 @@ def _queue(name_env: str, default: str) -> str:
     return os.getenv(name_env, default)
 
 
-def declare_video_dlx(channel: pika.channel.Channel) -> None:
-    channel.exchange_declare(
-        exchange=VIDEO_DLX,
-        exchange_type="direct",
-        durable=True,
-    )
+def declare_video_dlx(channel: pika.channel.Channel) -> pika.channel.Channel:
+    """Ensure video.dlx exists without conflicting with legacy exchange metadata."""
+    try:
+        channel.exchange_declare(exchange=VIDEO_DLX, passive=True)
+        return channel
+    except pika.exceptions.ChannelClosedByBroker as exc:
+        if exc.reply_code != 404:
+            raise
+        connection = channel.connection
+        channel = connection.channel()
+        channel.exchange_declare(
+            exchange=VIDEO_DLX,
+            exchange_type="direct",
+            durable=True,
+        )
+        return channel
 
 
 def declare_pipeline_queues(
@@ -59,7 +69,7 @@ def declare_pipeline_queues(
         "VIDEO_FAILED_QUEUE", "video-failed-queue"
     )
 
-    declare_video_dlx(channel)
+    channel = declare_video_dlx(channel)
 
     channel.queue_declare(
         queue=video_upload_queue,

@@ -73,7 +73,7 @@ fi
 if [ -f "${RENDERED}/mongodb/index-job.yaml" ]; then
   kubectl delete job mongodb-index-setup -n "${K8S_NAMESPACE}" --ignore-not-found
   kubectl apply -f "${RENDERED}/mongodb/index-job.yaml"
-  kubectl wait --for=condition=complete job/mongodb-index-setup -n "${K8S_NAMESPACE}" --timeout=180s
+  kubectl wait --for=condition=complete job/mongodb-index-setup -n "${K8S_NAMESPACE}" --timeout=90s
 fi
 
 if [ -f "${RENDERED}/cleanup/s3-orphan-cleanup-cronjob.yaml" ]; then
