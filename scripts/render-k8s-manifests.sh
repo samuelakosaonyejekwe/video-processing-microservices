@@ -80,6 +80,16 @@ done
 bash "${ROOT_DIR}/scripts/render-k8s-secrets.sh" "${OUTPUT_DIR}"
 bash "${ROOT_DIR}/scripts/render-postgres-schema-configmap.sh" "${OUTPUT_DIR}"
 
+if [ -f "${OUTPUT_DIR}/infrastructure/kubernetes/secrets/auth-secret.yaml" ]; then
+  export AUTH_SECRET_CHECKSUM="$(
+    sha256sum "${OUTPUT_DIR}/infrastructure/kubernetes/secrets/auth-secret.yaml" \
+      | awk '{print $1}' | cut -c1-16
+  )"
+  auth_deploy="${ROOT_DIR}/infrastructure/kubernetes/auth/deployment.yaml"
+  auth_dest="${OUTPUT_DIR}/infrastructure/kubernetes/auth/deployment.yaml"
+  envsubst < "${auth_deploy}" > "${auth_dest}"
+fi
+
 _strip_ingress_tls() {
   local file="$1"
   local cert_var="$2"

@@ -51,13 +51,18 @@ fi
 auth_jwt_url="${auth_url%/}/health/jwt"
 echo "Checking auth JWT signing at ${auth_jwt_url}"
 jwt_health="$(kubectl exec -n "${K8S_NAMESPACE}" "${gateway_pod}" -- \
-  curl -sf --max-time 10 "${auth_jwt_url}" 2>/dev/null || true)"
-if [ -z "${jwt_health}" ]; then
-  echo "ERROR: Auth JWT health endpoint unavailable at ${auth_jwt_url}" >&2
+  sh -c "curl -sS --max-time 10 -w ' HTTP_STATUS:%{http_code}' '${auth_jwt_url}'" 2>&1 || true)"
+jwt_status="$(printf '%s' "${jwt_health}" | sed -n 's/.* HTTP_STATUS:\([0-9][0-9][0-9]\)$/\1/p')"
+jwt_body="$(printf '%s' "${jwt_health}" | sed 's/ HTTP_STATUS:[0-9][0-9][0-9]$//')"
+if [ -z "${jwt_status}" ] || [ "${jwt_status}" != "200" ]; then
+  echo "ERROR: Auth JWT health endpoint unavailable at ${auth_jwt_url} (status=${jwt_status:-unknown})" >&2
+  if [ -n "${jwt_body}" ]; then
+    echo "Response: ${jwt_body}" >&2
+  fi
   exit 1
 fi
-if ! printf '%s' "${jwt_health}" | grep -q '"signing_ok"[[:space:]]*:[[:space:]]*true'; then
-  echo "ERROR: Auth JWT signing check failed: ${jwt_health}" >&2
+if ! printf '%s' "${jwt_body}" | grep -q '"signing_ok"[[:space:]]*:[[:space:]]*true'; then
+  echo "ERROR: Auth JWT signing check failed: ${jwt_body}" >&2
   exit 1
 fi
 echo "Auth JWT signing OK."

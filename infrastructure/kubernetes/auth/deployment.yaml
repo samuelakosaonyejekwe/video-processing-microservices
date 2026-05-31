@@ -32,6 +32,9 @@ spec:
       labels:
         app: auth-service
 
+      annotations:
+        checksum/auth-secret: ${AUTH_SECRET_CHECKSUM}
+
     spec:
 
       enableServiceLinks: false

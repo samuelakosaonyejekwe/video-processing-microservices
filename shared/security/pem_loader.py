@@ -1,5 +1,8 @@
 import os
 
+import jwt
+from jwt.exceptions import PyJWTError
+
 
 def normalize_pem(value: str) -> str:
     normalized = value.strip()
@@ -20,3 +23,15 @@ def load_pem(env_name: str, file_path: str = "") -> str:
         return normalize_pem(value)
 
     return ""
+
+
+def verify_rsa_key_pair(private_key: str, public_key: str) -> bool:
+    if not private_key or not public_key:
+        return False
+
+    try:
+        token = jwt.encode({"healthcheck": "1"}, private_key, algorithm="RS256")
+        jwt.decode(token, public_key, algorithms=["RS256"])
+        return True
+    except (PyJWTError, ValueError, TypeError):
+        return False

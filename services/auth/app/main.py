@@ -89,6 +89,7 @@ async def jwt_health():
         else ""
     )
     signing_ok = False
+    signing_error = ""
     if JWT_PRIVATE_KEY and JWT_PUBLIC_KEY:
         try:
             token = jwt.encode(
@@ -102,8 +103,10 @@ async def jwt_health():
                 algorithms=[JWT_ALGORITHM],
             )
             signing_ok = True
-        except jwt.PyJWTError:
-            signing_ok = False
+        except jwt.PyJWTError as error:
+            signing_error = str(error)
+        except (ValueError, TypeError) as error:
+            signing_error = str(error)
 
     return {
         "algorithm": JWT_ALGORITHM,
@@ -113,6 +116,7 @@ async def jwt_health():
         "public_key_loaded": bool(JWT_PUBLIC_KEY),
         "public_key_fingerprint": fingerprint,
         "signing_ok": signing_ok,
+        "signing_error": signing_error or None,
     }
 
 

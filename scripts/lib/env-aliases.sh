@@ -33,9 +33,23 @@ _export_alias() {
 _export_alias DOCKER_USERNAME DOCKER_USERNAME
 _export_alias DOCKER_REGISTRY DOCKER_REGISTRY DOCKER_IMAGE_REGISTRY
 
-# Derive JWT public key from private key when missing
-if [ -z "${JWT_PUBLIC_KEY:-}" ] && [ -n "${JWT_PRIVATE_KEY:-}" ]; then
-  JWT_PUBLIC_KEY="$(printf '%s' "$JWT_PRIVATE_KEY" | openssl rsa -pubout 2>/dev/null || true)"
+_normalize_pem() {
+  local value="$1"
+  if [[ "${value}" == *\\n* ]]; then
+    value="${value//\\n/$'\n'}"
+  fi
+  printf '%s' "${value}"
+}
+
+# Normalize PEM secrets and always derive the public key from the private key
+# so GitHub/K8s cannot deploy a mismatched key pair.
+if [ -n "${JWT_PRIVATE_KEY:-}" ]; then
+  JWT_PRIVATE_KEY="$(_normalize_pem "${JWT_PRIVATE_KEY}")"
+  export JWT_PRIVATE_KEY
+  JWT_PUBLIC_KEY="$(printf '%s' "${JWT_PRIVATE_KEY}" | openssl rsa -pubout 2>/dev/null || true)"
+  export JWT_PUBLIC_KEY
+elif [ -n "${JWT_PUBLIC_KEY:-}" ]; then
+  JWT_PUBLIC_KEY="$(_normalize_pem "${JWT_PUBLIC_KEY}")"
   export JWT_PUBLIC_KEY
 fi
 if [ -z "${JWT_PUBLIC_KEY:-}" ] && [ -f "${ROOT_DIR}/jwt-private.pem" ]; then
@@ -84,6 +98,7 @@ export VIDEO_FAILED_QUEUE="${VIDEO_FAILED_QUEUE:-video-failed-queue}"
 
 # Service hosts/ports — align GH naming with docker-compose
 _export_alias AUTH_SERVICE_HOST AUTH_SERVICE_HOST AUTH_HOST GATEWAY_SERVICE_HOST
+export AUTH_SECRET_CHECKSUM="${AUTH_SECRET_CHECKSUM:-bootstrap}"
 export AUTH_SERVICE_HOST="${AUTH_SERVICE_HOST:-auth-service}"
 _export_alias AUTH_SERVICE_PORT AUTH_SERVICE_PORT AUTH_PORT AUTH_SERVICE_PORT
 export AUTH_SERVICE_PORT="${AUTH_SERVICE_PORT:-8000}"
