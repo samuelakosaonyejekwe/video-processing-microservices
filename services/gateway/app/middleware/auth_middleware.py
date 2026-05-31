@@ -26,6 +26,7 @@ class AuthMiddleware(BaseHTTPMiddleware):
             "/auth/login",
             "/auth/register",
             "/auth/refresh",
+            "/auth/session",
             "/metrics",
         ]
 

@@ -5,6 +5,7 @@ from fastapi.responses import JSONResponse
 from starlette.middleware.base import BaseHTTPMiddleware
 
 from app.config import APP_ENV
+from shared.security.client_ip import get_client_ip
 from shared.security.rate_limit import is_rate_limited
 
 RATE_LIMIT_MAX_REQUESTS = int(os.getenv("AUTH_RATE_LIMIT_MAX_REQUESTS", "20"))
@@ -24,7 +25,7 @@ class AuthRateLimitMiddleware(BaseHTTPMiddleware):
         if not any(path.startswith(prefix) for prefix in PROTECTED_PREFIXES):
             return await call_next(request)
 
-        client_host = request.client.host if request.client else "unknown"
+        client_host = get_client_ip(request)
         key = f"auth:{client_host}:{path}"
 
         if is_rate_limited(

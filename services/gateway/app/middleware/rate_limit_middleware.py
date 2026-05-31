@@ -5,6 +5,7 @@ from fastapi.responses import JSONResponse
 from starlette.middleware.base import BaseHTTPMiddleware
 
 from app.config import APP_ENV, RATE_LIMIT_MAX_REQUESTS, RATE_LIMIT_WINDOW_SECONDS
+from shared.security.client_ip import get_client_ip
 from shared.security.rate_limit import is_rate_limited, rate_limit_key
 
 
@@ -16,7 +17,7 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         if request.url.path in ("/health", "/health/", "/health/ready", "/metrics"):
             return await call_next(request)
 
-        client_ip = request.client.host if request.client else "unknown"
+        client_ip = get_client_ip(request)
         key = rate_limit_key(client_ip, request.url.path)
 
         if is_rate_limited(

@@ -29,7 +29,7 @@ reset_unhealthy_release() {
   kubectl delete pod "${release}-0" -n "${namespace}" --ignore-not-found --wait=false 2>/dev/null || true
 
   if [ "${release}" = "mongodb" ]; then
-    delete_pvc_and_wait mongodb-pvc "${namespace}" 300
+    echo "MongoDB release unhealthy; restarting pod without deleting PVC..."
   fi
 }
 

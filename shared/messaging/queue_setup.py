@@ -6,6 +6,7 @@ VIDEO_DLX = "video.dlx"
 VIDEO_DLQ_ROUTING_KEY = "failed"
 NOTIFICATION_RETRY_TTL_MS = 30000
 UPLOAD_RETRY_TTL_MS = 30000
+VIDEO_COMPLETED_RETRY_TTL_MS = 30000
 
 
 def _queue(name_env: str, default: str) -> str:
@@ -82,11 +83,13 @@ def declare_pipeline_queues(
     notification_retry_queue: str | None = None,
     gateway_events_queue: str | None = None,
     video_completed_queue: str | None = None,
+    video_completed_retry_queue: str | None = None,
     video_failed_queue: str | None = None,
     declare_gateway_events: bool = True,
     declare_video_failed: bool = False,
     declare_upload_pipeline: bool = False,
     declare_notification_pipeline: bool = True,
+    declare_video_completed_pipeline: bool = False,
 ) -> pika.channel.Channel:
     video_upload_queue = video_upload_queue or _queue(
         "VIDEO_UPLOAD_QUEUE", "video-upload-queue"
@@ -111,6 +114,9 @@ def declare_pipeline_queues(
     )
     video_failed_queue = video_failed_queue or _queue(
         "VIDEO_FAILED_QUEUE", "video-failed-queue"
+    )
+    video_completed_retry_queue = video_completed_retry_queue or _queue(
+        "VIDEO_COMPLETED_RETRY_QUEUE", "video-completed-retry-queue"
     )
 
     if declare_upload_pipeline:
@@ -156,7 +162,18 @@ def declare_pipeline_queues(
     if declare_gateway_events and gateway_events_queue:
         channel = _ensure_queue(channel, gateway_events_queue)
 
-    if video_completed_queue:
+    if declare_video_completed_pipeline and video_completed_queue:
+        channel = _ensure_queue(channel, video_completed_queue)
+        channel = _ensure_queue(
+            channel,
+            video_completed_retry_queue,
+            arguments={
+                "x-message-ttl": VIDEO_COMPLETED_RETRY_TTL_MS,
+                "x-dead-letter-exchange": "",
+                "x-dead-letter-routing-key": video_completed_queue,
+            },
+        )
+    elif video_completed_queue:
         channel = _ensure_queue(channel, video_completed_queue)
 
     if declare_video_failed and video_failed_queue:

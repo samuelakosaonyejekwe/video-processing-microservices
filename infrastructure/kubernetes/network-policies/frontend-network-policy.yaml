@@ -35,6 +35,14 @@ spec:
 
   egress:
 
+    - to:
+        - podSelector:
+            matchLabels:
+              app: ${NOTIFICATION_POD_LABEL}
+      ports:
+        - protocol: TCP
+          port: ${WEBSOCKET_PORT}
+
     #
     # ALLOW PROXY TRAFFIC TO GATEWAY
     #

@@ -105,6 +105,16 @@ if [ "${APPLY_NETWORK_POLICIES:-true}" = "true" ]; then
   bash "${ROOT_DIR}/scripts/deploy-network-policies.sh"
 fi
 
+if kubectl get crd scaledobjects.keda.sh >/dev/null 2>&1; then
+  scaling_dir="${RENDERED}/autoscaling"
+  if [ -d "${scaling_dir}" ]; then
+    echo "Applying KEDA ScaledObjects..."
+    kubectl apply -f "${scaling_dir}/"
+  fi
+else
+  echo "KEDA CRD not found; skipping ScaledObject apply."
+fi
+
 if [ "${DEPLOY_MONITORING_STACK:-true}" = "true" ] && [ -n "${GRAFANA_ADMIN_PASSWORD:-}" ] && [ "${GRAFANA_ADMIN_PASSWORD}" != "changeme" ]; then
   bash "${ROOT_DIR}/scripts/deploy-monitoring.sh"
 fi

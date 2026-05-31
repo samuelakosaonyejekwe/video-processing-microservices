@@ -83,7 +83,3 @@ spec:
         activationValue: ${KEDA_ACTIVATION_QUEUE_LENGTH}
 
         hostFromEnv: ${RABBITMQ_HOST_ENV_VARIABLE}
-
-      authenticationRef:
-
-        name: ${KEDA_TRIGGER_AUTH_NAME}

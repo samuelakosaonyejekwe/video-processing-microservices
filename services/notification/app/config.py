@@ -50,7 +50,7 @@ NOTIFICATION_QUEUE = os.getenv("NOTIFICATION_QUEUE", "notification-queue").strip
 
 WEBSOCKET_HOST = os.getenv("WEBSOCKET_HOST", "0.0.0.0").strip()
 
-WEBSOCKET_PORT = int(os.getenv("WEBSOCKET_PORT", "8004").strip())
+WEBSOCKET_PORT = int(os.getenv("WEBSOCKET_PORT", "8081").strip())
 
 REDIS_HOST = os.getenv("REDIS_HOST", "redis").strip()
 

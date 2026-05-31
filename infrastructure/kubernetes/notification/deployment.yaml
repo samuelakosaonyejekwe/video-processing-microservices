@@ -66,6 +66,9 @@ spec:
             - name: http
               containerPort: ${NOTIFICATION_SERVICE_PORT}
               protocol: TCP
+            - name: websocket
+              containerPort: ${WEBSOCKET_PORT}
+              protocol: TCP
 
           envFrom:
             - configMapRef:
@@ -192,6 +195,26 @@ spec:
                 secretKeyRef:
                   name: notification-secret
                   key: JWT_SECRET
+            - name: JWT_PUBLIC_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: jwt-secret
+                  key: JWT_PUBLIC_KEY
+            - name: JWT_ISSUER
+              valueFrom:
+                secretKeyRef:
+                  name: jwt-secret
+                  key: JWT_ISSUER
+            - name: JWT_AUDIENCE
+              valueFrom:
+                secretKeyRef:
+                  name: jwt-secret
+                  key: JWT_AUDIENCE
+            - name: JWT_ALGORITHM
+              valueFrom:
+                configMapKeyRef:
+                  name: notification-config
+                  key: JWT_ALGORITHM
             - name: ENABLE_QUEUE_CONSUMER
               value: "false"
             - name: REDIS_PASSWORD

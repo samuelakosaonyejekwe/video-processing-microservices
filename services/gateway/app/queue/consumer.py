@@ -40,6 +40,10 @@ class GatewayEventConsumer:
 
         self.video_completed_queue = os.getenv("VIDEO_COMPLETED_QUEUE")
 
+        self.video_completed_retry_queue = os.getenv(
+            "VIDEO_COMPLETED_RETRY_QUEUE", "video-completed-retry-queue"
+        )
+
         self.connection = None
 
         self.channel = None
@@ -109,8 +113,10 @@ class GatewayEventConsumer:
                     self.channel,
                     gateway_events_queue=self.gateway_events_queue,
                     video_completed_queue=self.video_completed_queue,
+                    video_completed_retry_queue=self.video_completed_retry_queue,
                     notification_queue=self.notification_queue,
                     declare_gateway_events=bool(self.gateway_events_queue),
+                    declare_video_completed_pipeline=True,
                 )
 
                 self.channel.basic_qos(prefetch_count=1)
@@ -289,7 +295,20 @@ class GatewayEventConsumer:
 
             logger.error("Gateway consumer processing failed: %s", str(error))
 
-            ch.basic_nack(delivery_tag=method.delivery_tag, requeue=False)
+            try:
+                self.channel.basic_publish(
+                    exchange="",
+                    routing_key=self.video_completed_retry_queue,
+                    body=body,
+                    properties=pika.BasicProperties(delivery_mode=2),
+                )
+                ch.basic_ack(delivery_tag=method.delivery_tag)
+            except Exception as retry_error:
+                logger.error(
+                    "Failed to route gateway event to retry queue: %s",
+                    retry_error,
+                )
+                ch.basic_nack(delivery_tag=method.delivery_tag, requeue=True)
 
     def start(self):
 
@@ -304,6 +323,11 @@ class GatewayEventConsumer:
 
                 self.channel.basic_consume(
                     queue=self.video_completed_queue,
+                    on_message_callback=self.process_message,
+                )
+
+                self.channel.basic_consume(
+                    queue=self.video_completed_retry_queue,
                     on_message_callback=self.process_message,
                 )
 

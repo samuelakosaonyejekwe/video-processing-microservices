@@ -1,15 +1,15 @@
 const API = window.GATEWAY_URL || "/api";
 const WS_URL =
   window.NOTIFICATION_WS_URL ||
-  `${window.location.protocol === "https:" ? "wss" : "ws"}://${window.location.hostname}:${window.WEBSOCKET_PORT || "8004"}`;
+  `${window.location.protocol === "https:" ? "wss" : "ws"}://${window.location.host}/ws`;
 
 const state = {
-  email: sessionStorage.getItem("user_email") || "",
+  email: "",
   jobId: "",
   filename: "",
   pollTimer: null,
   socket: null,
-  authenticated: Boolean(sessionStorage.getItem("user_email")),
+  authenticated: false,
 };
 
 const els = {
@@ -152,7 +152,6 @@ async function handleLogin(event) {
     });
     state.email = data.email || email;
     state.authenticated = true;
-    sessionStorage.setItem("user_email", state.email);
     showAuthenticatedView();
     resetConversionUi();
   } catch (error) {
@@ -188,7 +187,6 @@ async function handleLogout() {
     // Ignore logout errors and clear local session anyway.
   }
 
-  sessionStorage.removeItem("user_email");
   state.email = "";
   state.authenticated = false;
   disconnectWebSocket();
@@ -366,10 +364,17 @@ function bindEvents() {
 function init() {
   bindEvents();
   switchTab("login");
-  if (state.authenticated) {
+  restoreSession();
+}
+
+async function restoreSession() {
+  try {
+    const data = await apiFetch("/auth/session");
+    state.email = data.email || "";
+    state.authenticated = true;
     showAuthenticatedView();
     resetConversionUi();
-  } else {
+  } catch (error) {
     showGuestView();
   }
 }

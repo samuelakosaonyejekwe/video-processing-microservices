@@ -93,6 +93,8 @@ data:
 
   REDIS_PORT: "${REDIS_PORT}"
 
+  TRUST_PROXY_HEADERS: "${TRUST_PROXY_HEADERS}"
+
   # =========================================================
   # HEALTHCHECK
   # =========================================================

@@ -1,6 +1,8 @@
 import os
 
+import jwt
 import httpx
+from jwt.exceptions import PyJWTError
 from fastapi import APIRouter, HTTPException, Request, Response
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, EmailStr
@@ -11,7 +13,14 @@ from tenacity import (
     wait_exponential,
 )
 
-from app.config import APP_ENV, JWT_AUTH_SERVICE_URL
+from app.config import (
+    APP_ENV,
+    JWT_ALGORITHM,
+    JWT_AUDIENCE,
+    JWT_AUTH_SERVICE_URL,
+    JWT_ISSUER,
+    JWT_PUBLIC_KEY,
+)
 
 router = APIRouter(prefix="/auth", tags=["Authentication"])
 
@@ -93,6 +102,35 @@ def _cookie_auth_response(email: str | None = None) -> JSONResponse:
     if email:
         content["email"] = email
     return JSONResponse(content=content)
+
+
+@router.get("/session")
+async def session(request: Request):
+    token = request.cookies.get(ACCESS_COOKIE)
+    if not token:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+
+    try:
+        payload = jwt.decode(
+            token,
+            JWT_PUBLIC_KEY,
+            algorithms=[JWT_ALGORITHM],
+            issuer=JWT_ISSUER,
+            audience=JWT_AUDIENCE,
+        )
+    except PyJWTError as error:
+        raise HTTPException(
+            status_code=401, detail="Not authenticated"
+        ) from error
+
+    if payload.get("type") != "access":
+        raise HTTPException(status_code=401, detail="Not authenticated")
+
+    return {
+        "authenticated": True,
+        "email": payload.get("email"),
+        "user_id": payload.get("sub"),
+    }
 
 
 @router.post("/login")
