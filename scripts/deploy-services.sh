@@ -110,10 +110,11 @@ if [ "${INSTALL_KEDA:-true}" = "true" ]; then
 fi
 
 scaling_dir="${RENDERED}/autoscaling"
-if [ -d "${scaling_dir}" ]; then
+scaledobject_manifest="${scaling_dir}/converter-scaledobject.yaml"
+if [ -f "${scaledobject_manifest}" ]; then
   if kubectl get crd scaledobjects.keda.sh >/dev/null 2>&1; then
-    echo "Applying KEDA ScaledObjects..."
-    kubectl apply -f "${scaling_dir}/"
+    echo "Applying KEDA ScaledObject..."
+    kubectl apply -f "${scaledobject_manifest}"
     if kubectl get scaledobject "${CONVERTER_SCALEDOBJECT_NAME:-converter-worker-scaler}" \
       -n "${K8S_NAMESPACE}" >/dev/null 2>&1; then
       kubectl wait --for=condition=Ready \

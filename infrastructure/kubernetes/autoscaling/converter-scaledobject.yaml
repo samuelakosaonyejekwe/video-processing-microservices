@@ -78,8 +78,8 @@ spec:
 
         mode: ${KEDA_TRIGGER_MODE}
 
-        value: ${KEDA_QUEUE_LENGTH_THRESHOLD}
+        value: "${KEDA_QUEUE_LENGTH_THRESHOLD}"
 
-        activationValue: ${KEDA_ACTIVATION_QUEUE_LENGTH}
+        activationValue: "${KEDA_ACTIVATION_QUEUE_LENGTH}"
 
         hostFromEnv: ${RABBITMQ_HOST_ENV_VARIABLE}
