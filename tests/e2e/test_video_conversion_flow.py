@@ -3,7 +3,7 @@ import time
 import uuid
 from pathlib import Path
 
-import requests
+import httpx
 
 from shared.storage.s3_client import create_s3_client
 
@@ -66,9 +66,9 @@ def _list_mp3_keys(bucket: str) -> set[str]:
 
     paginator = client.get_paginator("list_objects_v2")
     for page in paginator.paginate(Bucket=bucket, Prefix=prefix):
-        for obj in page.get("Contents", []):
-            if obj["Key"].endswith(".mp3"):
-                keys.add(obj["Key"])
+        for item in page.get("Contents", []):
+            if item["Key"].endswith(".mp3"):
+                keys.add(item["Key"])
 
     return keys
 
@@ -91,38 +91,13 @@ def _wait_for_new_audio_object(
 
 
 def test_video_upload_flow():
-    gateway_url = os.getenv("GATEWAY_BASE_URL", "http://localhost:8080")
-    auth_url = os.getenv("AUTH_BASE_URL", gateway_url)
+    gateway_url = os.getenv("GATEWAY_BASE_URL", "http://localhost:8080").rstrip("/")
 
     assert FIXTURE_PATH.is_file(), f"Missing test fixture: {FIXTURE_PATH}"
 
     email = f"e2e-{uuid.uuid4().hex[:8]}@example.com"
     password = "TestPassword123!"
     username = f"e2euser-{uuid.uuid4().hex[:6]}"
-
-    register = requests.post(
-        f"{auth_url}/auth/register",
-        json={
-            "username": username,
-            "email": email,
-            "password": password,
-        },
-        timeout=15,
-    )
-    assert register.status_code in [200, 201, 409], register.text
-
-    login = requests.post(
-        f"{auth_url}/auth/login",
-        json={
-            "email": email,
-            "password": password,
-        },
-        timeout=15,
-    )
-    assert login.status_code == 200, login.text
-
-    token = login.json().get("access_token")
-    assert token
 
     existing_audio_keys: set[str] = set()
     video_bucket = ""
@@ -131,16 +106,34 @@ def test_video_upload_flow():
         video_bucket, audio_bucket = _require_production_buckets()
         existing_audio_keys = _list_mp3_keys(audio_bucket)
 
-    with FIXTURE_PATH.open("rb") as fixture:
-        files = {
-            "file": ("sample-with-audio.mp4", fixture, "video/mp4"),
-        }
-        response = requests.post(
-            f"{gateway_url}/upload",
-            headers={"Authorization": f"Bearer {token}"},
-            files=files,
-            timeout=30,
+    with httpx.Client(base_url=gateway_url, timeout=30.0) as client:
+        register = client.post(
+            "/auth/register",
+            json={
+                "username": username,
+                "email": email,
+                "password": password,
+            },
         )
+        assert register.status_code in [200, 201, 409], register.text
+
+        login = client.post(
+            "/auth/login",
+            json={
+                "email": email,
+                "password": password,
+            },
+        )
+        assert login.status_code == 200, login.text
+        assert "access_token" in login.cookies
+
+        with FIXTURE_PATH.open("rb") as fixture:
+            response = client.post(
+                "/upload",
+                files={
+                    "file": ("sample-with-audio.mp4", fixture, "video/mp4"),
+                },
+            )
 
     assert response.status_code in [200, 201, 202], response.text
 

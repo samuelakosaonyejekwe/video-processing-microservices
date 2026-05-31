@@ -19,6 +19,7 @@ from app.email.send_email import send_email
 from app.websocket.events import broadcast_event_sync
 
 from shared.events.schema import build_event
+from shared.idempotency.redis_store import claim_once
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
 
@@ -170,6 +171,17 @@ class NotificationConsumer:
             if not recipient:
 
                 raise ValueError("Missing recipient in notification payload")
+
+            if correlation_id and not claim_once(
+                f"notification:{correlation_id}", ttl_seconds=86400
+            ):
+                logger.info(
+                    "Skipping duplicate notification correlation_id=%s job_id=%s",
+                    correlation_id,
+                    job_id,
+                )
+                ch.basic_ack(delivery_tag=method.delivery_tag)
+                return
 
             if job_id and notification_already_sent(job_id):
                 logger.info(

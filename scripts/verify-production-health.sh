@@ -10,6 +10,7 @@ bash "${ROOT_DIR}/scripts/verify-deployment.sh"
 bash "${ROOT_DIR}/scripts/validate-hpa.sh"
 bash "${ROOT_DIR}/scripts/validate-keda.sh"
 bash "${ROOT_DIR}/scripts/validate-queue-workers.sh"
+bash "${ROOT_DIR}/scripts/validate-mtls.sh"
 
 if [ -n "${API_BASE_URL:-}" ]; then
   curl -fsS "${API_BASE_URL%/}/health" >/dev/null

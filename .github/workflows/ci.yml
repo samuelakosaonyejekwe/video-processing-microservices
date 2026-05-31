@@ -78,13 +78,13 @@ jobs:
       - name: Install Quality Tools
         run: |
           python -m pip install --upgrade pip
-          pip install black flake8 pylint mypy pytest pytest-cov
+          pip install black flake8 pylint mypy pytest pytest-cov pytest-asyncio httpx
 
       - name: Run Black
-        run: black --check services scripts
+        run: black --check services scripts tests
 
       - name: Run Flake8
-        run: flake8 services scripts
+        run: flake8 services scripts tests
 
       - name: Run Pytest Unit Tests
         run: |
@@ -93,6 +93,7 @@ jobs:
             pip install -r services/$service/requirements.txt
             (cd services/$service && APP_ENV=test PYTHONPATH=../../.:../.. pytest --cov=app --cov-report=term-missing --cov-fail-under=30)
           done
+          APP_ENV=test PYTHONPATH=. pytest tests/shared -q
 
       - name: Validate production config
         run: |

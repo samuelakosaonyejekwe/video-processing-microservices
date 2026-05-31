@@ -165,11 +165,18 @@ spec:
           volumeMounts:
             - name: tmp-volume
               mountPath: /tmp
+            - name: internal-ca-bundle
+              mountPath: /etc/internal-tls
+              readOnly: true
 
       volumes:
         - name: tmp-volume
           emptyDir:
             sizeLimit: 2Gi
+        - name: internal-ca-bundle
+          configMap:
+            name: internal-ca-bundle
+            optional: true
 
       restartPolicy: Always
       terminationGracePeriodSeconds: 30

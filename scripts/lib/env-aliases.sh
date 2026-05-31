@@ -547,6 +547,10 @@ if [ "${DEPLOY_TRACING_STACK:-false}" = "true" ] && [ -z "${OTEL_EXPORTER_OTLP_E
   export OTEL_EXPORTER_OTLP_ENDPOINT="http://otel-collector.${TRACING_NAMESPACE}.svc.cluster.local:4318"
 fi
 
+if [ "${DEPLOY_MTLS_STACK:-false}" = "true" ] && [ -z "${INTERNAL_TLS_CA_PATH:-}" ]; then
+  export INTERNAL_TLS_CA_PATH="/etc/internal-tls/ca.crt"
+fi
+
 if [ "${APP_ENV:-development}" = "production" ]; then
   export RATE_LIMIT_FAIL_CLOSED="${RATE_LIMIT_FAIL_CLOSED:-true}"
   export STRICT_COOKIE_AUTH="${STRICT_COOKIE_AUTH:-true}"

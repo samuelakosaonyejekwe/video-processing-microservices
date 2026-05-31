@@ -43,4 +43,15 @@ for cert in gateway-internal-tls auth-internal-tls converter-internal-tls notifi
   fi
 done
 
-echo "Internal mTLS certificates issued (mount secrets in workloads when enabling INTERNAL_TLS)."
+if kubectl get secret internal-ca-secret -n cert-manager >/dev/null 2>&1; then
+  ca_crt="$(kubectl get secret internal-ca-secret -n cert-manager \
+    -o jsonpath='{.data.ca\.crt}' | base64 -d)"
+  kubectl create configmap internal-ca-bundle \
+    -n "${K8S_NAMESPACE}" \
+    --from-literal=ca.crt="${ca_crt}" \
+    --dry-run=client -o yaml | kubectl apply -f -
+  export INTERNAL_TLS_CA_PATH="/etc/internal-tls/ca.crt"
+  echo "Published internal CA bundle to configmap/internal-ca-bundle"
+fi
+
+echo "Internal mTLS certificates issued (CA bundle available at ${INTERNAL_TLS_CA_PATH:-n/a})."

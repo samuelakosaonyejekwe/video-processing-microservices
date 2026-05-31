@@ -2,7 +2,9 @@
 
 set -euo pipefail
 
-kubectl apply -f infrastructure/kubernetes/logging/
+if [ -d infrastructure/kubernetes/logging ] && [ "$(ls -A infrastructure/kubernetes/logging 2>/dev/null)" ]; then
+  kubectl apply -f infrastructure/kubernetes/logging/
+fi
 
 kubectl apply -f infrastructure/kubernetes/tracing/
 

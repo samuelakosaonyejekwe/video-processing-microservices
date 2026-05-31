@@ -436,13 +436,16 @@ pipeline {
             steps {
 
                 sh '''
-                    chmod +x scripts/deploy-eks.sh scripts/deploy-services.sh
+                    chmod +x scripts/deploy-eks.sh scripts/deploy-services.sh scripts/lib/env-aliases.sh
 
                     export IMAGE_TAG=${IMAGE_TAG}
-
                     export APP_ENV=${APP_ENV}
-
                     export EKS_CLUSTER_NAME=${CLUSTER_NAME}
+                    export DEPLOY_ROLLOUT_TIMEOUT=120s
+                    export WORKER_ROLLOUT_TIMEOUT=120s
+                    export DEPLOY_TRACING_STACK=true
+                    export DEPLOY_MTLS_STACK=true
+                    export SYNC_RABBITMQ_DEFINITIONS=true
 
                     bash scripts/deploy-eks.sh
 
@@ -464,11 +467,12 @@ pipeline {
                 sh '''
                     export DEPLOY_ROLLOUT_TIMEOUT=120s
                     export WORKER_ROLLOUT_TIMEOUT=120s
-                    chmod +x scripts/verify-deployment.sh scripts/validate-hpa.sh scripts/validate-keda.sh scripts/lib/env-aliases.sh
+                    chmod +x scripts/verify-deployment.sh scripts/validate-hpa.sh scripts/validate-keda.sh scripts/validate-queue-workers.sh scripts/validate-mtls.sh scripts/verify-production-health.sh scripts/lib/env-aliases.sh
                     bash scripts/verify-deployment.sh
                     bash scripts/validate-hpa.sh
                     bash scripts/validate-keda.sh
                     bash scripts/validate-queue-workers.sh
+                    bash scripts/verify-production-health.sh
                 '''
             }
         }

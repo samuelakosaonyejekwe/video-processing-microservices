@@ -12,6 +12,7 @@ import pika
 from pika.exceptions import AMQPConnectionError, AMQPChannelError
 
 from app.queue.producer import get_converter_producer
+from shared.idempotency.redis_store import claim_once
 from shared.storage.s3_client import create_s3_client
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
@@ -239,6 +240,15 @@ class ConverterEventConsumer:
                 job_id = str(uuid.uuid4())
 
             retry_count = int(payload.get("retry_count", 0))
+
+            if job_id and not claim_once(f"conversion:{job_id}", ttl_seconds=86400):
+                logger.info(
+                    "Skipping duplicate conversion job_id=%s correlation_id=%s",
+                    job_id,
+                    correlation_id,
+                )
+                ch.basic_ack(delivery_tag=method.delivery_tag)
+                return
 
             logger.info(
                 "Processing conversion request " "correlation_id=%s job_id=%s",

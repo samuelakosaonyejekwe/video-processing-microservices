@@ -107,7 +107,6 @@ jobs:
       - name: Deploy Stack
         env:
           APPLY_NETWORK_POLICIES: "true"
-          DEPLOY_MONITORING_STACK: "false"
           SKIP_INFRA_DEPLOY: "true"
           SKIP_MONGO_PASSWORD_SYNC: "true"
           INSTALL_KEDA: "true"
@@ -132,5 +131,8 @@ jobs:
           bash scripts/verify-production-health.sh
 
       - name: Production Validation
-        if: ${{ vars.RUN_PRODUCTION_VALIDATION == 'true' }}
+        if: ${{ vars.API_BASE_URL != '' || vars.RUN_PRODUCTION_VALIDATION == 'true' }}
+        env:
+          API_BASE_URL: ${{ vars.API_BASE_URL }}
+          GATEWAY_BASE_URL: ${{ vars.API_BASE_URL }}
         run: bash scripts/run-production-validation.sh
