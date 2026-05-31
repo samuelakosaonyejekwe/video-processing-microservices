@@ -34,8 +34,8 @@ def get_database() -> Database | None:
     _client = MongoClient(
         _mongo_uri(),
         retryWrites=True,
-        serverSelectionTimeoutMS=5000,
-        connectTimeoutMS=5000,
+        serverSelectionTimeoutMS=2000,
+        connectTimeoutMS=2000,
         socketTimeoutMS=5000,
         maxPoolSize=20,
         minPoolSize=1,

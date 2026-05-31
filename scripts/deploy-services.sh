@@ -39,14 +39,21 @@ if [ -d "${RENDERED}/configmaps" ]; then
   kubectl apply -f "${RENDERED}/configmaps/"
 fi
 
-# Deploy workloads after configmaps so pods can mount required config.
+# Deploy API workloads first, then dedicated queue workers.
 for dir in gateway auth converter notification redis frontend; do
-  for kind in deployment worker-deployment service ingress hpa; do
+  for kind in deployment service ingress hpa; do
     manifest="${RENDERED}/${dir}/${kind}.yaml"
     if [ -f "${manifest}" ]; then
       kubectl apply -f "${manifest}"
     fi
   done
+done
+
+for dir in gateway converter notification; do
+  manifest="${RENDERED}/${dir}/worker-deployment.yaml"
+  if [ -f "${manifest}" ]; then
+    kubectl apply -f "${manifest}"
+  fi
 done
 
 if [ "${APPLY_NETWORK_POLICIES:-true}" = "true" ]; then

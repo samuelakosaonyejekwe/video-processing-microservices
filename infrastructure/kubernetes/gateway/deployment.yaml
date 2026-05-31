@@ -12,6 +12,13 @@ metadata:
 spec:
   replicas: ${GATEWAY_REPLICA_COUNT}
   revisionHistoryLimit: 5
+  progressDeadlineSeconds: 900
+
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
 
   selector:
     matchLabels:
@@ -116,6 +123,15 @@ spec:
             periodSeconds: 10
             timeoutSeconds: 5
             failureThreshold: 3
+
+          startupProbe:
+            httpGet:
+              path: /health
+              port: 8080
+            initialDelaySeconds: 5
+            periodSeconds: 5
+            timeoutSeconds: 5
+            failureThreshold: 30
 
           livenessProbe:
             httpGet:

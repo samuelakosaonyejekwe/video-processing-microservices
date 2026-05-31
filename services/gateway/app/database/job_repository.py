@@ -22,9 +22,12 @@ def ensure_job_indexes() -> None:
     if collection is None:
         return
 
-    collection.create_index([("job_id", ASCENDING)], unique=True)
-    collection.create_index([("user_id", ASCENDING), ("created_at", ASCENDING)])
-    collection.create_index([("status", ASCENDING)])
+    try:
+        collection.create_index([("job_id", ASCENDING)], unique=True)
+        collection.create_index([("user_id", ASCENDING), ("created_at", ASCENDING)])
+        collection.create_index([("status", ASCENDING)])
+    except Exception as error:
+        logger.warning("MongoDB index setup failed: %s", error)
 
 
 def create_job(
@@ -40,6 +43,8 @@ def create_job(
     if collection is None:
         logger.warning("MongoDB unavailable; job %s not persisted", job_id)
         return False
+
+    ensure_job_indexes()
 
     now = datetime.now(timezone.utc)
     document = {

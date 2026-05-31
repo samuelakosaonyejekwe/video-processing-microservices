@@ -17,7 +17,6 @@ from app.config import (
     JWT_ISSUER,
     JWT_PUBLIC_KEY,
 )
-from app.database.job_repository import ensure_job_indexes
 from app.middleware.auth_middleware import AuthMiddleware
 from app.middleware.rate_limit_middleware import RateLimitMiddleware
 from app.routes.auth_routes import router as auth_router
@@ -37,10 +36,6 @@ async def lifespan(app: FastAPI):
     print("Starting gateway service...")
 
     if APP_ENV != "test":
-        try:
-            ensure_job_indexes()
-        except Exception as error:
-            print(f"MongoDB index setup skipped: {error}")
         if queue_consumer_enabled():
             start_consumer()
 
