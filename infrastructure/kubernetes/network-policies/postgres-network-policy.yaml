@@ -4,22 +4,25 @@ kind: NetworkPolicy
 
 metadata:
   name: postgres-network-policy
-  namespace: ${K8S_NAMESPACE}
+  namespace: ${DATABASE_NAMESPACE}
 
 spec:
   podSelector:
     matchLabels:
-      app: postgres
+      app: ${POSTGRES_APP_NAME}
 
   policyTypes:
     - Ingress
 
   ingress:
     - from:
-        - podSelector:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: ${K8S_NAMESPACE}
+          podSelector:
             matchLabels:
               app: auth-service
 
       ports:
         - protocol: TCP
-          port: 5432
+          port: ${POSTGRES_PORT}

@@ -4,22 +4,25 @@ kind: NetworkPolicy
 
 metadata:
   name: mongodb-network-policy
-  namespace: ${K8S_NAMESPACE}
+  namespace: ${DATABASE_NAMESPACE}
 
 spec:
   podSelector:
     matchLabels:
-      app: mongodb
+      app: ${MONGODB_APP_NAME}
 
   policyTypes:
     - Ingress
 
   ingress:
     - from:
-        - podSelector:
+        - namespaceSelector:
             matchLabels:
-              app: converter-service
+              kubernetes.io/metadata.name: ${K8S_NAMESPACE}
+          podSelector:
+            matchLabels:
+              app: ${CONVERTER_APP_NAME}
 
       ports:
         - protocol: TCP
-          port: 27017
+          port: ${MONGODB_PORT}

@@ -119,8 +119,6 @@ s3_buckets = {
   }
 }
 kubernetes_namespace  = "${KUBERNETES_NAMESPACE}"
-cluster_name          = "${CLUSTER_NAME}"
-cluster_version       = "${CLUSTER_VERSION}"
 ecr_repositories      = ${ECR_REPOSITORIES}
 ubuntu_ami_owners     = ${UBUNTU_AMI_OWNERS}
 ubuntu_ami_name_filter = ${UBUNTU_AMI_NAME_FILTER}
@@ -150,23 +148,7 @@ aws_load_balancer_controller_name = "aws-load-balancer-controller"
 aws_load_balancer_controller_repository = "https://aws.github.io/eks-charts"
 aws_load_balancer_controller_chart = "aws-load-balancer-controller"
 aws_load_balancer_controller_namespace = "kube-system"
-metrics_server_release_name = "metrics-server"
-metrics_server_repository = "https://kubernetes-sigs.github.io/metrics-server/"
-metrics_server_chart = "metrics-server"
-metrics_server_namespace = "kube-system"
-metrics_server_create_namespace = true
-metrics_server_timeout = 600
-metrics_server_wait = true
-metrics_server_cleanup_on_fail = true
-metrics_server_atomic = true
-metrics_server_dependency_update = true
 tags = {
-  Project     = "${PROJECT_NAME}"
-  Environment = "${APP_ENV}"
-  ManagedBy   = "Terraform"
-  Application = "VideoConverter"
-}
-common_tags = {
   Project     = "${PROJECT_NAME}"
   Environment = "${APP_ENV}"
   ManagedBy   = "Terraform"

@@ -35,7 +35,7 @@ spec:
 
           podSelector:
             matchLabels:
-              app: ${GATEWAY_APP_NAME}
+              app: ${GATEWAY_POD_LABEL}
 
       ports:
 

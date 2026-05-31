@@ -49,4 +49,12 @@ for dir in gateway auth converter notification redis frontend; do
   done
 done
 
+if [ "${APPLY_NETWORK_POLICIES:-true}" = "true" ]; then
+  bash "${ROOT_DIR}/scripts/deploy-network-policies.sh"
+fi
+
+if [ "${DEPLOY_MONITORING_STACK:-true}" = "true" ]; then
+  bash "${ROOT_DIR}/scripts/deploy-monitoring.sh"
+fi
+
 echo "Microservices deployed successfully."

@@ -7,7 +7,7 @@ metadata:
   namespace: ${K8S_NAMESPACE}
 
   labels:
-    app: ${GATEWAY_APP_NAME}
+    app: ${GATEWAY_POD_LABEL}
     component: gateway
     policy: ${GATEWAY_NETWORK_POLICY_LABEL}
     environment: ${APP_ENV}
@@ -16,7 +16,7 @@ spec:
 
   podSelector:
     matchLabels:
-      app: ${GATEWAY_APP_NAME}
+      app: ${GATEWAY_POD_LABEL}
 
   policyTypes:
     - Ingress
@@ -25,20 +25,23 @@ spec:
   ingress:
 
     #
-    # ALLOW TRAFFIC FROM INGRESS CONTROLLER
+    # ALLOW TRAFFIC FROM AWS ALB (target-type ip) WITHIN VPC
     #
     - from:
-
-        - namespaceSelector:
-            matchLabels:
-              kubernetes.io/metadata.name: ${INGRESS_NGINX_NAMESPACE}
-
-          podSelector:
-            matchLabels:
-              ${INGRESS_CONTROLLER_LABEL_KEY}: ${INGRESS_CONTROLLER_LABEL_VALUE}
-
+        - ipBlock:
+            cidr: ${VPC_CIDR}
       ports:
+        - protocol: TCP
+          port: ${GATEWAY_PORT}
 
+    #
+    # ALLOW TRAFFIC FROM FRONTEND NGINX PROXY
+    #
+    - from:
+        - podSelector:
+            matchLabels:
+              app: frontend
+      ports:
         - protocol: TCP
           port: ${GATEWAY_PORT}
 
@@ -91,7 +94,7 @@ spec:
 
           podSelector:
             matchLabels:
-              app: ${NOTIFICATION_APP_NAME}
+              app: ${NOTIFICATION_POD_LABEL}
 
       ports:
 
@@ -150,3 +153,10 @@ spec:
 
         - protocol: TCP
           port: ${DNS_PORT}
+
+    #
+    # ALLOW HTTPS TO AWS S3 AND EXTERNAL APIS
+    #
+    - ports:
+        - protocol: TCP
+          port: ${HTTPS_PORT}

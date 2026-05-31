@@ -7,7 +7,7 @@ metadata:
   namespace: ${K8S_NAMESPACE}
 
   labels:
-    app: ${NOTIFICATION_APP_NAME}
+    app: ${NOTIFICATION_POD_LABEL}
     component: ${NOTIFICATION_COMPONENT_NAME}
     policy: ${NOTIFICATION_NETWORK_POLICY_LABEL}
     environment: ${APP_ENV}
@@ -16,7 +16,7 @@ spec:
 
   podSelector:
     matchLabels:
-      app: ${NOTIFICATION_APP_NAME}
+      app: ${NOTIFICATION_POD_LABEL}
 
   policyTypes:
     - Ingress
@@ -28,19 +28,12 @@ spec:
     # ALLOW PROMETHEUS SCRAPING
     #
     - from:
-
-        - namespaceSelector:
-            matchLabels:
-              kubernetes.io/metadata.name: ${MONITORING_NAMESPACE}
-
-          podSelector:
+        - podSelector:
             matchLabels:
               ${PROMETHEUS_LABEL_KEY}: ${PROMETHEUS_LABEL_VALUE}
-
       ports:
-
         - protocol: TCP
-          port: ${NOTIFICATION_SERVICE_PORT}
+          port: ${NOTIFICATION_APP_PORT}
 
   egress:
 

@@ -20,6 +20,12 @@ for deploy in gateway-deployment auth-service converter-service notification-dep
   kubectl rollout status "deployment/${deploy}" -n "${K8S_NAMESPACE}" --timeout=600s
 done
 
+echo "=== Metrics server and HPA validation ==="
+bash "${ROOT_DIR}/scripts/validate-hpa.sh"
+
+echo "=== IAM deploy permission check ==="
+bash "${ROOT_DIR}/scripts/verify-github-actions-iam.sh" || true
+
 echo "=== RabbitMQ validation ==="
 messaging_ns="${MESSAGING_NAMESPACE:-messaging}"
 kubectl get pods -n "${messaging_ns}" 2>/dev/null || kubectl get pods -A | grep -i rabbit || true

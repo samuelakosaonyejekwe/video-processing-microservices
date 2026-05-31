@@ -84,12 +84,17 @@ jobs:
           kubectl get nodes
 
       - name: Deploy Stack
+        env:
+          APPLY_NETWORK_POLICIES: "true"
+          DEPLOY_MONITORING_STACK: "true"
         run: |
           chmod +x scripts/*.sh scripts/lib/*.sh
           bash scripts/create-docker-registry-secret.sh
           bash scripts/deploy-eks.sh
           bash scripts/deploy-services.sh
           bash scripts/verify-deployment.sh
+          bash scripts/validate-hpa.sh
+          bash scripts/verify-github-actions-iam.sh || true
 
       - name: Production Validation
         run: bash scripts/run-production-validation.sh

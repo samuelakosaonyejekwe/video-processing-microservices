@@ -1,0 +1,60 @@
+apiVersion: networking.k8s.io/v1
+
+kind: NetworkPolicy
+
+metadata:
+  name: ${FRONTEND_NETWORK_POLICY_NAME}
+  namespace: ${K8S_NAMESPACE}
+
+  labels:
+    app: frontend
+    policy: frontend-access
+    environment: ${APP_ENV}
+
+spec:
+
+  podSelector:
+    matchLabels:
+      app: frontend
+
+  policyTypes:
+    - Ingress
+    - Egress
+
+  ingress:
+
+    #
+    # ALLOW TRAFFIC FROM AWS ALB (target-type ip) WITHIN VPC
+    #
+    - from:
+        - ipBlock:
+            cidr: ${VPC_CIDR}
+      ports:
+        - protocol: TCP
+          port: ${FRONTEND_APP_PORT}
+
+  egress:
+
+    #
+    # ALLOW PROXY TRAFFIC TO GATEWAY
+    #
+    - to:
+        - podSelector:
+            matchLabels:
+              app: ${GATEWAY_POD_LABEL}
+      ports:
+        - protocol: TCP
+          port: ${GATEWAY_PORT}
+
+    #
+    # ALLOW DNS RESOLUTION
+    #
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: ${KUBE_SYSTEM_NAMESPACE}
+      ports:
+        - protocol: UDP
+          port: ${DNS_PORT}
+        - protocol: TCP
+          port: ${DNS_PORT}

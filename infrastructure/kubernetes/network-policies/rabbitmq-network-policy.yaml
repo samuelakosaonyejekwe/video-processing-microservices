@@ -4,7 +4,7 @@ kind: NetworkPolicy
 
 metadata:
   name: rabbitmq-network-policy
-  namespace: ${K8S_NAMESPACE}
+  namespace: ${MESSAGING_NAMESPACE}
 
   labels:
     app: ${RABBITMQ_APP_NAME}

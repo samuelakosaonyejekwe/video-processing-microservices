@@ -157,9 +157,7 @@ spec:
             name: prometheus-config
 
         - name: prometheus-storage
-
-          persistentVolumeClaim:
-            claimName: ${PROMETHEUS_PVC_NAME}
+          emptyDir: {}
 
 ---
 apiVersion: v1
