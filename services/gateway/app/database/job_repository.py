@@ -62,7 +62,12 @@ def create_job(
         "completed_at": None,
     }
 
-    collection.insert_one(document)
+    try:
+        collection.insert_one(document)
+    except Exception as error:
+        logger.warning("MongoDB job persist failed job_id=%s: %s", job_id, error)
+        return False
+
     logger.info("Job persisted job_id=%s user_id=%s", job_id, user_id)
     return True
 

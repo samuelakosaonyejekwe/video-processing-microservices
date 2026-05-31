@@ -34,6 +34,7 @@ kubectl apply -f "${RENDERED}/secrets/"
 
 bash "${ROOT_DIR}/scripts/sync-rabbitmq-credentials.sh"
 bash "${ROOT_DIR}/scripts/sync-postgres-password.sh"
+bash "${ROOT_DIR}/scripts/sync-mongo-password.sh"
 
 if [ -d "${RENDERED}/configmaps" ]; then
   kubectl apply -f "${RENDERED}/configmaps/"

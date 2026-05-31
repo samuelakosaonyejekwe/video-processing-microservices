@@ -158,7 +158,7 @@ export RABBITMQ_VHOST="${RABBITMQ_VHOST:-/}"
 export RABBITMQ_ERLANG_COOKIE="${RABBITMQ_ERLANG_COOKIE:-production-erlang-cookie}"
 export RABBITMQ_AMQP_URL="${RABBITMQ_AMQP_URL:-amqp://${RABBITMQ_USERNAME}:${RABBITMQ_PASSWORD}@${RABBITMQ_HOST}:${RABBITMQ_PORT}/}"
 export RABBITMQ_URI="${RABBITMQ_URI:-${RABBITMQ_AMQP_URL}}"
-export MONGO_URI="${MONGO_URI:-mongodb://${MONGO_USERNAME}:${MONGO_PASSWORD}@${MONGO_HOST}:${MONGO_PORT}/${MONGO_DATABASE}?authSource=admin}"
+# Built after MONGO_AUTH_SOURCE is defined (see end of file).
 
 # Inter-service URLs
 export JWT_AUTH_SERVICE_URL="${JWT_AUTH_SERVICE_URL:-http://auth-service.${K8S_NAMESPACE}.svc.cluster.local:${AUTH_K8S_SERVICE_PORT}}"
@@ -339,6 +339,14 @@ export MONGODB_REPLICA_SET_NAME="${MONGODB_REPLICA_SET_NAME:-rs0}"
 export MONGODB_CACHE_SIZE_GB="${MONGODB_CACHE_SIZE_GB:-1}"
 export MONGODB_MAX_CONNECTIONS="${MONGODB_MAX_CONNECTIONS:-1000}"
 export MONGO_AUTH_SOURCE="${MONGO_AUTH_SOURCE:-admin}"
+
+_mongo_password_urlencoded() {
+  python3 -c "import urllib.parse, os; print(urllib.parse.quote_plus(os.environ['MONGO_PASSWORD']))"
+}
+
+if [ -z "${MONGO_URI:-}" ]; then
+  export MONGO_URI="mongodb://${MONGO_USERNAME}:$(_mongo_password_urlencoded)@${MONGO_HOST}:${MONGO_PORT}/${MONGO_DATABASE}?authSource=${MONGO_AUTH_SOURCE}"
+fi
 
 # PostgreSQL Helm defaults
 export POSTGRES_REPLICA_COUNT="${POSTGRES_REPLICA_COUNT:-1}"
