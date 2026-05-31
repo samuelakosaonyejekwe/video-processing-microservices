@@ -26,7 +26,9 @@ kubectl rollout status deployment/gateway-deployment \
   --timeout="${DEPLOY_ROLLOUT_TIMEOUT:-120s}"
 
 gateway_pod="$(kubectl get pods -n "${K8S_NAMESPACE}" -l app=gateway \
-  -o jsonpath='{.items[0].metadata.name}' 2>/dev/null || true)"
+  --field-selector=status.phase=Running \
+  -o jsonpath='{range .items[?(@.status.containerStatuses[0].ready==true)]}{.metadata.name}{"\n"}{end}' \
+  2>/dev/null | head -n1 || true)"
 
 if [ -z "${gateway_pod}" ]; then
   echo "ERROR: No gateway pod found for auth connectivity check." >&2

@@ -41,6 +41,8 @@ APP_ENV = first_env("APP_ENV", "ENVIRONMENT", default="production")
 
 from shared.security.pem_loader import load_pem
 
+JWT_PUBLIC_KEY = load_pem("JWT_PUBLIC_KEY", "/run/secrets/jwt-public.pem")
+
 JWT_ISSUER = first_env(
     "JWT_ISSUER", "JWT_TOKEN_ISSUER", default="video-converter-platform"
 )
