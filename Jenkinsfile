@@ -498,23 +498,11 @@ pipeline {
             steps {
 
                 sh '''
-                    kubectl get pods -A
-
-                    kubectl get svc -A
-
-                    kubectl get deployments -A
-
-                    kubectl rollout status deployment/gateway-deployment \
-                        -n ${K8S_NAMESPACE}
-
-                    kubectl rollout status deployment/auth-service \
-                        -n ${K8S_NAMESPACE}
-
-                    kubectl rollout status deployment/converter-service \
-                        -n ${K8S_NAMESPACE}
-
-                    kubectl rollout status deployment/notification-deployment \
-                        -n ${K8S_NAMESPACE}
+                    export DEPLOY_ROLLOUT_TIMEOUT=90s
+                    export WORKER_ROLLOUT_TIMEOUT=90s
+                    chmod +x scripts/verify-deployment.sh scripts/lib/env-aliases.sh
+                    bash scripts/verify-deployment.sh
+                    bash scripts/validate-queue-workers.sh
                 '''
             }
         }
@@ -610,9 +598,8 @@ pipeline {
             steps {
 
                 sh '''
-                    chmod +x scripts/verify-deployment.sh
-
-                    bash scripts/verify-deployment.sh
+                    kubectl get pods -n ${K8S_NAMESPACE}
+                    bash scripts/validate-hpa.sh
                 '''
             }
         }
@@ -635,7 +622,7 @@ pipeline {
             steps {
 
                 sh '''
-                    for deployment in gateway-deployment auth-service converter-service notification-deployment; do
+                    for deployment in gateway-deployment gateway-worker auth-service converter-service converter-worker notification-deployment notification-worker frontend-deployment; do
                         kubectl rollout undo deployment/${deployment} \
                             -n ${K8S_NAMESPACE} || true
                     done
