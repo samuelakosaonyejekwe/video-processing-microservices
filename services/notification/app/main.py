@@ -12,6 +12,7 @@ from app.websocket.events import start_websocket_background
 from shared.errors.handlers import register_exception_handlers
 from shared.logging.logger import configure_logging
 from shared.middleware.correlation_id import CorrelationIdMiddleware
+from shared.middleware.metrics_guard import MetricsGuardMiddleware
 from shared.runtime.queue_consumer import queue_consumer_enabled
 from shared.runtime.tracing import configure_tracing
 
@@ -65,6 +66,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 app.add_middleware(CorrelationIdMiddleware)
+app.add_middleware(MetricsGuardMiddleware)
 
 
 register_exception_handlers(app)

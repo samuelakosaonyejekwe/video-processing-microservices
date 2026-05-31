@@ -10,14 +10,18 @@ from pika.exceptions import AMQPChannelError, AMQPConnectionError
 from app.config import FRONTEND_URL
 from app.database.job_repository import (
     claim_notification_send,
+    claim_failure_notification_send,
     get_job,
     mark_job_completed,
     mark_job_failed,
     mark_notification_sent,
+    mark_failure_notification_sent,
     release_notification_claim,
+    release_failure_notification_claim,
 )
 from app.queue.producer import get_gateway_producer
 from shared.email.renderer import render_email_template
+from shared.idempotency.redis_store import claim_once
 
 logger = logging.getLogger(__name__)
 
@@ -184,7 +188,7 @@ class GatewayEventConsumer:
             )
 
     def _send_failure_email(self, job_id: str, payload: dict) -> None:
-        job = get_job(job_id)
+        job = claim_failure_notification_send(job_id)
         if not job:
             return
 
@@ -213,7 +217,9 @@ class GatewayEventConsumer:
                 content=content,
                 job_id=job_id,
             )
+            mark_failure_notification_sent(job_id)
         except Exception as error:
+            release_failure_notification_claim(job_id)
             logger.error(
                 "Failed to queue failure notification job_id=%s: %s",
                 job_id,
@@ -258,6 +264,16 @@ class GatewayEventConsumer:
             correlation_id = message.get("correlation_id")
 
             event_type = message.get("event_type")
+
+            if correlation_id and not claim_once(
+                f"gateway-event:{correlation_id}", ttl_seconds=86400
+            ):
+                logger.info(
+                    "Skipping duplicate gateway event correlation_id=%s",
+                    correlation_id,
+                )
+                ch.basic_ack(delivery_tag=method.delivery_tag)
+                return
 
             payload = message.get("payload", {})
 

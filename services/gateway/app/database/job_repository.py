@@ -58,6 +58,8 @@ def create_job(
         "audio_s3_key": None,
         "notification_sent": False,
         "notification_queued": False,
+        "failure_notification_sent": False,
+        "failure_notification_queued": False,
         "created_at": now,
         "updated_at": now,
         "completed_at": None,
@@ -177,6 +179,51 @@ def mark_notification_sent(job_id: str) -> None:
     collection.update_one(
         {"job_id": job_id},
         {"$set": {"notification_sent": True, "updated_at": now}},
+    )
+
+
+def claim_failure_notification_send(job_id: str) -> dict | None:
+    """Atomically claim a failed job for failure notification dispatch."""
+    collection = _collection()
+    if collection is None:
+        return None
+
+    now = datetime.now(timezone.utc)
+    return collection.find_one_and_update(
+        {
+            "job_id": job_id,
+            "status": "failed",
+            "failure_notification_sent": False,
+            "failure_notification_queued": False,
+            "user_email": {"$nin": [None, ""]},
+        },
+        {"$set": {"failure_notification_queued": True, "updated_at": now}},
+        return_document=ReturnDocument.AFTER,
+        projection={"_id": 0},
+    )
+
+
+def release_failure_notification_claim(job_id: str) -> None:
+    collection = _collection()
+    if collection is None:
+        return
+
+    now = datetime.now(timezone.utc)
+    collection.update_one(
+        {"job_id": job_id},
+        {"$set": {"failure_notification_queued": False, "updated_at": now}},
+    )
+
+
+def mark_failure_notification_sent(job_id: str) -> None:
+    collection = _collection()
+    if collection is None:
+        return
+
+    now = datetime.now(timezone.utc)
+    collection.update_one(
+        {"job_id": job_id},
+        {"$set": {"failure_notification_sent": True, "updated_at": now}},
     )
 
 

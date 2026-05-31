@@ -278,6 +278,8 @@ services:
       - "${RABBITMQ_MANAGEMENT_PORT:-15672}:15672"
     volumes:
       - rabbitmq_data:/var/lib/rabbitmq
+      - ./messaging/rabbitmq/definitions.local.json:/etc/rabbitmq/definitions/definitions.json:ro
+      - ./messaging/rabbitmq/rabbitmq.conf:/etc/rabbitmq/conf.d/10-load-definitions.conf:ro
     healthcheck:
       test: ["CMD", "rabbitmq-diagnostics", "ping"]
       interval: 15s
@@ -291,9 +293,11 @@ services:
     image: redis:7-alpine
     container_name: ${REDIS_CONTAINER_NAME:-redis}
     restart: unless-stopped
-    command: redis-server --requirepass ${REDIS_PASSWORD:-redis}
+    command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD:-redis}
     ports:
       - "${REDIS_PORT:-6379}:6379"
+    volumes:
+      - redis_data:/data
     healthcheck:
       test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD:-redis}", "ping"]
       interval: 10s
@@ -367,4 +371,5 @@ volumes:
   postgres_data:
   mongodb_data:
   rabbitmq_data:
+  redis_data:
   minio_data:

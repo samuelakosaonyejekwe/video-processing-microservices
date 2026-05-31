@@ -91,6 +91,8 @@ data:
 
   MAX_CONVERSION_TIMEOUT_SECONDS: "${MAX_CONVERSION_TIMEOUT_SECONDS}"
 
+  OTEL_EXPORTER_OTLP_ENDPOINT: "${OTEL_EXPORTER_OTLP_ENDPOINT}"
+
   # =========================================================
   # HEALTHCHECK
   # =========================================================

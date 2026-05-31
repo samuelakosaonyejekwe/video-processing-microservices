@@ -14,6 +14,7 @@ data:
         {"name": "video-upload-dlq", "vhost": "/", "durable": true},
         {"name": "notification-queue", "vhost": "/", "durable": true},
         {"name": "notification-retry-queue", "vhost": "/", "durable": true, "arguments": {"x-message-ttl": 30000, "x-dead-letter-exchange": "", "x-dead-letter-routing-key": "notification-queue"}},
+        {"name": "notification-dlq", "vhost": "/", "durable": true},
         {"name": "gateway-events-queue", "vhost": "/", "durable": true},
         {"name": "video-completed-queue", "vhost": "/", "durable": true},
         {"name": "video-completed-retry-queue", "vhost": "/", "durable": true, "arguments": {"x-message-ttl": 30000, "x-dead-letter-exchange": "", "x-dead-letter-routing-key": "video-completed-queue"}},

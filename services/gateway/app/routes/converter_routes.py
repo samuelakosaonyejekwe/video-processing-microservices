@@ -45,23 +45,46 @@ async def upload_video(
     if not validate_content_type(content_type):
         raise HTTPException(status_code=400, detail="Invalid content type for upload")
 
-    content = await file.read()
-    try:
-        validate_upload_size(len(content))
-    except ValueError as error:
-        raise HTTPException(status_code=413, detail=str(error)) from error
-
-    if not validate_video_magic_bytes(content[:16]):
-        raise HTTPException(
-            status_code=400,
-            detail="Uploaded file is not a supported video format",
-        )
+    max_upload_bytes = int(os.getenv("MAX_VIDEO_UPLOAD_SIZE_MB", "500")) * 1024 * 1024
+    chunk_size = 1024 * 1024
+    total_bytes = 0
+    header_sample = b""
 
     job_id = str(uuid.uuid4())
     temp_dir = os.getenv("TEMP_STORAGE_PATH", "/tmp")
     temp_file_path = os.path.join(temp_dir, f"{job_id}-{safe_filename}")
 
+    with open(temp_file_path, "wb") as temp_file:
+        while True:
+            chunk = await file.read(chunk_size)
+            if not chunk:
+                break
+            total_bytes += len(chunk)
+            if total_bytes > max_upload_bytes:
+                os.remove(temp_file_path)
+                raise HTTPException(
+                    status_code=413,
+                    detail=f"Upload exceeds maximum size of {max_upload_bytes // (1024 * 1024)} MB",
+                )
+            if len(header_sample) < 16:
+                header_sample += chunk[: 16 - len(header_sample)]
+            temp_file.write(chunk)
+
+    try:
+        validate_upload_size(total_bytes)
+    except ValueError as error:
+        os.remove(temp_file_path)
+        raise HTTPException(status_code=413, detail=str(error)) from error
+
+    if not validate_video_magic_bytes(header_sample[:16]):
+        os.remove(temp_file_path)
+        raise HTTPException(
+            status_code=400,
+            detail="Uploaded file is not a supported video format",
+        )
+
     if not hasattr(request.state, "user") or not request.state.user.get("sub"):
+        os.remove(temp_file_path)
         raise HTTPException(status_code=401, detail="Not authenticated")
 
     user_id = str(request.state.user.get("sub"))
@@ -72,9 +95,6 @@ async def upload_video(
     job_persisted = False
 
     try:
-        with open(temp_file_path, "wb") as temp_file:
-            temp_file.write(content)
-
         await asyncio.to_thread(
             upload_video_to_s3,
             temp_file_path,

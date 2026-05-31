@@ -68,7 +68,7 @@ jobs:
           trivy config infrastructure/ \
             --format table \
             --severity CRITICAL,HIGH \
-            --exit-code 0
+            --exit-code 1
 
   trivy-image-scan:
     runs-on: ubuntu-latest
@@ -76,7 +76,7 @@ jobs:
 
     strategy:
       matrix:
-        service: [gateway, auth, converter, notification]
+        service: [gateway, auth, converter, notification, frontend]
 
     steps:
       - uses: actions/checkout@v4
@@ -105,7 +105,7 @@ jobs:
             --ignorefile security/trivy/.trivyignore \
             --format table \
             --severity CRITICAL,HIGH \
-            --exit-code 0
+            --exit-code 1
 
       - name: Upload Trivy Image SARIF
         uses: github/codeql-action/upload-sarif@v3

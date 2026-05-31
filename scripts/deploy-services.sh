@@ -82,7 +82,7 @@ fi
 
 # Deploy API workloads first, then dedicated queue workers.
 for dir in gateway auth converter notification redis frontend; do
-  for kind in deployment service ingress hpa; do
+  for kind in deployment service ingress hpa pvc; do
     manifest="${RENDERED}/${dir}/${kind}.yaml"
     if [ -f "${manifest}" ]; then
       kubectl apply -f "${manifest}"

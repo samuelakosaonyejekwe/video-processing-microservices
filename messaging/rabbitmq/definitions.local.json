@@ -45,6 +45,11 @@
       }
     },
     {
+      "name": "notification-dlq",
+      "vhost": "/",
+      "durable": true
+    },
+    {
       "name": "gateway-events-queue",
       "vhost": "/",
       "durable": true

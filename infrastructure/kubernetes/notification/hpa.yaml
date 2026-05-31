@@ -13,7 +13,7 @@ spec:
     kind: Deployment
     name: notification-deployment
 
-  minReplicas: 2
+  minReplicas: ${NOTIFICATION_HPA_MIN_REPLICAS}
 
   maxReplicas: 5
 

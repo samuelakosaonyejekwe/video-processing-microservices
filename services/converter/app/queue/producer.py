@@ -207,6 +207,18 @@ class ConverterEventProducer:
                 ),
             )
 
+            if self.video_failed_queue:
+                self.channel.basic_publish(
+                    exchange="",
+                    routing_key=self.video_failed_queue,
+                    body=json.dumps(event),
+                    properties=pika.BasicProperties(
+                        delivery_mode=2,
+                        content_type="application/json",
+                        correlation_id=correlation_id,
+                    ),
+                )
+
             logger.info(
                 "Conversion failed event published " "correlation_id=%s", correlation_id
             )

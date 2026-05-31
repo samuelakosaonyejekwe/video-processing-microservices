@@ -43,6 +43,10 @@ class NotificationConsumer:
             "NOTIFICATION_RETRY_QUEUE", "notification-retry-queue"
         )
 
+        self.notification_dlq = os.getenv("NOTIFICATION_DLQ", "notification-dlq")
+
+        self.max_retry_attempts = int(os.getenv("MAX_NOTIFICATION_RETRIES", "3"))
+
         self.video_completed_queue = os.getenv(
             "VIDEO_COMPLETED_QUEUE", "video-completed-queue"
         )
@@ -115,6 +119,7 @@ class NotificationConsumer:
                     self.channel,
                     notification_queue=self.notification_queue,
                     notification_retry_queue=self.retry_queue,
+                    notification_dlq=self.notification_dlq,
                     video_completed_queue=self.video_completed_queue,
                     declare_gateway_events=False,
                 )
@@ -150,14 +155,17 @@ class NotificationConsumer:
 
             message = json.loads(body)
 
-            recipient = message.get("payload", {}).get("recipient")
+            payload = message.get("payload", {}) or {}
+            retry_count = int(payload.get("retry_count", 0))
 
-            subject = message.get("payload", {}).get("subject")
+            recipient = payload.get("recipient")
 
-            content = message.get("payload", {}).get("content")
+            subject = payload.get("subject")
+
+            content = payload.get("content")
 
             correlation_id = message.get("correlation_id")
-            job_id = message.get("payload", {}).get("job_id")
+            job_id = payload.get("job_id")
 
             if not recipient:
 
@@ -248,17 +256,34 @@ class NotificationConsumer:
             if job_id:
                 release_job_notification_claim(job_id)
 
+            if retry_count < self.max_retry_attempts:
+                retry_message = dict(message)
+                retry_payload = dict(payload)
+                retry_payload["retry_count"] = retry_count + 1
+                retry_message["payload"] = retry_payload
+                try:
+                    self.channel.basic_publish(
+                        exchange="",
+                        routing_key=self.retry_queue,
+                        body=json.dumps(retry_message),
+                        properties=pika.BasicProperties(delivery_mode=2),
+                    )
+                    ch.basic_ack(delivery_tag=method.delivery_tag)
+                    return
+                except Exception as retry_error:
+                    logger.error("Retry queue publish failed: %s", retry_error)
+
             try:
                 self.channel.basic_publish(
                     exchange="",
-                    routing_key=self.retry_queue,
+                    routing_key=self.notification_dlq,
                     body=body,
                     properties=pika.BasicProperties(delivery_mode=2),
                 )
-            except Exception as retry_error:
-                logger.error("Retry queue publish failed: %s", retry_error)
-
-            ch.basic_nack(delivery_tag=method.delivery_tag, requeue=False)
+                ch.basic_ack(delivery_tag=method.delivery_tag)
+            except Exception as dlq_error:
+                logger.error("Notification DLQ publish failed: %s", dlq_error)
+                ch.basic_nack(delivery_tag=method.delivery_tag, requeue=False)
 
     def start(self):
 

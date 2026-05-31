@@ -24,12 +24,16 @@ from app.routes.refresh_token import router as refresh_token_router
 from app.routes.register import router as register_router
 from shared.errors.handlers import register_exception_handlers
 from shared.logging.logger import configure_logging
+from shared.middleware.correlation_id import CorrelationIdMiddleware
+from shared.middleware.metrics_guard import MetricsGuardMiddleware
+from shared.runtime.tracing import configure_tracing
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
 
     configure_logging(APP_NAME)
+    configure_tracing(APP_NAME)
 
     if APP_ENV not in ("test", "production"):
         Base.metadata.create_all(bind=engine)
@@ -56,6 +60,8 @@ app = FastAPI(
 
 Instrumentator().instrument(app).expose(app, endpoint="/metrics")
 
+app.add_middleware(MetricsGuardMiddleware)
+app.add_middleware(CorrelationIdMiddleware)
 app.add_middleware(AuthRateLimitMiddleware)
 
 app.add_middleware(

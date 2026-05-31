@@ -49,14 +49,18 @@ fi
 # shellcheck source=scripts/resolve-ecr-registry.sh
 source "${ROOT_DIR}/scripts/resolve-ecr-registry.sh"
 
-_is_secret_manifest() {
+_is_generated_manifest() {
   local file="$1"
   case "${file}" in
-    */secrets/*|*/secret.yaml|*/rabbitmq-secret.yaml|*/grafana-secret.yaml)
+    */secrets/*|*/secret.yaml|*/rabbitmq-secret.yaml|*/grafana-secret.yaml|*/postgres/postgres-schema-configmap.yaml)
       return 0
       ;;
   esac
   return 1
+}
+
+_is_secret_manifest() {
+  _is_generated_manifest "$1"
 }
 
 mkdir -p "${OUTPUT_DIR}"
@@ -64,7 +68,7 @@ mkdir -p "${OUTPUT_DIR}"
 echo "Rendering Kubernetes manifests to ${OUTPUT_DIR}..."
 
 find "${ROOT_DIR}/infrastructure/kubernetes" \( -name '*.yaml' -o -name '*.yml' \) | while read -r file; do
-  if _is_secret_manifest "${file}"; then
+  if _is_generated_manifest "${file}"; then
     continue
   fi
   rel="${file#"${ROOT_DIR}/"}"
@@ -74,6 +78,7 @@ find "${ROOT_DIR}/infrastructure/kubernetes" \( -name '*.yaml' -o -name '*.yml' 
 done
 
 bash "${ROOT_DIR}/scripts/render-k8s-secrets.sh" "${OUTPUT_DIR}"
+bash "${ROOT_DIR}/scripts/render-postgres-schema-configmap.sh" "${OUTPUT_DIR}"
 
 _strip_ingress_tls() {
   local file="$1"

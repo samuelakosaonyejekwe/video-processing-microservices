@@ -37,6 +37,8 @@ spec:
             - containerPort: 6379
           args:
             - redis-server
+            - --appendonly
+            - "yes"
             - --requirepass
             - $(REDIS_PASSWORD)
           env:
@@ -45,6 +47,9 @@ spec:
                 secretKeyRef:
                   name: redis-secret
                   key: REDIS_PASSWORD
+          volumeMounts:
+            - name: redis-data
+              mountPath: /data
           resources:
             requests:
               cpu: 100m
@@ -60,3 +65,7 @@ spec:
             tcpSocket:
               port: 6379
             initialDelaySeconds: 5
+      volumes:
+        - name: redis-data
+          persistentVolumeClaim:
+            claimName: ${REDIS_PVC_NAME}

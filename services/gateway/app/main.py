@@ -30,6 +30,7 @@ from app.routes.jobs_routes import router as jobs_router
 from shared.errors.handlers import register_exception_handlers
 from shared.logging.logger import configure_logging
 from shared.middleware.correlation_id import CorrelationIdMiddleware
+from shared.middleware.metrics_guard import MetricsGuardMiddleware
 from shared.runtime.queue_consumer import queue_consumer_enabled
 from shared.runtime.tracing import configure_tracing
 
@@ -91,6 +92,7 @@ app.add_middleware(
 app.add_middleware(RateLimitMiddleware)
 app.add_middleware(AuthMiddleware)
 app.add_middleware(CorrelationIdMiddleware)
+app.add_middleware(MetricsGuardMiddleware)
 
 app.include_router(auth_router)
 app.include_router(converter_router)

@@ -97,6 +97,8 @@ data:
 
   RATE_LIMIT_FAIL_CLOSED: "${RATE_LIMIT_FAIL_CLOSED}"
 
+  OTEL_EXPORTER_OTLP_ENDPOINT: "${OTEL_EXPORTER_OTLP_ENDPOINT}"
+
   # =========================================================
   # HEALTHCHECK
   # =========================================================

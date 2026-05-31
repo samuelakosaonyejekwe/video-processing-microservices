@@ -81,6 +81,7 @@ def declare_pipeline_queues(
     video_upload_dlq: str | None = None,
     notification_queue: str | None = None,
     notification_retry_queue: str | None = None,
+    notification_dlq: str | None = None,
     gateway_events_queue: str | None = None,
     video_completed_queue: str | None = None,
     video_completed_retry_queue: str | None = None,
@@ -105,6 +106,9 @@ def declare_pipeline_queues(
     )
     notification_retry_queue = notification_retry_queue or _queue(
         "NOTIFICATION_RETRY_QUEUE", "notification-retry-queue"
+    )
+    notification_dlq = notification_dlq or _queue(
+        "NOTIFICATION_DLQ", "notification-dlq"
     )
     gateway_events_queue = gateway_events_queue or _queue(
         "GATEWAY_EVENTS_QUEUE", "gateway-events-queue"
@@ -158,6 +162,7 @@ def declare_pipeline_queues(
                 "x-dead-letter-routing-key": notification_queue,
             },
         )
+        channel = _ensure_queue(channel, notification_dlq)
 
     if declare_gateway_events and gateway_events_queue:
         channel = _ensure_queue(channel, gateway_events_queue)
