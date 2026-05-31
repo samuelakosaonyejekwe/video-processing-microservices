@@ -13,7 +13,8 @@ _yaml_safe() {
 }
 
 for key in RABBITMQ_PASSWORD RABBITMQ_USERNAME RABBITMQ_ERLANG_COOKIE \
-  POSTGRES_PASSWORD POSTGRES_USER MONGO_PASSWORD MONGO_USERNAME; do
+  POSTGRES_PASSWORD POSTGRES_USER MONGO_PASSWORD MONGO_USERNAME MONGO_DATABASE \
+  MONGO_HOST MONGO_PORT MONGO_AUTH_SOURCE; do
   if [ -n "${!key:-}" ]; then
     export "${key}=$(_yaml_safe "${!key}")"
   fi
@@ -36,7 +37,15 @@ render_chart() {
   done
 
   if [ -d "${src}/templates" ]; then
-    cp -r "${src}/templates/." "${dest}/templates/"
+    mkdir -p "${dest}/templates"
+    for tpl in "${src}/templates"/*; do
+      [ -f "${tpl}" ] || continue
+      if grep -q '\${' "${tpl}"; then
+        envsubst < "${tpl}" > "${dest}/templates/$(basename "${tpl}")"
+      else
+        cp "${tpl}" "${dest}/templates/$(basename "${tpl}")"
+      fi
+    done
   fi
 }
 
