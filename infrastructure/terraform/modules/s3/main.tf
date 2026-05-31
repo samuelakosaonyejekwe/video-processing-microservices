@@ -2,14 +2,18 @@ resource "aws_s3_bucket" "this" {
 
   for_each = var.s3_buckets
 
-  bucket = lower(
-    join(
-      "-",
-      compact([
-        var.project_name,
-        var.environment,
-        each.key
-      ])
+  bucket = lookup(
+    each.value,
+    "bucket_name",
+    lower(
+      join(
+        "-",
+        compact([
+          var.project_name,
+          var.environment,
+          each.key
+        ])
+      )
     )
   )
 

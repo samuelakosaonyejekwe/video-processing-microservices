@@ -601,6 +601,46 @@ variable "s3_bucket_name" {
   default = "samuel-video-processing-video"
 }
 
+variable "s3_video_bucket_name" {
+  type    = string
+  default = "samuel-video-processing-video"
+}
+
+variable "s3_audio_bucket_name" {
+  type    = string
+  default = "samuel-video-processing-audio"
+}
+
+variable "s3_buckets" {
+  type = map(object({
+    bucket_name                        = optional(string)
+    force_destroy                      = optional(bool, false)
+    versioning_enabled                 = optional(bool, true)
+    lifecycle_enabled                  = optional(bool, true)
+    expiration_days                    = optional(number)
+    transition_to_ia_days              = optional(number)
+    transition_to_glacier_days         = optional(number)
+    noncurrent_version_expiration_days = optional(number, 30)
+    sse_algorithm                      = optional(string, "AES256")
+    enable_cors                        = optional(bool, false)
+    cors_allowed_headers               = optional(list(string), ["*"])
+    cors_allowed_methods               = optional(list(string), ["GET", "PUT", "POST", "HEAD"])
+    cors_allowed_origins               = optional(list(string), ["*"])
+    cors_expose_headers                = optional(list(string), [])
+    cors_max_age_seconds               = optional(number, 3000)
+  }))
+
+  default = {
+    video = {
+      bucket_name = "samuel-video-processing-video"
+      enable_cors = true
+    }
+    audio = {
+      bucket_name = "samuel-video-processing-audio"
+    }
+  }
+}
+
 variable "tags" {
   type    = map(string)
   default = {}

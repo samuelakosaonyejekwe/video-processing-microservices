@@ -27,3 +27,13 @@ output "eks_cluster_security_group_id" {
 
   value = module.eks.cluster_security_group_id
 }
+
+output "s3_bucket_names" {
+
+  value = module.s3.bucket_names
+}
+
+output "s3_bucket_arns" {
+
+  value = module.s3.bucket_arns
+}

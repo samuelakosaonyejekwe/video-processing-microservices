@@ -6,6 +6,13 @@ locals {
     "notification",
     "worker"
   ]
+
+  irsa_s3_bucket_arns = flatten([
+    for bucket_name in values(module.s3.bucket_names) : [
+      "arn:aws:s3:::${bucket_name}",
+      "arn:aws:s3:::${bucket_name}/*"
+    ]
+  ])
 }
 
 resource "aws_iam_role" "irsa_roles" {
@@ -64,10 +71,7 @@ resource "aws_iam_policy" "irsa_s3_policy" {
           "s3:ListBucket"
         ]
 
-        Resource = [
-          "arn:aws:s3:::${var.s3_bucket_name}",
-          "arn:aws:s3:::${var.s3_bucket_name}/*"
-        ]
+        Resource = local.irsa_s3_bucket_arns
       }
     ]
 

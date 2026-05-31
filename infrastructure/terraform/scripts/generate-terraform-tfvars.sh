@@ -51,6 +51,8 @@ export DOMAIN_NAME="${DOMAIN_NAME:-${APP_DOMAIN:-api.example.com}}"
 export HOSTED_ZONE_NAME="${HOSTED_ZONE_NAME:-${APP_DOMAIN:-example.com}}"
 export ACM_CERTIFICATE_ARN="${ACM_CERTIFICATE_ARN:-arn:aws:acm:${AWS_REGION}:000000000000:certificate/placeholder}"
 export S3_BUCKET_NAME="${S3_BUCKET_NAME:-${S3_UPLOAD_BUCKET:-${AWS_S3_VIDEO_BUCKET:-${AWS_S3_BUCKET:-samuel-video-processing-video}}}}"
+export S3_VIDEO_BUCKET_NAME="${S3_VIDEO_BUCKET_NAME:-${S3_UPLOAD_BUCKET:-${AWS_S3_VIDEO_BUCKET:-${S3_BUCKET_NAME}}}}"
+export S3_AUDIO_BUCKET_NAME="${S3_AUDIO_BUCKET_NAME:-${S3_AUDIO_BUCKET:-${AWS_S3_AUDIO_BUCKET:-samuel-video-processing-audio}}}"
 export KUBERNETES_NAMESPACE="${KUBERNETES_NAMESPACE:-${K8S_NAMESPACE:-video-processing}}"
 export CLUSTER_NAME="${CLUSTER_NAME:-${EKS_CLUSTER_NAME}}"
 export CLUSTER_VERSION="${CLUSTER_VERSION:-${KUBERNETES_VERSION}}"
@@ -91,6 +93,17 @@ domain_name           = "${DOMAIN_NAME}"
 hosted_zone_name      = "${HOSTED_ZONE_NAME}"
 acm_certificate_arn   = "${ACM_CERTIFICATE_ARN}"
 s3_bucket_name        = "${S3_BUCKET_NAME}"
+s3_video_bucket_name  = "${S3_VIDEO_BUCKET_NAME}"
+s3_audio_bucket_name  = "${S3_AUDIO_BUCKET_NAME}"
+s3_buckets = {
+  video = {
+    bucket_name = "${S3_VIDEO_BUCKET_NAME}"
+    enable_cors = true
+  }
+  audio = {
+    bucket_name = "${S3_AUDIO_BUCKET_NAME}"
+  }
+}
 kubernetes_namespace  = "${KUBERNETES_NAMESPACE}"
 cluster_name          = "${CLUSTER_NAME}"
 cluster_version       = "${CLUSTER_VERSION}"

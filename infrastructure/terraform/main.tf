@@ -170,3 +170,16 @@ module "jenkins" {
 
   jenkins_root_volume_size = var.jenkins_root_volume_size
 }
+
+module "s3" {
+
+  source = "./modules/s3"
+
+  project_name = var.project_name
+
+  environment = var.environment
+
+  s3_buckets = var.s3_buckets
+
+  tags = var.tags
+}
