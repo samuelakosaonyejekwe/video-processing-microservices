@@ -4,7 +4,12 @@ import httpx
 from fastapi import APIRouter, HTTPException, Request, Response
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, EmailStr
-from tenacity import retry, retry_if_exception_type, stop_after_attempt, wait_exponential
+from tenacity import (
+    retry,
+    retry_if_exception_type,
+    stop_after_attempt,
+    wait_exponential,
+)
 
 from app.config import APP_ENV, JWT_AUTH_SERVICE_URL
 
@@ -42,7 +47,9 @@ class RefreshRequest(BaseModel):
     retry=retry_if_exception_type((httpx.ConnectError, httpx.ReadTimeout)),
     reraise=True,
 )
-async def _post_auth(path: str, json_data: dict, headers: dict | None = None) -> httpx.Response:
+async def _post_auth(
+    path: str, json_data: dict, headers: dict | None = None
+) -> httpx.Response:
     async with httpx.AsyncClient(timeout=30.0) as client:
         return await client.post(
             f"{JWT_AUTH_SERVICE_URL}{path}",
@@ -93,7 +100,9 @@ async def login(data: LoginRequest):
     try:
         response = await _post_auth("/auth/login", data.model_dump())
     except (httpx.ConnectError, httpx.ReadTimeout) as error:
-        raise HTTPException(status_code=503, detail="Auth service unavailable") from error
+        raise HTTPException(
+            status_code=503, detail="Auth service unavailable"
+        ) from error
 
     if response.status_code != 200:
         raise HTTPException(
@@ -112,7 +121,9 @@ async def register(data: RegisterRequest):
     try:
         response = await _post_auth("/auth/register", data.model_dump())
     except (httpx.ConnectError, httpx.ReadTimeout) as error:
-        raise HTTPException(status_code=503, detail="Auth service unavailable") from error
+        raise HTTPException(
+            status_code=503, detail="Auth service unavailable"
+        ) from error
 
     if response.status_code not in (200, 201):
         raise HTTPException(
@@ -132,7 +143,9 @@ async def refresh(data: RefreshRequest, request: Request):
     try:
         response = await _post_auth("/auth/refresh", {"refresh_token": refresh_token})
     except (httpx.ConnectError, httpx.ReadTimeout) as error:
-        raise HTTPException(status_code=503, detail="Auth service unavailable") from error
+        raise HTTPException(
+            status_code=503, detail="Auth service unavailable"
+        ) from error
 
     if response.status_code != 200:
         raise HTTPException(
