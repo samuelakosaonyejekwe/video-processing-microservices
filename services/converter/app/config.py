@@ -106,7 +106,7 @@ MONGO_URI = first_env("MONGO_URI") or (
 )
 
 MAX_CONVERSION_TIMEOUT_SECONDS = int(
-    first_env("MAX_CONVERSION_TIMEOUT_SECONDS", default="3600")
+    first_env("MAX_CONVERSION_TIMEOUT_SECONDS", default="90")
 )
 
 MAX_VIDEO_UPLOAD_SIZE_MB = int(first_env("MAX_VIDEO_UPLOAD_SIZE_MB", default="500"))
