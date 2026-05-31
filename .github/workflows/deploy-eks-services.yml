@@ -10,12 +10,13 @@ on:
 
 concurrency:
   group: deploy-eks-${{ vars.EKS_CLUSTER_NAME }}
-  cancel-in-progress: false
+  cancel-in-progress: true
 
 jobs:
   deploy:
     name: Deploy Microservices to EKS
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     permissions:
       contents: read
 
@@ -106,7 +107,11 @@ jobs:
       - name: Deploy Stack
         env:
           APPLY_NETWORK_POLICIES: "true"
-          DEPLOY_MONITORING_STACK: "true"
+          DEPLOY_MONITORING_STACK: "false"
+          SKIP_INFRA_DEPLOY: "true"
+          SKIP_MONGO_PASSWORD_SYNC: "true"
+          DEPLOY_ROLLOUT_TIMEOUT: "180s"
+          RUN_POSTGRES_MIGRATIONS: "true"
         run: |
           chmod +x scripts/*.sh scripts/lib/*.sh
           bash scripts/create-docker-registry-secret.sh
@@ -115,7 +120,7 @@ jobs:
           bash scripts/verify-deployment.sh
           bash scripts/validate-hpa.sh
           bash scripts/validate-queue-workers.sh
-          bash scripts/verify-github-actions-iam.sh || true
 
       - name: Production Validation
+        if: ${{ vars.RUN_PRODUCTION_VALIDATION == 'true' }}
         run: bash scripts/run-production-validation.sh

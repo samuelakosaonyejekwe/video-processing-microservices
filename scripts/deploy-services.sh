@@ -36,7 +36,11 @@ kubectl apply -f "${RENDERED}/secrets/"
 
 bash "${ROOT_DIR}/scripts/sync-rabbitmq-credentials.sh"
 bash "${ROOT_DIR}/scripts/sync-postgres-password.sh"
-bash "${ROOT_DIR}/scripts/sync-mongo-password.sh"
+if [ "${SKIP_MONGO_PASSWORD_SYNC:-false}" != "true" ]; then
+  bash "${ROOT_DIR}/scripts/sync-mongo-password.sh"
+else
+  echo "Skipping MongoDB password sync (SKIP_MONGO_PASSWORD_SYNC=true)."
+fi
 
 if [ -d "${RENDERED}/configmaps" ]; then
   kubectl apply -f "${RENDERED}/configmaps/"
@@ -55,9 +59,9 @@ fi
 if [ "${RUN_POSTGRES_MIGRATIONS:-true}" = "true" ]; then
   echo "Running Postgres migrations..."
   if [ -f "${RENDERED}/postgres/migration-job.yaml" ]; then
-    kubectl delete job postgres-migrations -n "${K8S_NAMESPACE}" --ignore-not-found
+    kubectl delete job postgres-migrations -n "${K8S_NAMESPACE}" --ignore-not-found --wait=true
     kubectl apply -f "${RENDERED}/postgres/migration-job.yaml"
-    kubectl wait --for=condition=complete job/postgres-migrations -n "${K8S_NAMESPACE}" --timeout=180s
+    kubectl wait --for=condition=complete job/postgres-migrations -n "${K8S_NAMESPACE}" --timeout=90s
   else
     bash "${ROOT_DIR}/scripts/run-postgres-migrations.sh" || {
       echo "Postgres migration script failed; ensure POSTGRES_* env vars are reachable."

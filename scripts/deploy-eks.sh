@@ -14,6 +14,11 @@ aws eks update-kubeconfig \
   --region "${AWS_REGION}" \
   --name "${EKS_CLUSTER_NAME}"
 
+if [ "${SKIP_INFRA_DEPLOY:-false}" = "true" ]; then
+  echo "Skipping cluster add-ons and Helm infra (SKIP_INFRA_DEPLOY=true)."
+  exit 0
+fi
+
 bash "${ROOT_DIR}/scripts/install-cluster-addons.sh"
 
 bash "${ROOT_DIR}/scripts/deploy-helm.sh"

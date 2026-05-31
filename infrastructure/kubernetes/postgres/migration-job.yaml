@@ -7,6 +7,7 @@ metadata:
     app: postgres-migrations
 spec:
   ttlSecondsAfterFinished: 300
+  backoffLimit: 3
   template:
     metadata:
       labels:
@@ -20,10 +21,16 @@ spec:
             - /bin/sh
             - -ec
             - |
-              psql "${DATABASE_URL}" -f /schema/schema.sql
+              export PGPASSWORD="${POSTGRES_PASSWORD}"
+              export PGSSLMODE="${POSTGRES_SSL_MODE:-prefer}"
+              psql \
+                -h "${POSTGRES_HOST}" \
+                -p "${POSTGRES_PORT}" \
+                -U "${POSTGRES_USER}" \
+                -d "${POSTGRES_DB}" \
+                -v ON_ERROR_STOP=1 \
+                -f /schema/schema.sql
           env:
-            - name: DATABASE_URL
-              value: "postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@${POSTGRES_HOST}:${POSTGRES_PORT}/${POSTGRES_DB}?sslmode=${POSTGRES_SSL_MODE}"
             - name: POSTGRES_USER
               valueFrom:
                 secretKeyRef:
@@ -50,10 +57,7 @@ spec:
                   name: auth-config
                   key: POSTGRES_DB
             - name: POSTGRES_SSL_MODE
-              valueFrom:
-                configMapKeyRef:
-                  name: auth-config
-                  key: POSTGRES_SSL_MODE
+              value: prefer
           volumeMounts:
             - name: schema
               mountPath: /schema
