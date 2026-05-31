@@ -176,7 +176,11 @@ export INGRESS_CLASS_NAME="${INGRESS_CLASS_NAME:-alb}"
 export ALB_SCHEME="${ALB_SCHEME:-internet-facing}"
 export ALB_TARGET_TYPE="${ALB_TARGET_TYPE:-ip}"
 if [ -z "${ALB_LISTEN_PORTS:-}" ]; then
-  export ALB_LISTEN_PORTS='[{"HTTP":80}]'
+  if [ -n "${ACM_CERTIFICATE_ARN:-}" ] && [[ "${ACM_CERTIFICATE_ARN}" != *"placeholder"* ]]; then
+    export ALB_LISTEN_PORTS='[{"HTTP":80},{"HTTPS":443}]'
+  else
+    export ALB_LISTEN_PORTS='[{"HTTP":80}]'
+  fi
 fi
 export ALB_SSL_REDIRECT_PORT="${ALB_SSL_REDIRECT_PORT:-443}"
 export ACM_CERTIFICATE_ARN="${ACM_CERTIFICATE_ARN:-}"

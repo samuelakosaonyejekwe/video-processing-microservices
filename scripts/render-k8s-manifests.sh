@@ -66,4 +66,9 @@ done
 
 bash "${ROOT_DIR}/scripts/render-k8s-secrets.sh" "${OUTPUT_DIR}"
 
+ingress_file="${OUTPUT_DIR}/infrastructure/kubernetes/gateway/ingress.yaml"
+if [ -f "${ingress_file}" ] && { [ -z "${ACM_CERTIFICATE_ARN:-}" ] || [[ "${ACM_CERTIFICATE_ARN}" == *"placeholder"* ]]; }; then
+  sed -i '/certificate-arn/d;/ssl-redirect/d' "${ingress_file}"
+fi
+
 echo "Rendered manifests ready in ${OUTPUT_DIR}"

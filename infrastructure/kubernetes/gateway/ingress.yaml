@@ -18,6 +18,10 @@ metadata:
 
     alb.ingress.kubernetes.io/listen-ports: '${ALB_LISTEN_PORTS}'
 
+    alb.ingress.kubernetes.io/certificate-arn: "${ACM_CERTIFICATE_ARN}"
+
+    alb.ingress.kubernetes.io/ssl-redirect: '${ALB_SSL_REDIRECT_PORT}'
+
 spec:
 
   ingressClassName: ${INGRESS_CLASS_NAME}
