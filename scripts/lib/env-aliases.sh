@@ -582,13 +582,8 @@ if [ "${DEPLOY_TRACING_STACK:-false}" = "true" ] && [ -z "${OTEL_EXPORTER_OTLP_E
 fi
 
 if [ "${DEPLOY_MTLS_STACK:-false}" = "true" ]; then
-  export INTERNAL_SERVICE_TLS_ENABLED="${INTERNAL_SERVICE_TLS_ENABLED:-true}"
   if [ -z "${INTERNAL_TLS_CA_PATH:-}" ]; then
     export INTERNAL_TLS_CA_PATH="/etc/internal-tls/ca.crt"
-  fi
-  _default_http_auth_url="http://auth-service.${K8S_NAMESPACE}.svc.cluster.local:${AUTH_K8S_SERVICE_PORT}"
-  if [ -z "${JWT_AUTH_SERVICE_URL:-}" ] || [ "${JWT_AUTH_SERVICE_URL}" = "${_default_http_auth_url}" ]; then
-    export JWT_AUTH_SERVICE_URL="https://auth-service.${K8S_NAMESPACE}.svc.cluster.local:${INTERNAL_TLS_PORT}"
   fi
 fi
 

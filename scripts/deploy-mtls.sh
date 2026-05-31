@@ -51,8 +51,8 @@ if kubectl get secret internal-ca-secret -n cert-manager >/dev/null 2>&1; then
     --from-literal=ca.crt="${ca_crt}" \
     --dry-run=client -o yaml | kubectl apply -f -
   export INTERNAL_TLS_CA_PATH="/etc/internal-tls/ca.crt"
-  export INTERNAL_SERVICE_TLS_ENABLED="true"
   echo "Published internal CA bundle to configmap/internal-ca-bundle"
 fi
 
-echo "Internal mTLS certificates issued (CA bundle available at ${INTERNAL_TLS_CA_PATH:-n/a}, TLS enabled=${INTERNAL_SERVICE_TLS_ENABLED:-false})."
+echo "Internal mTLS certificates issued (CA bundle available at ${INTERNAL_TLS_CA_PATH:-n/a})."
+echo "Set INTERNAL_SERVICE_TLS_ENABLED=true and redeploy services to activate HTTPS inter-service traffic."
