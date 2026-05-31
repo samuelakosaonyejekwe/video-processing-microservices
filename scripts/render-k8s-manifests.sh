@@ -42,6 +42,13 @@ if [ "${#missing[@]}" -gt 0 ]; then
   exit 1
 fi
 
+if [ -z "${AWS_ACCOUNT_ID:-}" ] && command -v aws >/dev/null 2>&1; then
+  export AWS_ACCOUNT_ID="$(aws sts get-caller-identity --query Account --output text 2>/dev/null || true)"
+fi
+
+# shellcheck source=scripts/resolve-ecr-registry.sh
+source "${ROOT_DIR}/scripts/resolve-ecr-registry.sh"
+
 _is_secret_manifest() {
   local file="$1"
   case "${file}" in

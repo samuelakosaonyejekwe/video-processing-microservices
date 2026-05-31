@@ -1,15 +1,20 @@
 #!/bin/bash
-# Build service images and push to ECR (primary) and Docker Hub (mirror).
+# Build service images and push to ECR. Docker Hub mirror is optional.
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 # shellcheck source=scripts/lib/env-aliases.sh
 source "${ROOT_DIR}/scripts/lib/env-aliases.sh"
 
-: "${DOCKER_USERNAME:?Missing DOCKER_USERNAME}"
 : "${IMAGE_TAG:?Missing IMAGE_TAG}"
 : "${AWS_REGION:?Missing AWS_REGION}"
 : "${PROJECT_NAME:?Missing PROJECT_NAME}"
+
+PUSH_DOCKER_HUB="${PUSH_DOCKER_HUB:-false}"
+if [ "${PUSH_DOCKER_HUB}" = "true" ]; then
+  : "${DOCKER_USERNAME:?Missing DOCKER_USERNAME (required when PUSH_DOCKER_HUB=true)}"
+  : "${DOCKER_PASSWORD:?Missing DOCKER_PASSWORD (required when PUSH_DOCKER_HUB=true)}"
+fi
 
 if [ -z "${AWS_ACCOUNT_ID:-}" ]; then
   AWS_ACCOUNT_ID="$(aws sts get-caller-identity --query Account --output text)"
@@ -36,24 +41,35 @@ for entry in "${services[@]}"; do
 
   ecr_image="${ECR_REGISTRY}/${ECR_NAMESPACE}/${service}:${IMAGE_TAG}"
   ecr_latest="${ECR_REGISTRY}/${ECR_NAMESPACE}/${service}:latest"
-  hub_image="${DOCKER_USERNAME}/${service}:${IMAGE_TAG}"
-  hub_latest="${DOCKER_USERNAME}/${service}:latest"
+
+  build_tags=(-t "${ecr_image}" -t "${ecr_latest}")
+  if [ "${PUSH_DOCKER_HUB}" = "true" ]; then
+    build_tags+=(
+      -t "${DOCKER_USERNAME}/${service}:${IMAGE_TAG}"
+      -t "${DOCKER_USERNAME}/${service}:latest"
+    )
+  fi
 
   docker build \
     --pull \
     --no-cache \
-    -t "${ecr_image}" \
-    -t "${ecr_latest}" \
-    -t "${hub_image}" \
-    -t "${hub_latest}" \
+    "${build_tags[@]}" \
     -f "${dockerfile}" "${ROOT_DIR}"
 
   docker push "${ecr_image}"
   docker push "${ecr_latest}"
-  docker push "${hub_image}"
-  docker push "${hub_latest}"
 
-  echo "Published ${service} to ${ecr_latest} and ${hub_latest}"
+  if [ "${PUSH_DOCKER_HUB}" = "true" ]; then
+    docker push "${DOCKER_USERNAME}/${service}:${IMAGE_TAG}"
+    docker push "${DOCKER_USERNAME}/${service}:latest"
+    echo "Published ${service} to ${ecr_latest} and Docker Hub"
+  else
+    echo "Published ${service} to ${ecr_latest}"
+  fi
 done
 
-echo "All images published to ECR (${ECR_REGISTRY}/${ECR_NAMESPACE}) and Docker Hub (${DOCKER_USERNAME})"
+if [ "${PUSH_DOCKER_HUB}" = "true" ]; then
+  echo "All images published to ECR (${ECR_REGISTRY}/${ECR_NAMESPACE}) and Docker Hub (${DOCKER_USERNAME})"
+else
+  echo "All images published to ECR (${ECR_REGISTRY}/${ECR_NAMESPACE})"
+fi

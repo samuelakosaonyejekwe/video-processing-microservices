@@ -118,6 +118,10 @@ gh_var_set CLUSTER_AUTOSCALER_HELM_CHART "${CLUSTER_AUTOSCALER_HELM_CHART:-}"
 gh_var_set CLUSTER_AUTOSCALER_RELEASE_NAME "${CLUSTER_AUTOSCALER_RELEASE_NAME:-}"
 gh_var_set CLUSTER_AUTOSCALER_ENABLED "${CLUSTER_AUTOSCALER_ENABLED:-}"
 
+if [ -x "${ROOT_DIR}/scripts/sync-github-registry-vars.sh" ]; then
+  bash "${ROOT_DIR}/scripts/sync-github-registry-vars.sh"
+fi
+
 echo ""
 echo "=== GitHub Secrets ==="
 
