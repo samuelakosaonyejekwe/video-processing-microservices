@@ -67,7 +67,7 @@ ensure_alb_controller_irsa() {
   account_id="$(aws sts get-caller-identity --query Account --output text)"
   policy_file="$(mktemp)"
   curl -fsSL \
-    "https://raw.githubusercontent.com/kubernetes-sigs/aws-load-balancer-controller/v2.11.0/docs/install/iam_policy.json" \
+    "https://raw.githubusercontent.com/kubernetes-sigs/aws-load-balancer-controller/main/docs/install/iam_policy.json" \
     -o "${policy_file}"
 
   if ! aws iam get-policy --policy-arn "arn:aws:iam::${account_id}:policy/${policy_name}" >/dev/null 2>&1; then
