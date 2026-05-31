@@ -95,7 +95,7 @@ jobs:
           done
 
       - name: Run Integration Test Suite
-        run: pytest tests
+        run: PYTHONPATH=. pytest tests
 
   yaml-validation:
     runs-on: ubuntu-latest
