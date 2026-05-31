@@ -4,7 +4,8 @@
       "name": "${VIDEO_UPLOAD_QUEUE}",
       "durable": true,
       "arguments": {
-        "x-dead-letter-exchange": "video.dlx"
+        "x-dead-letter-exchange": "video.dlx",
+        "x-dead-letter-routing-key": "failed"
       }
     },
     {
@@ -35,6 +36,15 @@
     {
       "name": "${VIDEO_COMPLETED_QUEUE}",
       "durable": true
+    },
+    {
+      "name": "${VIDEO_COMPLETED_RETRY_QUEUE}",
+      "durable": true,
+      "arguments": {
+        "x-message-ttl": 30000,
+        "x-dead-letter-exchange": "",
+        "x-dead-letter-routing-key": "${VIDEO_COMPLETED_QUEUE}"
+      }
     },
     {
       "name": "${VIDEO_FAILED_QUEUE}",

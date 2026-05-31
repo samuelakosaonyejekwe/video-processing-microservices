@@ -373,42 +373,6 @@ pipeline {
 
         /*
         ======================================================
-        VALIDATE KEDA
-        ======================================================
-        */
-
-        stage('Validate KEDA') {
-
-            steps {
-
-                sh '''
-                    chmod +x scripts/validate-keda.sh
-
-                    bash scripts/validate-keda.sh
-                '''
-            }
-        }
-
-        /*
-        ======================================================
-        VALIDATE HPA
-        ======================================================
-        */
-
-        stage('Validate HPA') {
-
-            steps {
-
-                sh '''
-                    chmod +x scripts/validate-hpa.sh
-
-                    bash scripts/validate-hpa.sh
-                '''
-            }
-        }
-
-        /*
-        ======================================================
         DEPLOY CLUSTER AUTOSCALER
         ======================================================
         */
@@ -500,8 +464,10 @@ pipeline {
                 sh '''
                     export DEPLOY_ROLLOUT_TIMEOUT=120s
                     export WORKER_ROLLOUT_TIMEOUT=120s
-                    chmod +x scripts/verify-deployment.sh scripts/lib/env-aliases.sh
+                    chmod +x scripts/verify-deployment.sh scripts/validate-hpa.sh scripts/validate-keda.sh scripts/lib/env-aliases.sh
                     bash scripts/verify-deployment.sh
+                    bash scripts/validate-hpa.sh
+                    bash scripts/validate-keda.sh
                     bash scripts/validate-queue-workers.sh
                 '''
             }

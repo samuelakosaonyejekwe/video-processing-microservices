@@ -199,7 +199,7 @@ class ConverterEventConsumer:
             output_audio_path,
         ]
 
-        timeout_seconds = int(os.getenv("MAX_CONVERSION_TIMEOUT_SECONDS", "3600"))
+        timeout_seconds = int(os.getenv("MAX_CONVERSION_TIMEOUT_SECONDS", "90"))
         subprocess.run(ffmpeg_command, check=True, timeout=timeout_seconds)
 
         logger.info("FFmpeg conversion completed successfully")

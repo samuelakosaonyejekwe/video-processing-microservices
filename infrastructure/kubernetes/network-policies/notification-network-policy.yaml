@@ -29,6 +29,17 @@ spec:
   ingress:
 
     #
+    # ALLOW WEBSOCKET PROXY FROM FRONTEND NGINX
+    #
+    - from:
+        - podSelector:
+            matchLabels:
+              app: frontend
+      ports:
+        - protocol: TCP
+          port: ${WEBSOCKET_PORT}
+
+    #
     # ALLOW PROMETHEUS SCRAPING
     #
     - from:

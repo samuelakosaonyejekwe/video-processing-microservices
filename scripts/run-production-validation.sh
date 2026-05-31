@@ -24,6 +24,7 @@ bash "${ROOT_DIR}/scripts/validate-queue-workers.sh"
 
 echo "=== Metrics server and HPA validation ==="
 bash "${ROOT_DIR}/scripts/validate-hpa.sh"
+bash "${ROOT_DIR}/scripts/validate-keda.sh"
 
 echo "=== IAM deploy permission check ==="
 bash "${ROOT_DIR}/scripts/verify-github-actions-iam.sh" || true
