@@ -139,9 +139,7 @@ async def session(request: Request):
             audience=JWT_AUDIENCE,
         )
     except PyJWTError as error:
-        raise HTTPException(
-            status_code=401, detail="Not authenticated"
-        ) from error
+        raise HTTPException(status_code=401, detail="Not authenticated") from error
 
     if payload.get("type") != "access":
         raise HTTPException(status_code=401, detail="Not authenticated")

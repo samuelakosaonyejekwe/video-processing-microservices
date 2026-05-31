@@ -40,7 +40,10 @@ spec:
       ports:
 
         - protocol: TCP
-          port: ${AUTH_SERVICE_PORT}
+          port: ${AUTH_APP_PORT}
+
+        - protocol: TCP
+          port: ${INTERNAL_TLS_PORT}
 
   egress:
 

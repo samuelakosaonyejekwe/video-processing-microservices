@@ -106,6 +106,8 @@ if [ "${APPLY_NETWORK_POLICIES:-true}" = "true" ]; then
   bash "${ROOT_DIR}/scripts/deploy-network-policies.sh"
 fi
 
+bash "${ROOT_DIR}/scripts/verify-gateway-auth-connectivity.sh"
+
 if [ "${INSTALL_KEDA:-true}" = "true" ]; then
   bash "${ROOT_DIR}/scripts/install-keda.sh"
 fi

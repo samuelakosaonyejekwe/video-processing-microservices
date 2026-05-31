@@ -8,22 +8,16 @@ BASE_URL = os.getenv("GATEWAY_SERVICE_URL") or (
 
 def test_gateway_root():
 
-    response = requests.get(
-        f"{BASE_URL}/"
-    )
+    response = requests.get(f"{BASE_URL}/")
 
     assert response.status_code == 200
 
-    assert response.json() == {
-        "message": "Gateway Service Running"
-    }
+    assert response.json() == {"message": "Gateway Service Running"}
 
 
 def test_gateway_health():
 
-    response = requests.get(
-        f"{BASE_URL}/health/"
-    )
+    response = requests.get(f"{BASE_URL}/health/")
 
     assert response.status_code == 200
 

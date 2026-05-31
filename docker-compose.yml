@@ -328,7 +328,7 @@ services:
       - video-converter-network
 
   minio-init:
-    image: minio/mc:RELEASE.2024-11-17T19-35-26Z
+    image: minio/mc:RELEASE.2025-04-16T18-22-07Z
     container_name: ${MINIO_INIT_CONTAINER_NAME:-minio-init}
     depends_on:
       minio:

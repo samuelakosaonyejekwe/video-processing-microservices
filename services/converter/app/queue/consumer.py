@@ -291,7 +291,11 @@ class ConverterEventConsumer:
 
             logger.error("Conversion processing failed: %s", str(error))
 
-            if job_id and retry_count < self.max_retry_attempts and self.video_upload_retry_queue:
+            if (
+                job_id
+                and retry_count < self.max_retry_attempts
+                and self.video_upload_retry_queue
+            ):
                 retry_payload = dict(payload)
                 retry_payload["retry_count"] = retry_count + 1
                 retry_message = {

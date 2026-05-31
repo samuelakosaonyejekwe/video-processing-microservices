@@ -447,7 +447,9 @@ def start_consumer(on_ready=None):
 
                         relay_upload_outbox(limit=20)
                     except Exception as relay_error:
-                        logger.warning("Upload outbox relay loop error: %s", relay_error)
+                        logger.warning(
+                            "Upload outbox relay loop error: %s", relay_error
+                        )
                     time.sleep(30)
 
             threading.Thread(

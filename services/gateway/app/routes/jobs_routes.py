@@ -100,7 +100,9 @@ async def download_job_audio(job_id: str, request: Request):
             detail="Audio not ready yet. Conversion may still be in progress.",
         )
 
-    original_name = request.query_params.get("filename") or job.get("filename") or f"{job_id}.mp3"
+    original_name = (
+        request.query_params.get("filename") or job.get("filename") or f"{job_id}.mp3"
+    )
     base_name = original_name.rsplit(".", 1)[0]
     download_name = f"{base_name}.mp3"
 

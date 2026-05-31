@@ -2,10 +2,7 @@ import re
 
 from pydantic import BaseModel, EmailStr, Field, field_validator
 
-
-PASSWORD_PATTERN = re.compile(
-    r"^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,128}$"
-)
+PASSWORD_PATTERN = re.compile(r"^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,128}$")
 
 
 class User(BaseModel):

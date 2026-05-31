@@ -8,25 +8,17 @@ BASE_URL = os.getenv("NOTIFICATION_SERVICE_URL") or (
 
 def test_notification_root():
 
-    response = requests.get(
-        f"{BASE_URL}/"
-    )
+    response = requests.get(f"{BASE_URL}/")
 
     assert response.status_code == 200
 
-    assert response.json() == {
-        "message": "Notification Service Running"
-    }
+    assert response.json() == {"message": "Notification Service Running"}
 
 
 def test_notification_health():
 
-    response = requests.get(
-        f"{BASE_URL}/health"
-    )
+    response = requests.get(f"{BASE_URL}/health")
 
     assert response.status_code == 200
 
-    assert response.json() == {
-        "status": "healthy"
-    }
+    assert response.json() == {"status": "healthy"}

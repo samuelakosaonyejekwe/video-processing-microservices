@@ -142,7 +142,5 @@ if APP_ENV == "production" and CORS_ALLOWED_ORIGINS == ["http://localhost:3000"]
     _frontend_origin = first_env("FRONTEND_URL")
     if _frontend_origin:
         CORS_ALLOWED_ORIGINS = [
-            origin.strip()
-            for origin in _frontend_origin.split(",")
-            if origin.strip()
+            origin.strip() for origin in _frontend_origin.split(",") if origin.strip()
         ]

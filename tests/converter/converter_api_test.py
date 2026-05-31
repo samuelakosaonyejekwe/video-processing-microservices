@@ -8,31 +8,18 @@ BASE_URL = os.getenv("CONVERTER_SERVICE_URL") or (
 
 def test_converter_root():
 
-    response = requests.get(
-        f"{BASE_URL}/"
-    )
+    response = requests.get(f"{BASE_URL}/")
 
     assert response.status_code == 200
 
-    assert response.json() == {
-        "message": "Converter Service Running"
-    }
+    assert response.json() == {"message": "Converter Service Running"}
 
 
 def test_convert_endpoint():
 
-    files = {
-        "file": (
-            "sample.mp4",
-            b"fake-video-content",
-            "video/mp4"
-        )
-    }
+    files = {"file": ("sample.mp4", b"fake-video-content", "video/mp4")}
 
-    response = requests.post(
-        f"{BASE_URL}/convert",
-        files=files
-    )
+    response = requests.post(f"{BASE_URL}/convert", files=files)
 
     assert response.status_code == 200
 

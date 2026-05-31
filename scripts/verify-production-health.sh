@@ -11,6 +11,7 @@ bash "${ROOT_DIR}/scripts/validate-hpa.sh"
 bash "${ROOT_DIR}/scripts/validate-keda.sh"
 bash "${ROOT_DIR}/scripts/validate-queue-workers.sh"
 bash "${ROOT_DIR}/scripts/validate-mtls.sh"
+bash "${ROOT_DIR}/scripts/verify-gateway-auth-connectivity.sh"
 
 if [ -n "${API_BASE_URL:-}" ]; then
   curl -fsS "${API_BASE_URL%/}/health" >/dev/null

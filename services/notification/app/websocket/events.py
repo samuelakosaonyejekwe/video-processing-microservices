@@ -17,11 +17,7 @@ async def broadcast_event(message: str, *, recipient: str | None = None) -> None
     if target:
         clients = list(connected_clients.get(str(target), set()))
     else:
-        clients = [
-            client
-            for bucket in connected_clients.values()
-            for client in bucket
-        ]
+        clients = [client for bucket in connected_clients.values() for client in bucket]
 
     for client in clients:
         try:

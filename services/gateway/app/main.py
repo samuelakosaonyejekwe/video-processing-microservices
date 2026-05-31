@@ -144,7 +144,9 @@ if APP_ENV != "production":
                 decode_key,
                 algorithms=[algorithm],
                 issuer=jwt_config.JWT_ISSUER if algorithm.startswith("RS") else None,
-                audience=jwt_config.JWT_AUDIENCE if algorithm.startswith("RS") else None,
+                audience=(
+                    jwt_config.JWT_AUDIENCE if algorithm.startswith("RS") else None
+                ),
             )
             if payload.get("type") and payload.get("type") != "access":
                 return {"valid": False, "detail": "Invalid token type"}

@@ -9,9 +9,7 @@ from shared.security.client_ip import get_client_ip
 from shared.security.rate_limit import is_rate_limited
 
 RATE_LIMIT_MAX_REQUESTS = int(os.getenv("AUTH_RATE_LIMIT_MAX_REQUESTS", "20"))
-RATE_LIMIT_WINDOW_SECONDS = int(
-    os.getenv("AUTH_RATE_LIMIT_WINDOW_SECONDS", "60")
-)
+RATE_LIMIT_WINDOW_SECONDS = int(os.getenv("AUTH_RATE_LIMIT_WINDOW_SECONDS", "60"))
 
 PROTECTED_PREFIXES = ("/auth/login", "/auth/register", "/auth/refresh")
 

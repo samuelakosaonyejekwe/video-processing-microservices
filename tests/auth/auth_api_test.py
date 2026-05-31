@@ -14,36 +14,24 @@ def generate_test_user():
     return {
         "username": f"testuser_{unique_id}",
         "email": f"testuser_{unique_id}@example.com",
-        "password": os.getenv(
-            "TEST_USER_PASSWORD",
-            "TestPass123"
-        )
+        "password": os.getenv("TEST_USER_PASSWORD", "TestPass123"),
     }
 
 
 def test_auth_root():
 
-    response = requests.get(
-        f"{BASE_URL}/",
-        timeout=10
-    )
+    response = requests.get(f"{BASE_URL}/", timeout=10)
 
     assert response.status_code == 200
 
-    assert response.json() == {
-        "message": "Auth Service Running"
-    }
+    assert response.json() == {"message": "Auth Service Running"}
 
 
 def test_register():
 
     payload = generate_test_user()
 
-    response = requests.post(
-        f"{BASE_URL}/auth/register",
-        json=payload,
-        timeout=10
-    )
+    response = requests.post(f"{BASE_URL}/auth/register", json=payload, timeout=10)
 
     assert response.status_code in [200, 201]
 
@@ -57,22 +45,15 @@ def test_login():
     test_user = generate_test_user()
 
     register_response = requests.post(
-        f"{BASE_URL}/auth/register",
-        json=test_user,
-        timeout=10
+        f"{BASE_URL}/auth/register", json=test_user, timeout=10
     )
 
     assert register_response.status_code in [200, 201]
 
-    login_payload = {
-        "email": test_user["email"],
-        "password": test_user["password"]
-    }
+    login_payload = {"email": test_user["email"], "password": test_user["password"]}
 
     login_response = requests.post(
-        f"{BASE_URL}/auth/login",
-        json=login_payload,
-        timeout=10
+        f"{BASE_URL}/auth/login", json=login_payload, timeout=10
     )
 
     assert login_response.status_code == 200

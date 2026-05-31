@@ -26,8 +26,11 @@ CONVERTER_SERVICE_PORT = first_env(
 )
 
 JWT_AUTH_SERVICE_URL = first_env("JWT_AUTH_SERVICE_URL")
-if not JWT_AUTH_SERVICE_URL:
-    JWT_AUTH_SERVICE_URL = f"http://{AUTH_SERVICE_HOST}:{AUTH_SERVICE_PORT}"
+if not JWT_AUTH_SERVICE_URL or ":8001" in JWT_AUTH_SERVICE_URL:
+    JWT_AUTH_SERVICE_URL = (
+        f"http://{AUTH_SERVICE_HOST}:"
+        f"{first_env('AUTH_K8S_SERVICE_PORT', 'AUTH_SERVICE_PORT', default='80')}"
+    )
 
 CONVERTER_SERVICE_URL = first_env("CONVERTER_SERVICE_URL")
 if not CONVERTER_SERVICE_URL:
@@ -102,9 +105,7 @@ if APP_ENV == "production" and CORS_ALLOWED_ORIGINS == ["*"]:
     _frontend_origin = first_env("FRONTEND_URL")
     if _frontend_origin:
         CORS_ALLOWED_ORIGINS = [
-            origin.strip()
-            for origin in _frontend_origin.split(",")
-            if origin.strip()
+            origin.strip() for origin in _frontend_origin.split(",") if origin.strip()
         ]
     else:
         raise RuntimeError(
