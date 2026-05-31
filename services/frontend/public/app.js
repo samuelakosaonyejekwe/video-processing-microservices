@@ -60,10 +60,15 @@ function setProgress(value) {
   els.progressBar.style.width = `${Math.max(0, Math.min(value, 100))}%`;
 }
 
-function authHeaders() {
-  return {
+function authHeaders(extra = {}) {
+  const headers = {
     Authorization: `Bearer ${state.token}`,
+    ...extra,
   };
+  if (state.email) {
+    headers["X-User-Email"] = state.email;
+  }
+  return headers;
 }
 
 async function apiFetch(path, options = {}) {

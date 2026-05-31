@@ -242,6 +242,7 @@ class ConverterEventConsumer:
                 self.upload_audio(local_audio_path, audio_s3_key)
 
                 get_converter_producer().publish_conversion_completed_event(
+                    job_id=job_id,
                     user_id=user_id,
                     original_filename=filename,
                     audio_s3_key=audio_s3_key,

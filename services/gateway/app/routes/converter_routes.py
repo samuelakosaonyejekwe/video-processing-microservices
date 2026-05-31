@@ -4,6 +4,7 @@ import uuid
 
 from fastapi import APIRouter, File, HTTPException, Request, UploadFile
 
+from app.database.job_repository import create_job
 from app.queue.producer import get_gateway_producer
 from app.storage.s3_storage import upload_video_to_s3
 
@@ -27,9 +28,15 @@ async def upload_video(
         temp_file.write(content)
 
     user_id = "anonymous"
+    user_email = None
 
     if hasattr(request.state, "user"):
         user_id = request.state.user.get("sub", user_id)
+        user_email = request.state.user.get("email")
+
+    header_email = request.headers.get("X-User-Email", "").strip()
+    if header_email:
+        user_email = header_email
 
     content_type = file.content_type or "application/octet-stream"
     s3_key = f"uploads/videos/{job_id}/{file.filename}"
@@ -40,6 +47,15 @@ async def upload_video(
             temp_file_path,
             s3_key,
             content_type,
+        )
+        await asyncio.to_thread(
+            create_job,
+            job_id=job_id,
+            user_id=user_id,
+            user_email=user_email,
+            filename=file.filename,
+            video_s3_key=s3_key,
+            content_type=content_type,
         )
         correlation_id = await asyncio.to_thread(
             _publish_upload,

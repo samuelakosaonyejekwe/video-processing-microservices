@@ -17,12 +17,15 @@ from app.config import (
     JWT_ISSUER,
     JWT_PUBLIC_KEY,
 )
+from app.database.job_repository import ensure_job_indexes
 from app.middleware.auth_middleware import AuthMiddleware
 from app.middleware.rate_limit_middleware import RateLimitMiddleware
 from app.routes.auth_routes import router as auth_router
 from app.routes.converter_routes import router as converter_router
 from app.routes.jobs_routes import router as jobs_router
+from app.queue.consumer import start_consumer
 from app.queue.producer import get_gateway_producer
+from app.database.mongo_client import close_mongo_client
 
 APP_NAME = os.getenv("APP_NAME") or "gateway-service"
 
@@ -32,6 +35,10 @@ async def lifespan(app: FastAPI):
 
     print("Starting gateway service...")
 
+    if APP_ENV != "test":
+        ensure_job_indexes()
+        start_consumer()
+
     yield
 
     print("Shutting down gateway service...")
@@ -39,6 +46,7 @@ async def lifespan(app: FastAPI):
         get_gateway_producer().close()
     except Exception:
         pass
+    close_mongo_client()
 
 
 _enable_docs = (

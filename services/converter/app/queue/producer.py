@@ -132,7 +132,7 @@ class ConverterEventProducer:
         self.connect()
 
     def publish_conversion_completed_event(
-        self, user_id, original_filename, audio_s3_key, output_format
+        self, job_id, user_id, original_filename, audio_s3_key, output_format
     ):
 
         try:
@@ -145,6 +145,7 @@ class ConverterEventProducer:
                 "event_type": "video_conversion_completed",
                 "timestamp": int(time.time()),
                 "payload": {
+                    "job_id": job_id,
                     "user_id": user_id,
                     "original_filename": original_filename,
                     "audio_s3_key": audio_s3_key,

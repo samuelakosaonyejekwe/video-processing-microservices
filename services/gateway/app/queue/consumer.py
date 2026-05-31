@@ -4,8 +4,15 @@ import os
 import time
 
 import pika
+from pika.exceptions import AMQPChannelError, AMQPConnectionError
 
-from pika.exceptions import AMQPConnectionError, AMQPChannelError
+from app.config import FRONTEND_URL
+from app.database.job_repository import (
+    claim_notification_send,
+    mark_job_completed,
+    mark_notification_sent,
+)
+from app.queue.producer import get_gateway_producer
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
 
@@ -28,6 +35,8 @@ class GatewayEventConsumer:
 
         self.gateway_events_queue = os.getenv("GATEWAY_EVENTS_QUEUE")
 
+        self.video_completed_queue = os.getenv("VIDEO_COMPLETED_QUEUE")
+
         self.connection = None
 
         self.channel = None
@@ -43,7 +52,8 @@ class GatewayEventConsumer:
             "RABBITMQ_PORT",
             "RABBITMQ_USERNAME",
             "RABBITMQ_PASSWORD",
-            "GATEWAY_EVENTS_QUEUE",
+            "NOTIFICATION_QUEUE",
+            "VIDEO_COMPLETED_QUEUE",
         ]
 
         missing_variables = []
@@ -86,9 +96,16 @@ class GatewayEventConsumer:
 
                 self.channel = self.connection.channel()
 
+                if self.gateway_events_queue:
+                    self.channel.queue_declare(
+                        queue=self.gateway_events_queue, durable=True
+                    )
+
                 self.channel.queue_declare(
-                    queue=self.gateway_events_queue, durable=True
+                    queue=self.video_completed_queue, durable=True
                 )
+
+                self.channel.queue_declare(queue=self.notification_queue, durable=True)
 
                 self.channel.basic_qos(prefetch_count=1)
 
@@ -112,6 +129,51 @@ class GatewayEventConsumer:
 
         self.connect()
 
+    def _send_completion_email(self, job_id: str, payload: dict) -> None:
+        job = claim_notification_send(job_id)
+        if not job:
+            return
+
+        recipient = job.get("user_email")
+        if not recipient:
+            return
+
+        filename = payload.get("original_filename") or job.get("filename") or "your video"
+        frontend_url = FRONTEND_URL.rstrip("/")
+
+        subject = "Your video conversion is ready"
+        content = (
+            f"Hello,\n\n"
+            f'Your video "{filename}" has been converted to MP3.\n\n'
+            f"Sign in at {frontend_url} to download your file.\n\n"
+            f"Job ID: {job_id}\n"
+        )
+
+        get_gateway_producer().publish_notification_event(
+            recipient=recipient,
+            subject=subject,
+            content=content,
+        )
+        mark_notification_sent(job_id)
+        logger.info(
+            "Completion notification queued job_id=%s recipient=%s",
+            job_id,
+            recipient,
+        )
+
+    def _handle_conversion_completed(self, payload: dict) -> None:
+        job_id = payload.get("job_id")
+        audio_s3_key = payload.get("audio_s3_key")
+
+        if not job_id:
+            logger.warning("Conversion completed event missing job_id")
+            return
+
+        if audio_s3_key:
+            mark_job_completed(job_id, audio_s3_key)
+
+        self._send_completion_email(job_id, payload)
+
     def process_message(self, ch, method, properties, body):
 
         try:
@@ -131,15 +193,16 @@ class GatewayEventConsumer:
             )
 
             if event_type == "video_conversion_completed":
-
-                logger.info("Processed completed conversion event")
+                self._handle_conversion_completed(payload)
 
             elif event_type == "video_conversion_failed":
-
-                logger.warning("Processed failed conversion event")
+                logger.warning(
+                    "Conversion failed job_id=%s error=%s",
+                    payload.get("job_id"),
+                    payload.get("error_message"),
+                )
 
             elif event_type == "notification_sent":
-
                 logger.info("Processed notification event")
 
             else:
@@ -160,10 +223,13 @@ class GatewayEventConsumer:
 
             try:
 
-                logger.info("Gateway consumer waiting for events...")
+                logger.info(
+                    "Gateway consumer waiting on queue=%s",
+                    self.video_completed_queue,
+                )
 
                 self.channel.basic_consume(
-                    queue=self.gateway_events_queue,
+                    queue=self.video_completed_queue,
                     on_message_callback=self.process_message,
                 )
 
@@ -200,8 +266,46 @@ class GatewayEventConsumer:
             logger.error("Failed to close RabbitMQ connection: %s", str(error))
 
 
+_consumer_instance = None
+_consumer_thread = None
+
+
+def start_consumer():
+
+    import threading
+
+    global _consumer_instance, _consumer_thread
+
+    if _consumer_thread and _consumer_thread.is_alive():
+        return
+
+    def _run():
+
+        global _consumer_instance
+
+        try:
+            _consumer_instance = GatewayEventConsumer()
+            _consumer_instance.start()
+        except Exception as error:
+            logger.error(
+                "Gateway consumer failed to start: %s",
+                str(error),
+            )
+
+    _consumer_thread = threading.Thread(
+        target=_run,
+        name="gateway-consumer",
+        daemon=True,
+    )
+
+    _consumer_thread.start()
+
+    logger.info("Gateway consumer startup initiated")
+
+
 if __name__ == "__main__":
 
-    consumer = GatewayEventConsumer()
+    start_consumer()
 
-    consumer.start()
+    while True:
+        time.sleep(3600)

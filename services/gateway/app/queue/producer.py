@@ -31,6 +31,10 @@ class GatewayEventProducer:
 
         self.gateway_events_queue = os.getenv("GATEWAY_EVENTS_QUEUE")
 
+        self.video_completed_queue = os.getenv(
+            "VIDEO_COMPLETED_QUEUE", "video-completed-queue"
+        )
+
         self.rabbitmq_exchange = os.getenv("RABBITMQ_EXCHANGE")
 
         self.connection = None
@@ -101,6 +105,11 @@ class GatewayEventProducer:
                 self.channel.queue_declare(
                     queue=self.gateway_events_queue, durable=True
                 )
+
+                if self.video_completed_queue:
+                    self.channel.queue_declare(
+                        queue=self.video_completed_queue, durable=True
+                    )
 
                 logger.info("Gateway RabbitMQ producer connected successfully")
 

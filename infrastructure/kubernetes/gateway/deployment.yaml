@@ -58,6 +58,8 @@ spec:
                 name: gateway-config
             - secretRef:
                 name: gateway-secret
+            - secretRef:
+                name: mongodb-secret
 
           env:
             - name: APP_ENV
@@ -90,6 +92,11 @@ spec:
                 secretKeyRef:
                   name: rabbitmq-secret
                   key: RABBITMQ_URI
+            - name: MONGO_URI
+              valueFrom:
+                secretKeyRef:
+                  name: mongodb-secret
+                  key: MONGO_URI
 
           resources:
             requests:

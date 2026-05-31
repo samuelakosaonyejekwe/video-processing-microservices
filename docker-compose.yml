@@ -23,6 +23,7 @@ services:
       VIDEO_UPLOAD_QUEUE: ${VIDEO_UPLOAD_QUEUE:-${RABBITMQ_QUEUE:-video-upload-queue}}
       NOTIFICATION_QUEUE: ${NOTIFICATION_QUEUE:-notification-queue}
       GATEWAY_EVENTS_QUEUE: ${GATEWAY_EVENTS_QUEUE:-gateway-events-queue}
+      VIDEO_COMPLETED_QUEUE: ${VIDEO_COMPLETED_QUEUE:-video-completed-queue}
       AUTH_SERVICE_HOST: auth
       AUTH_SERVICE_PORT: "8000"
       CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:-http://localhost:3000}
@@ -33,6 +34,12 @@ services:
       AWS_S3_VIDEO_BUCKET: ${AWS_S3_VIDEO_BUCKET:-${S3_UPLOAD_BUCKET:-video-uploads}}
       AWS_S3_BUCKET: ${AWS_S3_BUCKET:-${S3_UPLOAD_BUCKET:-video-uploads}}
       S3_UPLOAD_BUCKET: ${S3_UPLOAD_BUCKET:-video-uploads}
+      MONGO_HOST: mongodb
+      MONGO_PORT: ${MONGO_PORT:-27017}
+      MONGO_DATABASE: ${MONGO_DATABASE:-video_converter}
+      MONGO_USERNAME: ${MONGO_USERNAME:-mongo}
+      MONGO_PASSWORD: ${MONGO_PASSWORD:-mongo}
+      MONGO_URI: ${MONGO_URI:-mongodb://mongo:mongo@mongodb:27017/video_converter?authSource=admin}
     ports:
       - "${GATEWAY_APP_PORT:-8080}:8080"
     volumes:
@@ -43,6 +50,8 @@ services:
       auth:
         condition: service_healthy
       minio:
+        condition: service_healthy
+      mongodb:
         condition: service_healthy
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
