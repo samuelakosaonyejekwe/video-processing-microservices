@@ -20,8 +20,12 @@ spec:
             matchLabels:
               kubernetes.io/metadata.name: ${K8S_NAMESPACE}
           podSelector:
-            matchLabels:
-              app: auth-service
+            matchExpressions:
+              - key: app
+                operator: In
+                values:
+                  - auth-service
+                  - postgres-migrations
 
       ports:
         - protocol: TCP

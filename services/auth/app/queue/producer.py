@@ -88,9 +88,14 @@ class AuthEventProducer:
 
                 self.channel = self.connection.channel()
 
-                self.channel.queue_declare(queue=self.auth_events_queue, durable=True)
+                from shared.messaging.queue_setup import declare_pipeline_queues
 
-                self.channel.queue_declare(queue=self.notification_queue, durable=True)
+                declare_pipeline_queues(
+                    self.channel,
+                    notification_queue=self.notification_queue,
+                    declare_gateway_events=False,
+                )
+                self.channel.queue_declare(queue=self.auth_events_queue, durable=True)
 
                 logger.info("Auth RabbitMQ producer connected successfully")
 

@@ -8,7 +8,12 @@ import pika
 
 from pika.exceptions import AMQPConnectionError, AMQPChannelError
 
-from app.cache.redis_state import record_notification_delivery
+from app.cache.redis_state import (
+    claim_job_notification,
+    mark_job_notification_sent,
+    notification_already_sent,
+    record_notification_delivery,
+)
 from app.email.send_email import send_email
 from app.websocket.events import broadcast_event_sync
 
@@ -103,12 +108,15 @@ class NotificationConsumer:
 
                 self.channel = self.connection.channel()
 
-                self.channel.queue_declare(queue=self.notification_queue, durable=True)
-                self.channel.queue_declare(queue=self.retry_queue, durable=True)
-                if self.video_completed_queue:
-                    self.channel.queue_declare(
-                        queue=self.video_completed_queue, durable=True
-                    )
+                from shared.messaging.queue_setup import declare_pipeline_queues
+
+                declare_pipeline_queues(
+                    self.channel,
+                    notification_queue=self.notification_queue,
+                    notification_retry_queue=self.retry_queue,
+                    video_completed_queue=self.video_completed_queue,
+                    declare_gateway_events=False,
+                )
 
                 self.channel.basic_qos(prefetch_count=1)
 
@@ -134,6 +142,9 @@ class NotificationConsumer:
 
     def process_message(self, ch, method, properties, body):
 
+        job_id = None
+        correlation_id = None
+
         try:
 
             message = json.loads(body)
@@ -151,36 +162,71 @@ class NotificationConsumer:
 
                 raise ValueError("Missing recipient in notification payload")
 
+            if job_id and notification_already_sent(job_id):
+                logger.info(
+                    "Skipping duplicate notification job_id=%s correlation_id=%s",
+                    job_id,
+                    correlation_id,
+                )
+                ch.basic_ack(delivery_tag=method.delivery_tag)
+                return
+
+            if job_id and not claim_job_notification(job_id):
+                logger.info(
+                    "Notification already in progress job_id=%s correlation_id=%s",
+                    job_id,
+                    correlation_id,
+                )
+                ch.basic_ack(delivery_tag=method.delivery_tag)
+                return
+
             if not send_email(recipient, subject, content):
                 raise RuntimeError(f"Email delivery failed for recipient={recipient}")
+
+            if job_id:
+                mark_job_notification_sent(job_id)
 
             record_notification_delivery(recipient, correlation_id)
 
             if job_id and self.video_completed_queue:
-                delivery_event = build_event(
-                    "notification_delivered",
-                    {"job_id": job_id, "recipient": recipient},
-                    correlation_id,
-                )
-                self.channel.basic_publish(
-                    exchange="",
-                    routing_key=self.video_completed_queue,
-                    body=json.dumps(delivery_event),
-                    properties=pika.BasicProperties(
-                        delivery_mode=2,
-                        content_type="application/json",
-                        correlation_id=correlation_id,
-                    ),
-                )
+                try:
+                    delivery_event = build_event(
+                        "notification_delivered",
+                        {"job_id": job_id, "recipient": recipient},
+                        correlation_id,
+                    )
+                    self.channel.basic_publish(
+                        exchange="",
+                        routing_key=self.video_completed_queue,
+                        body=json.dumps(delivery_event),
+                        properties=pika.BasicProperties(
+                            delivery_mode=2,
+                            content_type="application/json",
+                            correlation_id=correlation_id,
+                        ),
+                    )
+                except Exception as publish_error:
+                    logger.error(
+                        "Delivery event publish failed job_id=%s: %s",
+                        job_id,
+                        publish_error,
+                    )
 
-            broadcast_event_sync(
-                {
-                    "type": "notification_sent",
-                    "recipient": recipient,
-                    "correlation_id": correlation_id,
-                    "subject": subject,
-                }
-            )
+            try:
+                broadcast_event_sync(
+                    {
+                        "type": "notification_sent",
+                        "recipient": recipient,
+                        "correlation_id": correlation_id,
+                        "subject": subject,
+                    }
+                )
+            except Exception as broadcast_error:
+                logger.warning(
+                    "WebSocket broadcast failed correlation_id=%s: %s",
+                    correlation_id,
+                    broadcast_error,
+                )
 
             logger.info(
                 "Notification sent successfully " "to %s " "correlation_id=%s",
@@ -194,18 +240,19 @@ class NotificationConsumer:
 
             logger.error("Notification processing failed: %s", str(error))
 
-            try:
+            if job_id and notification_already_sent(job_id):
+                ch.basic_ack(delivery_tag=method.delivery_tag)
+                return
 
+            try:
                 self.channel.basic_publish(
                     exchange="",
                     routing_key=self.retry_queue,
                     body=body,
                     properties=pika.BasicProperties(delivery_mode=2),
                 )
-
             except Exception as retry_error:
-
-                logger.error("Retry queue publish failed: %s", str(retry_error))
+                logger.error("Retry queue publish failed: %s", retry_error)
 
             ch.basic_nack(delivery_tag=method.delivery_tag, requeue=False)
 
@@ -219,6 +266,11 @@ class NotificationConsumer:
 
                 self.channel.basic_consume(
                     queue=self.notification_queue,
+                    on_message_callback=self.process_message,
+                )
+
+                self.channel.basic_consume(
+                    queue=self.retry_queue,
                     on_message_callback=self.process_message,
                 )
 

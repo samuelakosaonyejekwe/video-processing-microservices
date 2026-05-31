@@ -91,11 +91,34 @@ jobs:
           for service in gateway auth converter notification; do
             echo "Testing $service..."
             pip install -r services/$service/requirements.txt
-            (cd services/$service && pytest --cov=app --cov-report=term-missing --cov-fail-under=20)
+            (cd services/$service && APP_ENV=test PYTHONPATH=../../.:../.. pytest --cov=app --cov-report=term-missing --cov-fail-under=28)
           done
 
-      - name: Run Integration Test Suite
-        run: PYTHONPATH=. pytest tests
+      - name: Validate production config
+        run: |
+          APP_ENV=production \
+          REDIS_HOST=redis \
+          POSTGRES_PASSWORD=secure-password \
+          MONGO_PASSWORD=secure-mongo \
+          RABBITMQ_PASSWORD=secure-rabbit \
+          REDIS_PASSWORD=secure-redis \
+          GRAFANA_ADMIN_PASSWORD=secure-grafana \
+          CORS_ALLOWED_ORIGINS=https://app.example.com \
+          POSTGRES_SSL_MODE=require \
+          bash scripts/validate-production-config.sh
+
+  integration-tests:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Run integration and e2e tests
+        run: bash scripts/run-integration-tests.sh
 
   yaml-validation:
     runs-on: ubuntu-latest

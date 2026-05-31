@@ -99,18 +99,15 @@ class GatewayEventProducer:
 
                 self.channel = self.connection.channel()
 
-                self.channel.queue_declare(queue=self.video_upload_queue, durable=True)
+                from shared.messaging.queue_setup import declare_pipeline_queues
 
-                self.channel.queue_declare(queue=self.notification_queue, durable=True)
-
-                self.channel.queue_declare(
-                    queue=self.gateway_events_queue, durable=True
+                declare_pipeline_queues(
+                    self.channel,
+                    gateway_events_queue=self.gateway_events_queue,
+                    video_completed_queue=self.video_completed_queue,
+                    notification_queue=self.notification_queue,
+                    video_upload_queue=self.video_upload_queue,
                 )
-
-                if self.video_completed_queue:
-                    self.channel.queue_declare(
-                        queue=self.video_completed_queue, durable=True
-                    )
 
                 logger.info("Gateway RabbitMQ producer connected successfully")
 

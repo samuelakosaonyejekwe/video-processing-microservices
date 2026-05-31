@@ -299,6 +299,30 @@ spec:
                   name: auth-config
                   key: COOKIE_SECURE
 
+            - name: POSTGRES_SSL_MODE
+              valueFrom:
+                configMapKeyRef:
+                  name: auth-config
+                  key: POSTGRES_SSL_MODE
+
+            - name: REDIS_HOST
+              valueFrom:
+                configMapKeyRef:
+                  name: auth-config
+                  key: REDIS_HOST
+
+            - name: REDIS_PORT
+              valueFrom:
+                configMapKeyRef:
+                  name: auth-config
+                  key: REDIS_PORT
+
+            - name: REDIS_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: redis-secret
+                  key: REDIS_PASSWORD
+
           resources:
 
             requests:

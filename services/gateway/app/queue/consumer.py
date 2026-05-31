@@ -103,16 +103,15 @@ class GatewayEventConsumer:
 
                 self.channel = self.connection.channel()
 
-                if self.gateway_events_queue:
-                    self.channel.queue_declare(
-                        queue=self.gateway_events_queue, durable=True
-                    )
+                from shared.messaging.queue_setup import declare_pipeline_queues
 
-                self.channel.queue_declare(
-                    queue=self.video_completed_queue, durable=True
+                declare_pipeline_queues(
+                    self.channel,
+                    gateway_events_queue=self.gateway_events_queue,
+                    video_completed_queue=self.video_completed_queue,
+                    notification_queue=self.notification_queue,
+                    declare_gateway_events=bool(self.gateway_events_queue),
                 )
-
-                self.channel.queue_declare(queue=self.notification_queue, durable=True)
 
                 self.channel.basic_qos(prefetch_count=1)
 

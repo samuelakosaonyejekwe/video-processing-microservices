@@ -194,6 +194,11 @@ spec:
                   key: JWT_SECRET
             - name: ENABLE_QUEUE_CONSUMER
               value: "false"
+            - name: REDIS_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: redis-secret
+                  key: REDIS_PASSWORD
 
           resources:
 

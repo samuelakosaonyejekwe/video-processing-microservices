@@ -94,6 +94,11 @@ spec:
                 secretKeyRef:
                   name: mongodb-secret
                   key: MONGO_URI
+            - name: REDIS_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: redis-secret
+                  key: REDIS_PASSWORD
 
           resources:
             requests:

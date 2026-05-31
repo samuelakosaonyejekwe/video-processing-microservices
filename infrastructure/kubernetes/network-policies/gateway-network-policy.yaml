@@ -164,3 +164,14 @@ spec:
     - ports:
         - protocol: TCP
           port: ${HTTPS_PORT}
+
+    #
+    # REDIS
+    #
+    - to:
+        - podSelector:
+            matchLabels:
+              app: redis
+      ports:
+        - protocol: TCP
+          port: ${REDIS_PORT}

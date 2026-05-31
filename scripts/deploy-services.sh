@@ -42,6 +42,16 @@ if [ -d "${RENDERED}/configmaps" ]; then
   kubectl apply -f "${RENDERED}/configmaps/"
 fi
 
+if [ -d "${RENDERED}/postgres" ]; then
+  for manifest in "${RENDERED}"/postgres/*.yaml; do
+    [ -f "${manifest}" ] || continue
+    case "${manifest}" in
+      *migration-job.yaml) continue ;;
+    esac
+    kubectl apply -f "${manifest}"
+  done
+fi
+
 if [ "${RUN_POSTGRES_MIGRATIONS:-true}" = "true" ]; then
   echo "Running Postgres migrations..."
   if [ -f "${RENDERED}/postgres/migration-job.yaml" ]; then
@@ -54,6 +64,16 @@ if [ "${RUN_POSTGRES_MIGRATIONS:-true}" = "true" ]; then
       exit 1
     }
   fi
+fi
+
+if [ -f "${RENDERED}/mongodb/index-job.yaml" ]; then
+  kubectl delete job mongodb-index-setup -n "${K8S_NAMESPACE}" --ignore-not-found
+  kubectl apply -f "${RENDERED}/mongodb/index-job.yaml"
+  kubectl wait --for=condition=complete job/mongodb-index-setup -n "${K8S_NAMESPACE}" --timeout=180s || true
+fi
+
+if [ -f "${RENDERED}/cleanup/s3-orphan-cleanup-cronjob.yaml" ]; then
+  kubectl apply -f "${RENDERED}/cleanup/s3-orphan-cleanup-cronjob.yaml"
 fi
 
 # Deploy API workloads first, then dedicated queue workers.

@@ -61,12 +61,11 @@ async def upload_video(
     temp_dir = os.getenv("TEMP_STORAGE_PATH", "/tmp")
     temp_file_path = os.path.join(temp_dir, f"{job_id}-{safe_filename}")
 
-    user_id = "anonymous"
-    user_email = None
+    if not hasattr(request.state, "user") or not request.state.user.get("sub"):
+        raise HTTPException(status_code=401, detail="Not authenticated")
 
-    if hasattr(request.state, "user"):
-        user_id = request.state.user.get("sub", user_id)
-        user_email = request.state.user.get("email")
+    user_id = str(request.state.user.get("sub"))
+    user_email = request.state.user.get("email")
 
     s3_key = f"uploads/videos/{job_id}/{safe_filename}"
     s3_uploaded = False

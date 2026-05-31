@@ -103,6 +103,11 @@ spec:
                 configMapKeyRef:
                   name: notification-config
                   key: VIDEO_COMPLETED_QUEUE
+            - name: REDIS_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: redis-secret
+                  key: REDIS_PASSWORD
 
           resources:
             requests:

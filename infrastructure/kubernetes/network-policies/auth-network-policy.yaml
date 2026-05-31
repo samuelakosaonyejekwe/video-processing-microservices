@@ -96,3 +96,14 @@ spec:
 
         - protocol: TCP
           port: ${DNS_PORT}
+
+    #
+    # REDIS
+    #
+    - to:
+        - podSelector:
+            matchLabels:
+              app: redis
+      ports:
+        - protocol: TCP
+          port: ${REDIS_PORT}

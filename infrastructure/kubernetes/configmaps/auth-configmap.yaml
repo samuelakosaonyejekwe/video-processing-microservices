@@ -43,6 +43,8 @@ data:
 
   POSTGRES_USER: ${POSTGRES_USER}
 
+  POSTGRES_SSL_MODE: "${POSTGRES_SSL_MODE}"
+
   DATABASE_POOL_SIZE: "${DATABASE_POOL_SIZE}"
 
   DATABASE_MAX_OVERFLOW: "${DATABASE_MAX_OVERFLOW}"
@@ -82,6 +84,14 @@ data:
   COOKIE_SAMESITE: "${COOKIE_SAMESITE}"
 
   COOKIE_SECURE: "${COOKIE_SECURE}"
+
+  # =========================================================
+  # REDIS
+  # =========================================================
+
+  REDIS_HOST: "${REDIS_HOST}"
+
+  REDIS_PORT: "${REDIS_PORT}"
 
   # =========================================================
   # HEALTHCHECK

@@ -22,13 +22,17 @@ spec:
 
   ingress:
 
-    #
-    # ALLOW TRAFFIC FROM NOTIFICATION SERVICE
-    #
     - from:
         - podSelector:
-            matchLabels:
-              app: ${NOTIFICATION_POD_LABEL}
+            matchExpressions:
+              - key: app
+                operator: In
+                values:
+                  - ${NOTIFICATION_POD_LABEL}
+                  - ${NOTIFICATION_WORKER_POD_LABEL}
+                  - ${GATEWAY_POD_LABEL}
+                  - ${GATEWAY_WORKER_POD_LABEL}
+                  - ${AUTH_APP_NAME}
       ports:
         - protocol: TCP
           port: ${REDIS_PORT}

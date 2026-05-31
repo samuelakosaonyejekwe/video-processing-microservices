@@ -8,6 +8,9 @@ metadata:
 spec:
   ttlSecondsAfterFinished: 300
   template:
+    metadata:
+      labels:
+        app: postgres-migrations
     spec:
       restartPolicy: OnFailure
       containers:

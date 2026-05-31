@@ -24,7 +24,7 @@ spec:
 
   scaleTargetRef:
 
-    name: ${CONVERTER_DEPLOYMENT_NAME}
+    name: converter-worker
 
   pollingInterval: ${KEDA_POLLING_INTERVAL}
 

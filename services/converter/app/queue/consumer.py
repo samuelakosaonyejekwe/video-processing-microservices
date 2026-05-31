@@ -135,13 +135,15 @@ class ConverterEventConsumer:
 
                 self.channel = self.connection.channel()
 
-                self.channel.queue_declare(queue=self.video_upload_queue, durable=True)
+                from shared.messaging.queue_setup import declare_pipeline_queues
 
-                self.channel.queue_declare(
-                    queue=self.video_upload_retry_queue, durable=True
+                declare_pipeline_queues(
+                    self.channel,
+                    video_upload_queue=self.video_upload_queue,
+                    video_upload_retry_queue=self.video_upload_retry_queue,
+                    video_upload_dlq=self.video_upload_dlq,
+                    declare_gateway_events=False,
                 )
-
-                self.channel.queue_declare(queue=self.video_upload_dlq, durable=True)
 
                 self.channel.basic_qos(prefetch_count=1)
 
@@ -299,6 +301,7 @@ class ConverterEventConsumer:
                     logger.error("Failed to publish retry message: %s", retry_error)
 
             if job_id:
+                failure_published = False
                 try:
                     get_converter_producer().publish_conversion_failed_event(
                         job_id=job_id,
@@ -306,11 +309,16 @@ class ConverterEventConsumer:
                         original_filename=filename,
                         error_message=str(error),
                     )
+                    failure_published = True
                 except Exception as publish_error:
                     logger.error(
                         "Failed to publish conversion failed event: %s",
                         publish_error,
                     )
+
+                if failure_published:
+                    ch.basic_ack(delivery_tag=method.delivery_tag)
+                    return
 
             ch.basic_nack(delivery_tag=method.delivery_tag, requeue=False)
 

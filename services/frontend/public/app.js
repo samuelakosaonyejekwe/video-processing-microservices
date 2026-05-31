@@ -4,8 +4,6 @@ const WS_URL =
   `${window.location.protocol === "https:" ? "wss" : "ws"}://${window.location.hostname}:${window.WEBSOCKET_PORT || "8004"}`;
 
 const state = {
-  token: sessionStorage.getItem("access_token") || "",
-  refreshToken: sessionStorage.getItem("refresh_token") || "",
   email: sessionStorage.getItem("user_email") || "",
   jobId: "",
   filename: "",
@@ -67,11 +65,7 @@ function setProgress(value) {
 }
 
 function authHeaders(extra = {}) {
-  const headers = { ...extra };
-  if (state.token) {
-    headers.Authorization = `Bearer ${state.token}`;
-  }
-  return headers;
+  return { ...extra };
 }
 
 function fetchOptions(options = {}) {
@@ -85,40 +79,26 @@ function fetchOptions(options = {}) {
 }
 
 async function refreshAccessToken() {
-  if (!state.refreshToken) {
-    throw new Error("Session expired. Please sign in again.");
-  }
-
-  const data = await fetch(`${API}/auth/refresh`, fetchOptions({
+  const response = await fetch(`${API}/auth/refresh`, fetchOptions({
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ refresh_token: state.refreshToken }),
-  })).then(async (response) => {
-    const body = await response.json().catch(() => ({}));
-    if (!response.ok) {
-      throw new Error(body.detail || "Session expired. Please sign in again.");
-    }
-    return body;
-  });
+    body: JSON.stringify({}),
+  }));
 
-  state.token = data.access_token;
-  state.refreshToken = data.refresh_token;
-  sessionStorage.setItem("access_token", state.token);
-  sessionStorage.setItem("refresh_token", state.refreshToken);
-  return state.token;
+  const body = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    throw new Error(body.detail || "Session expired. Please sign in again.");
+  }
+  return true;
 }
 
 async function apiFetch(path, options = {}, allowRefresh = true) {
   const response = await fetch(`${API}${path}`, fetchOptions(options));
   const body = await response.json().catch(() => ({}));
 
-  if (response.status === 401 && allowRefresh && state.refreshToken) {
+  if (response.status === 401 && allowRefresh) {
     await refreshAccessToken();
-    const retryHeaders = {
-      ...(options.headers || {}),
-      Authorization: `Bearer ${state.token}`,
-    };
-    return apiFetch(path, { ...options, headers: retryHeaders }, false);
+    return apiFetch(path, options, false);
   }
 
   if (!response.ok) {
@@ -170,16 +150,8 @@ async function handleLogin(event) {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ email, password }),
     });
-    state.token = data.access_token || state.token;
-    state.refreshToken = data.refresh_token || state.refreshToken;
-    state.email = email;
+    state.email = data.email || email;
     state.authenticated = true;
-    if (state.token) {
-      sessionStorage.setItem("access_token", state.token);
-    }
-    if (state.refreshToken) {
-      sessionStorage.setItem("refresh_token", state.refreshToken);
-    }
     sessionStorage.setItem("user_email", state.email);
     showAuthenticatedView();
     resetConversionUi();
@@ -208,22 +180,15 @@ async function handleRegister(event) {
 }
 
 async function handleLogout() {
-  if (state.token) {
-    try {
-      await apiFetch("/auth/logout", {
-        method: "POST",
-        headers: authHeaders(),
-      });
-    } catch (error) {
-      // Ignore logout errors and clear local session anyway.
-    }
+  try {
+    await apiFetch("/auth/logout", {
+      method: "POST",
+    });
+  } catch (error) {
+    // Ignore logout errors and clear local session anyway.
   }
 
-  sessionStorage.removeItem("access_token");
-  sessionStorage.removeItem("refresh_token");
   sessionStorage.removeItem("user_email");
-  state.token = "";
-  state.refreshToken = "";
   state.email = "";
   state.authenticated = false;
   disconnectWebSocket();
@@ -401,7 +366,7 @@ function bindEvents() {
 function init() {
   bindEvents();
   switchTab("login");
-  if (state.authenticated || state.token) {
+  if (state.authenticated) {
     showAuthenticatedView();
     resetConversionUi();
   } else {

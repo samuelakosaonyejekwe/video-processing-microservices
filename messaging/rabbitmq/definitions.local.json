@@ -10,7 +10,8 @@
       "vhost": "/",
       "durable": true,
       "arguments": {
-        "x-dead-letter-exchange": "video.dlx"
+        "x-dead-letter-exchange": "video.dlx",
+        "x-dead-letter-routing-key": "failed"
       }
     },
     {
@@ -36,7 +37,12 @@
     {
       "name": "notification-retry-queue",
       "vhost": "/",
-      "durable": true
+      "durable": true,
+      "arguments": {
+        "x-message-ttl": 30000,
+        "x-dead-letter-exchange": "",
+        "x-dead-letter-routing-key": "notification-queue"
+      }
     },
     {
       "name": "gateway-events-queue",

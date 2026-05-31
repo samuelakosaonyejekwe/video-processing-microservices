@@ -8,7 +8,7 @@ metadata:
 spec:
 
   scaleTargetRef:
-    name: converter-service
+    name: converter-worker
 
   minReplicaCount: 1
   maxReplicaCount: 10

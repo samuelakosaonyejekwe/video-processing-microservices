@@ -9,11 +9,11 @@ data:
     {
       "vhosts": [{"name": "/"}],
       "queues": [
-        {"name": "video-upload-queue", "vhost": "/", "durable": true, "arguments": {"x-dead-letter-exchange": "video.dlx"}},
+        {"name": "video-upload-queue", "vhost": "/", "durable": true, "arguments": {"x-dead-letter-exchange": "video.dlx", "x-dead-letter-routing-key": "failed"}},
         {"name": "video-upload-retry-queue", "vhost": "/", "durable": true, "arguments": {"x-message-ttl": 30000, "x-dead-letter-exchange": "", "x-dead-letter-routing-key": "video-upload-queue"}},
         {"name": "video-upload-dlq", "vhost": "/", "durable": true},
         {"name": "notification-queue", "vhost": "/", "durable": true},
-        {"name": "notification-retry-queue", "vhost": "/", "durable": true},
+        {"name": "notification-retry-queue", "vhost": "/", "durable": true, "arguments": {"x-message-ttl": 30000, "x-dead-letter-exchange": "", "x-dead-letter-routing-key": "notification-queue"}},
         {"name": "gateway-events-queue", "vhost": "/", "durable": true},
         {"name": "video-completed-queue", "vhost": "/", "durable": true},
         {"name": "video-failed-queue", "vhost": "/", "durable": true}

@@ -20,8 +20,13 @@ spec:
             matchLabels:
               kubernetes.io/metadata.name: ${K8S_NAMESPACE}
           podSelector:
-            matchLabels:
-              app: ${CONVERTER_APP_NAME}
+            matchExpressions:
+              - key: app
+                operator: In
+                values:
+                  - ${CONVERTER_APP_NAME}
+                  - ${GATEWAY_POD_LABEL}
+                  - ${GATEWAY_WORKER_POD_LABEL}
 
       ports:
         - protocol: TCP

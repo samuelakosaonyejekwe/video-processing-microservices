@@ -11,10 +11,14 @@ from app.storage.s3_storage import (
 router = APIRouter(tags=["Jobs"])
 
 
-def _get_authenticated_user_id(request: Request) -> str | None:
+def _get_authenticated_user_id(request: Request) -> str:
     if not hasattr(request.state, "user"):
-        return None
-    return request.state.user.get("sub")
+        raise HTTPException(status_code=401, detail="Not authenticated")
+
+    user_id = request.state.user.get("sub")
+    if not user_id:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+    return str(user_id)
 
 
 def _authorize_job_access(job_id: str, request: Request) -> dict:
@@ -23,7 +27,9 @@ def _authorize_job_access(job_id: str, request: Request) -> dict:
         raise HTTPException(status_code=404, detail="Job not found")
 
     user_id = _get_authenticated_user_id(request)
-    if user_id and job.get("user_id") not in (None, "anonymous") and job.get("user_id") != user_id:
+    job_user_id = job.get("user_id")
+
+    if job_user_id in (None, "", "anonymous") or str(job_user_id) != user_id:
         raise HTTPException(status_code=404, detail="Job not found")
 
     return job

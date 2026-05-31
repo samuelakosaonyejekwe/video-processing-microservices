@@ -77,8 +77,15 @@ def _apply_auth_cookies(response: JSONResponse, tokens: dict) -> None:
 
 
 def _clear_auth_cookies(response: Response) -> None:
-    response.delete_cookie(ACCESS_COOKIE)
-    response.delete_cookie(REFRESH_COOKIE)
+    response.delete_cookie(ACCESS_COOKIE, path="/")
+    response.delete_cookie(REFRESH_COOKIE, path="/")
+
+
+def _cookie_auth_response(email: str | None = None) -> JSONResponse:
+    content = {"message": "Authenticated", "token_type": "cookie"}
+    if email:
+        content["email"] = email
+    return JSONResponse(content=content)
 
 
 @router.post("/login")
@@ -95,12 +102,9 @@ async def login(data: LoginRequest):
         )
 
     payload = response.json()
-    json_response = JSONResponse(content=payload)
+    json_response = _cookie_auth_response(str(data.email))
     _apply_auth_cookies(json_response, payload)
     return json_response
-
-
-@router.post("/register")
 async def register(data: RegisterRequest):
     try:
         response = await _post_auth("/auth/register", data.model_dump())
@@ -134,7 +138,7 @@ async def refresh(data: RefreshRequest, request: Request):
         )
 
     payload = response.json()
-    json_response = JSONResponse(content=payload)
+    json_response = _cookie_auth_response()
     _apply_auth_cookies(json_response, payload)
     return json_response
 

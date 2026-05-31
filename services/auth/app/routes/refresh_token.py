@@ -9,6 +9,7 @@ from app.jwt.token import (
 )
 from shared.security.token_revocation import (
     get_stored_refresh_jti,
+    is_token_revoked,
     revoke_token,
     store_refresh_token,
 )
@@ -40,6 +41,12 @@ async def refresh_token(body: RefreshRequest):
     if not user_id:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid refresh token"
+        )
+
+    if refresh_jti and is_token_revoked(refresh_jti):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Refresh token has been revoked",
         )
 
     stored_jti = get_stored_refresh_jti(str(user_id))
