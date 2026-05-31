@@ -3,63 +3,21 @@ apiVersion: monitoring.coreos.com/v1
 kind: ServiceMonitor
 
 metadata:
-
   name: ${CONVERTER_SERVICE_MONITOR_NAME}
-
   namespace: ${MONITORING_NAMESPACE}
-
   labels:
-
-    app.kubernetes.io/name: ${CONVERTER_APP_NAME}
-
-    app.kubernetes.io/component: ${MONITORING_COMPONENT_NAME}
-
-    app.kubernetes.io/managed-by: ${MANAGED_BY}
-
-    app.kubernetes.io/environment: ${APP_ENV}
-
-    app.kubernetes.io/part-of: ${PROJECT_NAME}
-
     release: ${PROMETHEUS_RELEASE_NAME}
 
 spec:
-
-  jobLabel: ${PROMETHEUS_JOB_LABEL}
-
   selector:
-
     matchLabels:
-
-      app.kubernetes.io/name: ${CONVERTER_APP_NAME}
-
-      app.kubernetes.io/component: ${CONVERTER_COMPONENT_NAME}
-
-      app.kubernetes.io/part-of: ${PROJECT_NAME}
+      app: ${CONVERTER_APP_NAME}
 
   namespaceSelector:
-
     matchNames:
-
       - ${APPLICATION_NAMESPACE}
 
   endpoints:
-
     - port: ${CONVERTER_METRICS_PORT_NAME}
-
-      targetPort: ${CONVERTER_METRICS_TARGET_PORT}
-
       path: ${CONVERTER_METRICS_PATH}
-
-      scheme: ${CONVERTER_METRICS_SCHEME}
-
       interval: ${PROMETHEUS_SCRAPE_INTERVAL}
-
-      scrapeTimeout: ${PROMETHEUS_SCRAPE_TIMEOUT}
-
-      honorLabels: ${PROMETHEUS_HONOR_LABELS}
-
-      honorTimestamps: ${PROMETHEUS_HONOR_TIMESTAMPS}
-
-      enableHttp2: ${PROMETHEUS_ENABLE_HTTP2}
-
-      followRedirects: ${PROMETHEUS_FOLLOW_REDIRECTS}
