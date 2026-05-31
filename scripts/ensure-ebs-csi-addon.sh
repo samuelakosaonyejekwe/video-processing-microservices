@@ -164,20 +164,25 @@ kubectl wait --for=condition=ready pod \
   -n kube-system \
   --timeout=300s
 
-if ! kubectl get storageclass 2>/dev/null | grep -q '(default)'; then
-  kubectl apply -f - <<EOF
+STORAGE_CLASS_NAME="${STORAGE_CLASS:-ebs-gp3}"
+kubectl apply -f - <<EOF
 apiVersion: storage.k8s.io/v1
 kind: StorageClass
 metadata:
-  name: gp2
+  name: ${STORAGE_CLASS_NAME}
   annotations:
     storageclass.kubernetes.io/is-default-class: "true"
 provisioner: ebs.csi.aws.com
 parameters:
-  type: gp2
+  type: gp3
 volumeBindingMode: Immediate
 allowVolumeExpansion: true
+reclaimPolicy: Delete
 EOF
+
+# Legacy in-tree gp2 uses WaitForFirstConsumer and blocks Helm when PVCs are recreated.
+if kubectl get storageclass gp2 >/dev/null 2>&1; then
+  kubectl patch storageclass gp2 -p '{"metadata": {"annotations": {"storageclass.kubernetes.io/is-default-class": "false"}}}' --type=merge >/dev/null 2>&1 || true
 fi
 
-echo "EBS CSI driver ready."
+echo "EBS CSI driver ready. Default StorageClass: ${STORAGE_CLASS_NAME}"

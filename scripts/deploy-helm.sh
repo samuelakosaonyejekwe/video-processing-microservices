@@ -40,10 +40,22 @@ deploy_chart() {
 
   reset_unhealthy_release "${release}" "${namespace}"
 
-  if [ "${release}" = "mongodb" ] && kubectl get pvc mongodb-pvc -n "${namespace}" >/dev/null 2>&1; then
-    if kubectl get pvc mongodb-pvc -n "${namespace}" -o jsonpath='{.metadata.deletionTimestamp}' 2>/dev/null | grep -q .; then
-      wait_for_pvc_removal mongodb-pvc "${namespace}" 300
+  if [ "${release}" = "mongodb" ]; then
+    if kubectl get pvc mongodb-pvc -n "${namespace}" >/dev/null 2>&1; then
+      if kubectl get pvc mongodb-pvc -n "${namespace}" -o jsonpath='{.metadata.deletionTimestamp}' 2>/dev/null | grep -q .; then
+        wait_for_pvc_removal mongodb-pvc "${namespace}" 300
+      fi
     fi
+    prepare_mongodb_storage_for_helm "${namespace}"
+
+    helm upgrade --install "${release}" "${chart_path}" \
+      --namespace "${namespace}" \
+      --create-namespace \
+      -f "${GLOBAL_VALUES}" \
+      --timeout 20m
+
+    finalize_mongodb_storage_after_helm "${namespace}"
+    return 0
   fi
 
   helm upgrade --install "${release}" "${chart_path}" \
