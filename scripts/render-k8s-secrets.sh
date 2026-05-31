@@ -40,6 +40,14 @@ _create_secret() {
 
 sanitize_secret_env
 
+_rabbitmq_password_urlencoded() {
+  python3 -c "import urllib.parse, os; print(urllib.parse.quote_plus(os.environ['RABBITMQ_PASSWORD']))"
+}
+
+if [ -n "${RABBITMQ_USERNAME:-}" ] && [ -n "${RABBITMQ_PASSWORD:-}" ] && [ -n "${RABBITMQ_HOST:-}" ]; then
+  export RABBITMQ_URI="amqp://${RABBITMQ_USERNAME}:$(_rabbitmq_password_urlencoded)@${RABBITMQ_HOST}:${RABBITMQ_PORT:-5672}/"
+fi
+
 export POSTGRES_URI="${POSTGRES_URI:-postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@${POSTGRES_HOST}:${POSTGRES_PORT}/${POSTGRES_DB}?sslmode=${POSTGRES_SSL_MODE}}"
 
 mkdir -p "${SECRETS_DIR}"
@@ -94,6 +102,8 @@ _create_secret rabbitmq-secret "${SECRETS_DIR}/rabbitmq-secret.yaml" \
   RABBITMQ_DEFAULT_PASS RABBITMQ_DEFAULT_PASS \
   RABBITMQ_USERNAME RABBITMQ_USERNAME \
   RABBITMQ_PASSWORD RABBITMQ_PASSWORD \
+  RABBITMQ_HOST RABBITMQ_HOST \
+  RABBITMQ_PORT RABBITMQ_PORT \
   RABBITMQ_ERLANG_COOKIE RABBITMQ_ERLANG_COOKIE \
   RABBITMQ_AMQP_URL RABBITMQ_AMQP_URL \
   RABBITMQ_URI RABBITMQ_URI

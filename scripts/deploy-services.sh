@@ -110,9 +110,14 @@ if [ "${INSTALL_KEDA:-true}" = "true" ]; then
 fi
 
 scaling_dir="${RENDERED}/autoscaling"
+trigger_auth_manifest="${scaling_dir}/rabbitmq-trigger-auth.yaml"
 scaledobject_manifest="${scaling_dir}/converter-scaledobject.yaml"
 if [ -f "${scaledobject_manifest}" ]; then
   if kubectl get crd scaledobjects.keda.sh >/dev/null 2>&1; then
+    if [ -f "${trigger_auth_manifest}" ]; then
+      echo "Applying KEDA TriggerAuthentication..."
+      kubectl apply -f "${trigger_auth_manifest}"
+    fi
     echo "Applying KEDA ScaledObject..."
     kubectl apply -f "${scaledobject_manifest}"
     if kubectl get scaledobject "${CONVERTER_SCALEDOBJECT_NAME:-converter-worker-scaler}" \
