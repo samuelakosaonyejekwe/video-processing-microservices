@@ -9,6 +9,7 @@ from app.config import APP_ENV, APP_NAME, CORS_ALLOWED_ORIGINS
 from app.queue.consumer import start_consumer
 from app.routes.convert import router as convert_router
 from app.routes.health import router as health_router
+from shared.runtime.queue_consumer import queue_consumer_enabled
 
 _enable_docs = (
     os.getenv("ENABLE_SWAGGER", "false").lower()
@@ -24,7 +25,7 @@ _enable_docs = (
 @asynccontextmanager
 async def lifespan(app: FastAPI):
 
-    if APP_ENV != "test":
+    if APP_ENV != "test" and queue_consumer_enabled():
         start_consumer()
 
     yield

@@ -8,6 +8,7 @@ from prometheus_fastapi_instrumentator import Instrumentator
 from app.config import APP_ENV, APP_NAME, APP_PORT, CORS_ALLOWED_ORIGINS
 from app.queue.consumer import start_consumer
 from app.websocket.events import start_websocket_background
+from shared.runtime.queue_consumer import queue_consumer_enabled
 
 _enable_docs = (
     os.getenv("ENABLE_SWAGGER", "false").lower()
@@ -24,7 +25,8 @@ _enable_docs = (
 async def lifespan(app: FastAPI):
 
     if APP_ENV != "test":
-        start_consumer()
+        if queue_consumer_enabled():
+            start_consumer()
         start_websocket_background()
 
     yield

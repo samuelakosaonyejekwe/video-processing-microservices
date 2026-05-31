@@ -110,6 +110,7 @@ jobs:
           bash scripts/deploy-services.sh
           bash scripts/verify-deployment.sh
           bash scripts/validate-hpa.sh
+          bash scripts/validate-queue-workers.sh
           bash scripts/verify-github-actions-iam.sh || true
 
       - name: Production Validation

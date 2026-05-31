@@ -1,6 +1,10 @@
 import os
 from urllib.parse import quote_plus
 
+from app.shared_bootstrap import ensure_shared_path
+
+ensure_shared_path()
+
 APP_ENV = os.getenv("APP_ENV", "production").strip()
 
 APP_NAME = os.getenv("APP_NAME", "notification-service").strip()

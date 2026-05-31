@@ -2,26 +2,28 @@ apiVersion: apps/v1
 kind: Deployment
 
 metadata:
-  name: gateway-deployment
+  name: gateway-worker
   namespace: ${K8S_NAMESPACE}
   labels:
-    app: gateway
+    app: ${GATEWAY_WORKER_POD_LABEL}
     service: gateway-service
+    component: queue-worker
     environment: ${APP_ENV}
 
 spec:
-  replicas: ${GATEWAY_REPLICA_COUNT}
+  replicas: 1
   revisionHistoryLimit: 5
 
   selector:
     matchLabels:
-      app: gateway
+      app: ${GATEWAY_WORKER_POD_LABEL}
 
   template:
     metadata:
       labels:
-        app: gateway
+        app: ${GATEWAY_WORKER_POD_LABEL}
         service: gateway-service
+        component: queue-worker
         environment: ${APP_ENV}
 
     spec:
@@ -35,9 +37,10 @@ spec:
           type: RuntimeDefault
 
       containers:
-        - name: gateway
+        - name: gateway-worker
           image: ${DOCKER_IMAGE_REGISTRY}/${DOCKER_IMAGE_NAMESPACE}/gateway-service:${IMAGE_TAG}
           imagePullPolicy: Always
+          command: ["python", "-m", "app.run_worker"]
 
           securityContext:
             runAsNonRoot: true
@@ -48,11 +51,6 @@ spec:
               drop:
                 - ALL
 
-          ports:
-            - name: http
-              containerPort: 8080
-              protocol: TCP
-
           envFrom:
             - configMapRef:
                 name: gateway-config
@@ -62,16 +60,13 @@ spec:
                 name: mongodb-secret
 
           env:
+            - name: ENABLE_QUEUE_CONSUMER
+              value: "true"
             - name: APP_ENV
               valueFrom:
                 configMapKeyRef:
                   name: gateway-config
                   key: APP_ENV
-            - name: APP_PORT
-              valueFrom:
-                configMapKeyRef:
-                  name: gateway-config
-                  key: APP_PORT
             - name: JWT_PUBLIC_KEY
               valueFrom:
                 secretKeyRef:
@@ -97,32 +92,28 @@ spec:
                 secretKeyRef:
                   name: mongodb-secret
                   key: MONGO_URI
-            - name: ENABLE_QUEUE_CONSUMER
-              value: "false"
 
           resources:
             requests:
-              cpu: "200m"
-              memory: "256Mi"
+              cpu: "100m"
+              memory: "192Mi"
             limits:
-              cpu: "500m"
-              memory: "512Mi"
+              cpu: "300m"
+              memory: "384Mi"
 
           readinessProbe:
-            httpGet:
-              path: /health
-              port: 8080
-            initialDelaySeconds: 10
+            exec:
+              command: ["test", "-f", "/tmp/worker-ready"]
+            initialDelaySeconds: 20
             periodSeconds: 10
             timeoutSeconds: 5
-            failureThreshold: 3
+            failureThreshold: 6
 
           livenessProbe:
-            httpGet:
-              path: /health
-              port: 8080
-            initialDelaySeconds: 30
-            periodSeconds: 20
+            exec:
+              command: ["test", "-f", "/tmp/worker-ready"]
+            initialDelaySeconds: 60
+            periodSeconds: 30
             timeoutSeconds: 5
             failureThreshold: 5
 

@@ -1,0 +1,140 @@
+apiVersion: apps/v1
+kind: Deployment
+
+metadata:
+  name: notification-worker
+  namespace: ${K8S_NAMESPACE}
+  labels:
+    app: ${NOTIFICATION_WORKER_POD_LABEL}
+    service: notification-service
+    component: queue-worker
+    environment: ${APP_ENV}
+
+spec:
+  replicas: 1
+  revisionHistoryLimit: 5
+
+  selector:
+    matchLabels:
+      app: ${NOTIFICATION_WORKER_POD_LABEL}
+
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+
+  template:
+    metadata:
+      labels:
+        app: ${NOTIFICATION_WORKER_POD_LABEL}
+        service: notification-service
+        component: queue-worker
+        environment: ${APP_ENV}
+
+    spec:
+      terminationGracePeriodSeconds: 30
+      restartPolicy: Always
+      imagePullSecrets:
+        - name: ${DOCKER_REGISTRY_SECRET_NAME}
+
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
+        seccompProfile:
+          type: RuntimeDefault
+
+      containers:
+        - name: notification-worker
+          image: ${DOCKER_IMAGE_REGISTRY}/${DOCKER_IMAGE_NAMESPACE}/notification-service:${IMAGE_TAG}
+          imagePullPolicy: IfNotPresent
+          command: ["python", "-m", "app.run_worker"]
+
+          envFrom:
+            - configMapRef:
+                name: notification-config
+            - secretRef:
+                name: notification-secret
+            - secretRef:
+                name: rabbitmq-secret
+
+          env:
+            - name: ENABLE_QUEUE_CONSUMER
+              value: "true"
+            - name: SMTP_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: notification-secret
+                  key: SMTP_USERNAME
+            - name: SMTP_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: notification-secret
+                  key: SMTP_PASSWORD
+            - name: SMTP_EMAIL
+              valueFrom:
+                secretKeyRef:
+                  name: notification-secret
+                  key: SMTP_EMAIL
+            - name: RABBITMQ_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: rabbitmq-secret
+                  key: RABBITMQ_USERNAME
+            - name: RABBITMQ_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: rabbitmq-secret
+                  key: RABBITMQ_PASSWORD
+            - name: RABBITMQ_URI
+              valueFrom:
+                secretKeyRef:
+                  name: rabbitmq-secret
+                  key: RABBITMQ_URI
+            - name: JWT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: notification-secret
+                  key: JWT_SECRET
+
+          resources:
+            requests:
+              cpu: ${NOTIFICATION_CPU_REQUEST}
+              memory: ${NOTIFICATION_MEMORY_REQUEST}
+            limits:
+              cpu: ${NOTIFICATION_CPU_LIMIT}
+              memory: ${NOTIFICATION_MEMORY_LIMIT}
+
+          readinessProbe:
+            exec:
+              command: ["test", "-f", "/tmp/worker-ready"]
+            initialDelaySeconds: 20
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 6
+
+          livenessProbe:
+            exec:
+              command: ["test", "-f", "/tmp/worker-ready"]
+            initialDelaySeconds: 60
+            periodSeconds: 30
+            timeoutSeconds: 5
+            failureThreshold: 5
+
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: false
+            privileged: false
+            capabilities:
+              drop:
+                - ALL
+
+          volumeMounts:
+            - name: worker-tmp
+              mountPath: /tmp
+
+      volumes:
+        - name: worker-tmp
+          emptyDir: {}

@@ -2,20 +2,28 @@ apiVersion: apps/v1
 kind: Deployment
 
 metadata:
-  name: converter-service
+  name: converter-worker
   namespace: ${K8S_NAMESPACE}
+  labels:
+    app: ${CONVERTER_WORKER_POD_LABEL}
+    service: converter-service
+    component: queue-worker
+    environment: ${APP_ENV}
 
 spec:
-  replicas: ${CONVERTER_MIN_REPLICA_COUNT}
+  replicas: 1
 
   selector:
     matchLabels:
-      app: converter-service
+      app: ${CONVERTER_WORKER_POD_LABEL}
 
   template:
     metadata:
       labels:
-        app: converter-service
+        app: ${CONVERTER_WORKER_POD_LABEL}
+        service: converter-service
+        component: queue-worker
+        environment: ${APP_ENV}
 
     spec:
       enableServiceLinks: false
@@ -24,84 +32,77 @@ spec:
         - name: ${DOCKER_REGISTRY_SECRET_NAME}
 
       containers:
-        - name: converter-service
-
+        - name: converter-worker
           image: ${DOCKER_IMAGE_REGISTRY}/${DOCKER_IMAGE_NAMESPACE}/converter-service:${IMAGE_TAG}
           imagePullPolicy: Always
-
-          ports:
-            - containerPort: 8002
+          command: ["python", "-m", "app.run_worker"]
 
           envFrom:
             - configMapRef:
                 name: converter-config
-
             - secretRef:
                 name: mongodb-secret
-
             - secretRef:
                 name: rabbitmq-secret
 
           env:
+            - name: ENABLE_QUEUE_CONSUMER
+              value: "true"
             - name: APP_PORT
               value: "${CONVERTER_APP_PORT}"
-
             - name: MONGO_URI
               valueFrom:
                 secretKeyRef:
                   name: mongodb-secret
                   key: MONGO_URI
-
             - name: RABBITMQ_URI
               valueFrom:
                 secretKeyRef:
                   name: rabbitmq-secret
                   key: RABBITMQ_URI
-            - name: ENABLE_QUEUE_CONSUMER
-              value: "false"
 
-          livenessProbe:
-            httpGet:
-              path: /health
-              port: 8002
-            initialDelaySeconds: 30
-            periodSeconds: 10
-            timeoutSeconds: 5
-            failureThreshold: 3
+          resources:
+            requests:
+              memory: "${CONVERTER_MEMORY_REQUEST}"
+              cpu: "${CONVERTER_CPU_REQUEST}"
+            limits:
+              memory: "${CONVERTER_MEMORY_LIMIT}"
+              cpu: "${CONVERTER_CPU_LIMIT}"
 
           readinessProbe:
-            httpGet:
-              path: /health
-              port: 8002
-            initialDelaySeconds: 15
-            periodSeconds: 5
-            timeoutSeconds: 3
-            failureThreshold: 3
+            exec:
+              command: ["test", "-f", "/tmp/worker-ready"]
+            initialDelaySeconds: 20
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 6
+
+          livenessProbe:
+            exec:
+              command: ["test", "-f", "/tmp/worker-ready"]
+            initialDelaySeconds: 60
+            periodSeconds: 30
+            timeoutSeconds: 5
+            failureThreshold: 5
 
           securityContext:
             allowPrivilegeEscalation: false
             readOnlyRootFilesystem: false
             runAsNonRoot: true
             runAsUser: 1000
-
             seccompProfile:
               type: RuntimeDefault
-
-          resources:
-            requests:
-              memory: "${CONVERTER_MEMORY_REQUEST}"
-              cpu: "${CONVERTER_CPU_REQUEST}"
-
-            limits:
-              memory: "${CONVERTER_MEMORY_LIMIT}"
-              cpu: "${CONVERTER_CPU_LIMIT}"
 
           volumeMounts:
             - name: converter-tmp
               mountPath: /tmp/converter
+            - name: worker-tmp
+              mountPath: /tmp
 
       volumes:
         - name: converter-tmp
+          emptyDir: {}
+        - name: worker-tmp
           emptyDir: {}
 
       restartPolicy: Always

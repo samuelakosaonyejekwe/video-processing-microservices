@@ -192,6 +192,8 @@ spec:
                 secretKeyRef:
                   name: notification-secret
                   key: JWT_SECRET
+            - name: ENABLE_QUEUE_CONSUMER
+              value: "false"
 
           resources:
 

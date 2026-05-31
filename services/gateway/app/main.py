@@ -26,6 +26,7 @@ from app.routes.jobs_routes import router as jobs_router
 from app.queue.consumer import start_consumer
 from app.queue.producer import get_gateway_producer
 from app.database.mongo_client import close_mongo_client
+from shared.runtime.queue_consumer import queue_consumer_enabled
 
 APP_NAME = os.getenv("APP_NAME") or "gateway-service"
 
@@ -36,8 +37,12 @@ async def lifespan(app: FastAPI):
     print("Starting gateway service...")
 
     if APP_ENV != "test":
-        ensure_job_indexes()
-        start_consumer()
+        try:
+            ensure_job_indexes()
+        except Exception as error:
+            print(f"MongoDB index setup skipped: {error}")
+        if queue_consumer_enabled():
+            start_consumer()
 
     yield
 

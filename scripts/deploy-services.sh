@@ -41,7 +41,7 @@ fi
 
 # Deploy workloads after configmaps so pods can mount required config.
 for dir in gateway auth converter notification redis frontend; do
-  for kind in deployment service ingress hpa; do
+  for kind in deployment worker-deployment service ingress hpa; do
     manifest="${RENDERED}/${dir}/${kind}.yaml"
     if [ -f "${manifest}" ]; then
       kubectl apply -f "${manifest}"

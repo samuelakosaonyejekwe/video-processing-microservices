@@ -15,8 +15,12 @@ metadata:
 spec:
 
   podSelector:
-    matchLabels:
-      app: ${GATEWAY_POD_LABEL}
+    matchExpressions:
+      - key: app
+        operator: In
+        values:
+          - ${GATEWAY_POD_LABEL}
+          - ${GATEWAY_WORKER_POD_LABEL}
 
   policyTypes:
     - Ingress
