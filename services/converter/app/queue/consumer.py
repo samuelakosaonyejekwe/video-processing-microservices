@@ -40,6 +40,14 @@ class ConverterEventConsumer:
 
         self.s3_bucket_name = os.getenv("S3_BUCKET_NAME")
 
+        self.s3_audio_bucket = (
+            os.getenv("S3_AUDIO_BUCKET")
+            or os.getenv("AWS_S3_AUDIO_BUCKET")
+            or self.s3_bucket_name
+        )
+
+        self.s3_audio_prefix = os.getenv("S3_AUDIO_OUTPUT_PREFIX", "outputs/audio/")
+
         self.temp_storage_path = os.getenv("TEMP_STORAGE_PATH", "/tmp")
 
         self.connection = None
@@ -158,9 +166,15 @@ class ConverterEventConsumer:
 
     def upload_audio(self, local_audio_path, audio_s3_key):
 
-        logger.info("Uploading converted audio to S3: %s", audio_s3_key)
+        logger.info(
+            "Uploading converted audio to S3 bucket=%s key=%s",
+            self.s3_audio_bucket,
+            audio_s3_key,
+        )
 
-        self.s3_client.upload_file(local_audio_path, self.s3_bucket_name, audio_s3_key)
+        self.s3_client.upload_file(
+            local_audio_path, self.s3_audio_bucket, audio_s3_key
+        )
 
     def convert_video_to_audio(self, input_video_path, output_audio_path):
 
@@ -219,7 +233,7 @@ class ConverterEventConsumer:
 
                 self.convert_video_to_audio(local_video_path, local_audio_path)
 
-                audio_s3_key = f"converted-audio/" f"{unique_id}.mp3"
+                audio_s3_key = f"{self.s3_audio_prefix.rstrip('/')}/{unique_id}.mp3"
 
                 self.upload_audio(local_audio_path, audio_s3_key)
 

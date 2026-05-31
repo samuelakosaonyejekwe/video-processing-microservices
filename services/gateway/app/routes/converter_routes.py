@@ -5,6 +5,7 @@ import uuid
 from fastapi import APIRouter, File, HTTPException, Request, UploadFile
 
 from app.queue.producer import get_gateway_producer
+from app.storage.s3_storage import upload_video_to_s3
 
 router = APIRouter(tags=["Converter"])
 
@@ -30,24 +31,37 @@ async def upload_video(
     if hasattr(request.state, "user"):
         user_id = request.state.user.get("sub", user_id)
 
+    content_type = file.content_type or "application/octet-stream"
+    s3_key = f"uploads/videos/{job_id}/{file.filename}"
+
     try:
+        await asyncio.to_thread(
+            upload_video_to_s3,
+            temp_file_path,
+            s3_key,
+            content_type,
+        )
         correlation_id = await asyncio.to_thread(
             _publish_upload,
             user_id,
             file.filename,
-            f"uploads/{job_id}/{file.filename}",
-            file.content_type or "application/octet-stream",
+            s3_key,
+            content_type,
         )
     except Exception as exc:
         raise HTTPException(
             status_code=503,
-            detail=f"Upload queue unavailable: {exc.__class__.__name__}",
+            detail=f"Upload failed: {exc.__class__.__name__}: {exc}",
         ) from exc
+    finally:
+        if os.path.exists(temp_file_path):
+            os.remove(temp_file_path)
 
     return {
         "job_id": job_id,
-        "correlation_id": correlation_id,
         "status": "uploaded",
+        "s3_key": s3_key,
+        "correlation_id": correlation_id,
     }
 
 
