@@ -13,8 +13,14 @@ jobs:
     env:
       AWS_REGION: ${{ vars.AWS_REGION }}
       APP_DOMAIN: ${{ vars.APP_DOMAIN }}
+      DOMAIN_NAME: ${{ vars.DOMAIN_NAME }}
+      API_BASE_URL: ${{ vars.API_BASE_URL }}
+      FRONTEND_URL: ${{ vars.FRONTEND_URL }}
       S3_UPLOAD_BUCKET: ${{ vars.AWS_S3_VIDEO_BUCKET }}
       S3_AUDIO_BUCKET: ${{ vars.AWS_S3_AUDIO_BUCKET }}
+      AWS_S3_VIDEO_BUCKET: ${{ vars.AWS_S3_VIDEO_BUCKET }}
+      AWS_S3_AUDIO_BUCKET: ${{ vars.AWS_S3_AUDIO_BUCKET }}
+      AWS_S3_BUCKET: ${{ vars.AWS_S3_BUCKET }}
       EKS_CLUSTER_NAME: ${{ vars.EKS_CLUSTER_NAME }}
       K8S_NAMESPACE: ${{ vars.K8S_NAMESPACE }}
       APP_ENV: ${{ vars.APP_ENV }}
