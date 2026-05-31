@@ -63,11 +63,11 @@ jobs:
       SMTP_PASSWORD: ${{ secrets.SMTP_PASSWORD }}
       REDIS_PASSWORD: ${{ secrets.REDIS_PASSWORD }}
       GRAFANA_ADMIN_PASSWORD: ${{ secrets.GRAFANA_ADMIN_PASSWORD }}
-  CORS_ALLOWED_ORIGINS: ${{ vars.CORS_ALLOWED_ORIGINS }}
-  STORAGE_CLASS: ${{ vars.STORAGE_CLASS }}
-  REDIS_HOST: ${{ vars.REDIS_HOST }}
-  AUTH_SERVICE_PORT: "8000"
-  AUTH_PORT: "8000"
+      CORS_ALLOWED_ORIGINS: ${{ vars.CORS_ALLOWED_ORIGINS }}
+      STORAGE_CLASS: ${{ vars.STORAGE_CLASS }}
+      REDIS_HOST: ${{ vars.REDIS_HOST }}
+      AUTH_SERVICE_PORT: "8000"
+      AUTH_PORT: "8000"
 
     steps:
       - name: Checkout Repository
