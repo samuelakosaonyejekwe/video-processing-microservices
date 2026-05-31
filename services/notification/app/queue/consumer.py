@@ -111,7 +111,7 @@ class NotificationConsumer:
 
                 from shared.messaging.queue_setup import declare_pipeline_queues
 
-                declare_pipeline_queues(
+                self.channel = declare_pipeline_queues(
                     self.channel,
                     notification_queue=self.notification_queue,
                     notification_retry_queue=self.retry_queue,

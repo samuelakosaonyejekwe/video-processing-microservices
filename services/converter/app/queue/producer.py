@@ -100,7 +100,7 @@ class ConverterEventProducer:
 
                 from shared.messaging.queue_setup import declare_pipeline_queues
 
-                declare_pipeline_queues(
+                self.channel = declare_pipeline_queues(
                     self.channel,
                     video_upload_queue=self.video_upload_queue,
                     notification_queue=self.notification_queue,
@@ -108,6 +108,7 @@ class ConverterEventProducer:
                     video_completed_queue=self.video_completed_queue,
                     video_failed_queue=self.video_failed_queue,
                     declare_video_failed=True,
+                    declare_upload_pipeline=True,
                 )
 
                 logger.info("Converter RabbitMQ producer connected successfully")

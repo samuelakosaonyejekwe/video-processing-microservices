@@ -12,6 +12,49 @@ def _queue(name_env: str, default: str) -> str:
     return os.getenv(name_env, default)
 
 
+def _open_channel(channel: pika.channel.Channel) -> pika.channel.Channel:
+    connection = channel.connection
+    if channel.is_open:
+        return channel
+    return connection.channel()
+
+
+def _ensure_queue(
+    channel: pika.channel.Channel,
+    queue: str,
+    *,
+    durable: bool = True,
+    arguments: dict | None = None,
+) -> pika.channel.Channel:
+    """Use passive declare when a legacy queue already exists."""
+    try:
+        channel.queue_declare(queue=queue, passive=True)
+        return channel
+    except pika.exceptions.ChannelClosedByBroker as exc:
+        if exc.reply_code != 404:
+            raise
+        channel = _open_channel(channel)
+        kwargs: dict = {"queue": queue, "durable": durable}
+        if arguments:
+            kwargs["arguments"] = arguments
+        channel.queue_declare(**kwargs)
+        return channel
+
+
+def _ensure_queue_bind(
+    channel: pika.channel.Channel,
+    *,
+    exchange: str,
+    queue: str,
+    routing_key: str,
+) -> pika.channel.Channel:
+    try:
+        channel.queue_bind(exchange=exchange, queue=queue, routing_key=routing_key)
+        return channel
+    except pika.exceptions.ChannelClosedByBroker:
+        return _open_channel(channel)
+
+
 def declare_video_dlx(channel: pika.channel.Channel) -> pika.channel.Channel:
     """Ensure video.dlx exists without conflicting with legacy exchange metadata."""
     try:
@@ -20,8 +63,7 @@ def declare_video_dlx(channel: pika.channel.Channel) -> pika.channel.Channel:
     except pika.exceptions.ChannelClosedByBroker as exc:
         if exc.reply_code != 404:
             raise
-        connection = channel.connection
-        channel = connection.channel()
+        channel = _open_channel(channel)
         channel.exchange_declare(
             exchange=VIDEO_DLX,
             exchange_type="direct",
@@ -43,7 +85,9 @@ def declare_pipeline_queues(
     video_failed_queue: str | None = None,
     declare_gateway_events: bool = True,
     declare_video_failed: bool = False,
-) -> None:
+    declare_upload_pipeline: bool = False,
+    declare_notification_pipeline: bool = True,
+) -> pika.channel.Channel:
     video_upload_queue = video_upload_queue or _queue(
         "VIDEO_UPLOAD_QUEUE", "video-upload-queue"
     )
@@ -69,48 +113,53 @@ def declare_pipeline_queues(
         "VIDEO_FAILED_QUEUE", "video-failed-queue"
     )
 
-    channel = declare_video_dlx(channel)
+    if declare_upload_pipeline:
+        channel = declare_video_dlx(channel)
 
-    channel.queue_declare(
-        queue=video_upload_queue,
-        durable=True,
-        arguments={
-            "x-dead-letter-exchange": VIDEO_DLX,
-            "x-dead-letter-routing-key": VIDEO_DLQ_ROUTING_KEY,
-        },
-    )
-    channel.queue_declare(
-        queue=video_upload_retry_queue,
-        durable=True,
-        arguments={
-            "x-message-ttl": UPLOAD_RETRY_TTL_MS,
-            "x-dead-letter-exchange": "",
-            "x-dead-letter-routing-key": video_upload_queue,
-        },
-    )
-    channel.queue_declare(queue=video_upload_dlq, durable=True)
-    channel.queue_bind(
-        exchange=VIDEO_DLX,
-        queue=video_upload_dlq,
-        routing_key=VIDEO_DLQ_ROUTING_KEY,
-    )
+        channel = _ensure_queue(
+            channel,
+            video_upload_queue,
+            arguments={
+                "x-dead-letter-exchange": VIDEO_DLX,
+                "x-dead-letter-routing-key": VIDEO_DLQ_ROUTING_KEY,
+            },
+        )
+        channel = _ensure_queue(
+            channel,
+            video_upload_retry_queue,
+            arguments={
+                "x-message-ttl": UPLOAD_RETRY_TTL_MS,
+                "x-dead-letter-exchange": "",
+                "x-dead-letter-routing-key": video_upload_queue,
+            },
+        )
+        channel = _ensure_queue(channel, video_upload_dlq)
+        channel = _ensure_queue_bind(
+            channel,
+            exchange=VIDEO_DLX,
+            queue=video_upload_dlq,
+            routing_key=VIDEO_DLQ_ROUTING_KEY,
+        )
 
-    channel.queue_declare(queue=notification_queue, durable=True)
-    channel.queue_declare(
-        queue=notification_retry_queue,
-        durable=True,
-        arguments={
-            "x-message-ttl": NOTIFICATION_RETRY_TTL_MS,
-            "x-dead-letter-exchange": "",
-            "x-dead-letter-routing-key": notification_queue,
-        },
-    )
+    if declare_notification_pipeline:
+        channel = _ensure_queue(channel, notification_queue)
+        channel = _ensure_queue(
+            channel,
+            notification_retry_queue,
+            arguments={
+                "x-message-ttl": NOTIFICATION_RETRY_TTL_MS,
+                "x-dead-letter-exchange": "",
+                "x-dead-letter-routing-key": notification_queue,
+            },
+        )
 
     if declare_gateway_events and gateway_events_queue:
-        channel.queue_declare(queue=gateway_events_queue, durable=True)
+        channel = _ensure_queue(channel, gateway_events_queue)
 
     if video_completed_queue:
-        channel.queue_declare(queue=video_completed_queue, durable=True)
+        channel = _ensure_queue(channel, video_completed_queue)
 
     if declare_video_failed and video_failed_queue:
-        channel.queue_declare(queue=video_failed_queue, durable=True)
+        channel = _ensure_queue(channel, video_failed_queue)
+
+    return channel

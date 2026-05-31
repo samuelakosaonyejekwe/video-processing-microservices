@@ -86,7 +86,7 @@ class RabbitMQProducer:
 
                 from shared.messaging.queue_setup import declare_pipeline_queues
 
-                declare_pipeline_queues(
+                self.channel = declare_pipeline_queues(
                     self.channel,
                     notification_queue=self.notification_queue,
                     declare_gateway_events=False,

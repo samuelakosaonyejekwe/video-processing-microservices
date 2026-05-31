@@ -483,7 +483,11 @@ export APPLY_NETWORK_POLICIES="${APPLY_NETWORK_POLICIES:-true}"
 export DEPLOY_MONITORING_STACK="${DEPLOY_MONITORING_STACK:-true}"
 
 if [ "${APP_ENV:-development}" = "production" ] && [ "${POSTGRES_SSL_MODE:-disable}" = "disable" ]; then
-  export POSTGRES_SSL_MODE="require"
+  if [[ "${POSTGRES_HOST:-}" == *".svc.cluster.local"* ]]; then
+    export POSTGRES_SSL_MODE="prefer"
+  else
+    export POSTGRES_SSL_MODE="require"
+  fi
 fi
 
 # SMTP alias

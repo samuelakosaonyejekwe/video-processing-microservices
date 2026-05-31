@@ -105,7 +105,7 @@ class GatewayEventConsumer:
 
                 from shared.messaging.queue_setup import declare_pipeline_queues
 
-                declare_pipeline_queues(
+                self.channel = declare_pipeline_queues(
                     self.channel,
                     gateway_events_queue=self.gateway_events_queue,
                     video_completed_queue=self.video_completed_queue,

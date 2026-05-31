@@ -137,12 +137,13 @@ class ConverterEventConsumer:
 
                 from shared.messaging.queue_setup import declare_pipeline_queues
 
-                declare_pipeline_queues(
+                self.channel = declare_pipeline_queues(
                     self.channel,
                     video_upload_queue=self.video_upload_queue,
                     video_upload_retry_queue=self.video_upload_retry_queue,
                     video_upload_dlq=self.video_upload_dlq,
                     declare_gateway_events=False,
+                    declare_upload_pipeline=True,
                 )
 
                 self.channel.basic_qos(prefetch_count=1)
