@@ -24,6 +24,14 @@ fi
 
 for manifest in prometheus-configmap.yaml prometheus.yaml grafana.yaml gateway-servicemonitor.yaml auth-servicemonitor.yaml converter-servicemonitor.yaml notification-servicemonitor.yaml; do
   if [ -f "${RENDERED}/${manifest}" ]; then
+    case "${manifest}" in
+      *servicemonitor.yaml)
+        if ! kubectl get crd servicemonitors.monitoring.coreos.com >/dev/null 2>&1; then
+          echo "Skipping ${manifest} (ServiceMonitor CRD not installed)."
+          continue
+        fi
+        ;;
+    esac
     kubectl apply -f "${RENDERED}/${manifest}"
   fi
 done
