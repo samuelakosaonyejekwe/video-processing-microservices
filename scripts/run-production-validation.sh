@@ -30,6 +30,7 @@ setup_production_test_endpoints
 
 echo "=== Production E2E tests ==="
 export INTEGRATION_TESTS=true
+export PRODUCTION_VALIDATION=true
 if [ ! -d "${ROOT_DIR}/.venv" ]; then
   python3 -m venv "${ROOT_DIR}/.venv"
 fi
