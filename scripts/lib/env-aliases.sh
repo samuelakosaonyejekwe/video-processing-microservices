@@ -175,7 +175,9 @@ export GATEWAY_INGRESS_NAME="${GATEWAY_INGRESS_NAME:-gateway-ingress}"
 export INGRESS_CLASS_NAME="${INGRESS_CLASS_NAME:-alb}"
 export ALB_SCHEME="${ALB_SCHEME:-internet-facing}"
 export ALB_TARGET_TYPE="${ALB_TARGET_TYPE:-ip}"
-export ALB_LISTEN_PORTS="${ALB_LISTEN_PORTS:-[{\"HTTP\":80}]}"
+if [ -z "${ALB_LISTEN_PORTS:-}" ]; then
+  export ALB_LISTEN_PORTS='[{"HTTP":80}]'
+fi
 export ALB_SSL_REDIRECT_PORT="${ALB_SSL_REDIRECT_PORT:-443}"
 export ACM_CERTIFICATE_ARN="${ACM_CERTIFICATE_ARN:-}"
 export DOMAIN_NAME="${DOMAIN_NAME:-${APP_DOMAIN:-api.example.com}}"
