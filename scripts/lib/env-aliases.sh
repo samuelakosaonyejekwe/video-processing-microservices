@@ -165,7 +165,13 @@ export RABBITMQ_URI="${RABBITMQ_URI:-${RABBITMQ_AMQP_URL}}"
 # Built after MONGO_AUTH_SOURCE is defined (see end of file).
 
 # Inter-service URLs
-export JWT_AUTH_SERVICE_URL="${JWT_AUTH_SERVICE_URL:-http://auth-service.${K8S_NAMESPACE}.svc.cluster.local:${AUTH_K8S_SERVICE_PORT}}"
+_default_auth_service_url="http://auth-service.${K8S_NAMESPACE}.svc.cluster.local:${AUTH_K8S_SERVICE_PORT}"
+export JWT_AUTH_SERVICE_URL="${JWT_AUTH_SERVICE_URL:-${_default_auth_service_url}}"
+if [[ "${JWT_AUTH_SERVICE_URL}" == *":8001"* ]] \
+  || [[ "${JWT_AUTH_SERVICE_URL}" == "http://auth-service" ]] \
+  || [[ "${JWT_AUTH_SERVICE_URL}" == "http://auth-service/"* && "${JWT_AUTH_SERVICE_URL}" != *".svc.cluster.local"* ]]; then
+  export JWT_AUTH_SERVICE_URL="${_default_auth_service_url}"
+fi
 export CONVERTER_SERVICE_URL="${CONVERTER_SERVICE_URL:-http://converter-service.${K8S_NAMESPACE}.svc.cluster.local:${CONVERTER_K8S_SERVICE_PORT}}"
 export NOTIFICATION_SERVICE_URL="${NOTIFICATION_SERVICE_URL:-http://notification-service.${K8S_NAMESPACE}.svc.cluster.local:80}"
 
