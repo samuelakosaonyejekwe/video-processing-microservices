@@ -25,20 +25,35 @@ if ! kubectl wait --for=condition=ready "pod/${pod}" -n "${db_namespace}" --time
   exit 0
 fi
 
-if kubectl get secret "${secret_name}" -n "${app_namespace}" >/dev/null 2>&1; then
-  mongo_user="$(kubectl get secret "${secret_name}" -n "${app_namespace}" -o jsonpath='{.data.MONGO_USERNAME}' | base64 -d)"
-  mongo_password="$(kubectl get secret "${secret_name}" -n "${app_namespace}" -o jsonpath='{.data.MONGO_PASSWORD}' | base64 -d)"
-  mongo_database="$(kubectl get secret "${secret_name}" -n "${app_namespace}" -o jsonpath='{.data.MONGO_DATABASE}' | base64 -d)"
-  mongo_auth_source="$(kubectl get secret "${secret_name}" -n "${app_namespace}" -o jsonpath='{.data.MONGO_AUTH_SOURCE}' | base64 -d)"
-else
+_load_mongo_credentials() {
+  for ns in "${db_namespace}" "${app_namespace}"; do
+    if kubectl get secret "${secret_name}" -n "${ns}" >/dev/null 2>&1; then
+      mongo_user="$(kubectl get secret "${secret_name}" -n "${ns}" -o jsonpath='{.data.MONGO_USERNAME}' | base64 -d)"
+      mongo_password="$(kubectl get secret "${secret_name}" -n "${ns}" -o jsonpath='{.data.MONGO_PASSWORD}' | base64 -d)"
+      mongo_database="$(kubectl get secret "${secret_name}" -n "${ns}" -o jsonpath='{.data.MONGO_DATABASE}' | base64 -d)"
+      mongo_auth_source="$(kubectl get secret "${secret_name}" -n "${ns}" -o jsonpath='{.data.MONGO_AUTH_SOURCE}' | base64 -d)"
+      return 0
+    fi
+  done
+
+  if [ -n "${MONGO_PASSWORD:-}" ] && { [ "${APP_ENV:-development}" != "production" ] || [ "${MONGO_PASSWORD}" != "mongo" ]; }; then
+    mongo_user="${MONGO_USERNAME:-mongo}"
+    mongo_password="${MONGO_PASSWORD}"
+    mongo_database="${MONGO_DATABASE:-video_converter}"
+    mongo_auth_source="${MONGO_AUTH_SOURCE:-admin}"
+    return 0
+  fi
+
   sanitize_secret_env
   mongo_user="${MONGO_USERNAME:-mongo}"
   mongo_password="${MONGO_PASSWORD:-mongo}"
   mongo_database="${MONGO_DATABASE:-video_converter}"
   mongo_auth_source="${MONGO_AUTH_SOURCE:-admin}"
-fi
+}
 
-if [ -z "${mongo_user}" ] || [ -z "${mongo_password}" ]; then
+_load_mongo_credentials
+
+if [ -z "${mongo_user:-}" ] || [ -z "${mongo_password:-}" ]; then
   echo "ERROR: MongoDB username/password unavailable for password sync." >&2
   exit 1
 fi
@@ -53,6 +68,20 @@ _mongo_auth_ok() {
       -u '${mongo_user}' \
       -p \"\$(printf '%s' '${password_b64}' | base64 -d)\" \
       --quiet --eval 'db.runCommand({ping:1}).ok'" 2>/dev/null | grep -q '^1$'
+}
+
+_wait_for_mongo_auth() {
+  local timeout_seconds="${1:-180}"
+  local deadline=$((SECONDS + timeout_seconds))
+
+  while [ "${SECONDS}" -lt "${deadline}" ]; do
+    if _mongo_auth_ok; then
+      return 0
+    fi
+    sleep 5
+  done
+
+  return 1
 }
 
 _sync_password_in_mongo() {
@@ -100,7 +129,7 @@ fi
 
 echo "Syncing MongoDB password for user ${mongo_user} in ${db_namespace}..."
 
-if _sync_password_in_mongo && _mongo_auth_ok; then
+if _sync_password_in_mongo && _wait_for_mongo_auth 60; then
   echo "MongoDB password synced."
   exit 0
 fi
@@ -108,7 +137,7 @@ fi
 echo "MongoDB password change with current credentials failed; reinitializing data volume..."
 _reset_mongo_data
 
-if ! _mongo_auth_ok; then
+if ! _wait_for_mongo_auth 180; then
   echo "ERROR: MongoDB password sync failed for user ${mongo_user} after PVC reset." >&2
   exit 1
 fi
