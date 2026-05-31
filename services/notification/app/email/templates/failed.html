@@ -1,22 +1,13 @@
 <!DOCTYPE html>
 <html>
-
 <head>
     <title>Conversion Failed</title>
 </head>
-
 <body>
-
     <h1>Video Conversion Failed</h1>
-
-    <p>
-        Unfortunately, your video conversion failed.
-    </p>
-
-    <p>
-        Please try again later.
-    </p>
-
+    <p>Hello,</p>
+    <p>We were unable to convert your video <strong>{{filename}}</strong>.</p>
+    <p>Reason: {{error_message}}</p>
+    <p>Please try uploading again from <a href="{{frontend_url}}">{{frontend_url}}</a>.</p>
 </body>
-
 </html>

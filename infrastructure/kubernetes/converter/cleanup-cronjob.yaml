@@ -1,0 +1,43 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: converter-cleanup
+  namespace: ${K8S_NAMESPACE}
+  labels:
+    app: converter-service
+    component: cleanup
+spec:
+  schedule: "*/30 * * * *"
+  successfulJobsHistoryLimit: 1
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      template:
+        metadata:
+          labels:
+            app: converter-service
+            component: cleanup
+        spec:
+          restartPolicy: OnFailure
+          serviceAccountName: converter-service-account
+          containers:
+            - name: cleanup
+              image: ${DOCKER_IMAGE_REGISTRY}/${DOCKER_IMAGE_NAMESPACE}/converter-service:${IMAGE_TAG}
+              imagePullPolicy: IfNotPresent
+              command: ["python", "-m", "app.workers.cleanup_worker"]
+              envFrom:
+                - configMapRef:
+                    name: converter-config
+              env:
+                - name: APP_ENV
+                  valueFrom:
+                    configMapKeyRef:
+                      name: converter-config
+                      key: APP_ENV
+              resources:
+                requests:
+                  cpu: 50m
+                  memory: 64Mi
+                limits:
+                  cpu: 200m
+                  memory: 128Mi

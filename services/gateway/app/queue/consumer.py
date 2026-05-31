@@ -1,6 +1,7 @@
 import json
 import logging
 import os
+import threading
 import time
 
 import pika
@@ -13,8 +14,7 @@ from app.database.job_repository import (
     mark_job_failed,
 )
 from app.queue.producer import get_gateway_producer
-
-logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
+from shared.email.renderer import render_email_template
 
 logger = logging.getLogger(__name__)
 
@@ -40,6 +40,10 @@ class GatewayEventConsumer:
         self.connection = None
 
         self.channel = None
+
+        self._should_stop = False
+
+        self._ready_event = threading.Event()
 
         self.validate_environment()
 
@@ -144,11 +148,11 @@ class GatewayEventConsumer:
         frontend_url = FRONTEND_URL.rstrip("/")
 
         subject = "Your video conversion is ready"
-        content = (
-            f"Hello,\n\n"
-            f'Your video "{filename}" has been converted to MP3.\n\n'
-            f"Sign in at {frontend_url} to download your file.\n\n"
-            f"Job ID: {job_id}\n"
+        content = render_email_template(
+            "success.html",
+            filename=filename,
+            frontend_url=frontend_url,
+            job_id=job_id,
         )
 
         get_gateway_producer().publish_notification_event(
@@ -231,7 +235,7 @@ class GatewayEventConsumer:
 
     def start(self):
 
-        while True:
+        while not self._should_stop:
 
             try:
 
@@ -245,15 +249,30 @@ class GatewayEventConsumer:
                     on_message_callback=self.process_message,
                 )
 
+                self._ready_event.set()
+
                 self.channel.start_consuming()
 
             except Exception as error:
+
+                if self._should_stop:
+                    break
 
                 logger.error("Gateway consumer crashed: %s", str(error))
 
                 time.sleep(5)
 
                 self.reconnect()
+
+    def stop(self) -> None:
+        self._should_stop = True
+        self._ready_event.clear()
+        try:
+            if self.channel and self.channel.is_open:
+                self.channel.stop_consuming()
+        except Exception as error:
+            logger.warning("Gateway consumer stop_consuming failed: %s", error)
+        self.close()
 
     def close(self):
 
@@ -280,13 +299,16 @@ class GatewayEventConsumer:
 
 _consumer_instance = None
 _consumer_thread = None
+_on_ready_callback = None
 
 
-def start_consumer():
+def start_consumer(on_ready=None):
 
     import threading
 
-    global _consumer_instance, _consumer_thread
+    global _consumer_instance, _consumer_thread, _on_ready_callback
+
+    _on_ready_callback = on_ready
 
     if _consumer_thread and _consumer_thread.is_alive():
         return
@@ -297,6 +319,19 @@ def start_consumer():
 
         try:
             _consumer_instance = GatewayEventConsumer()
+
+            if _on_ready_callback:
+
+                def _notify_ready():
+                    if _consumer_instance._ready_event.wait(timeout=60):
+                        _on_ready_callback()
+
+                threading.Thread(
+                    target=_notify_ready,
+                    name="gateway-consumer-ready",
+                    daemon=True,
+                ).start()
+
             _consumer_instance.start()
         except Exception as error:
             logger.error(
@@ -307,12 +342,24 @@ def start_consumer():
     _consumer_thread = threading.Thread(
         target=_run,
         name="gateway-consumer",
-        daemon=True,
+        daemon=False,
     )
 
     _consumer_thread.start()
 
     logger.info("Gateway consumer startup initiated")
+
+
+def stop_consumer() -> None:
+    global _consumer_instance, _consumer_thread
+
+    if _consumer_instance is not None:
+        _consumer_instance.stop()
+        _consumer_instance = None
+
+    if _consumer_thread and _consumer_thread.is_alive():
+        _consumer_thread.join(timeout=15)
+    _consumer_thread = None
 
 
 if __name__ == "__main__":

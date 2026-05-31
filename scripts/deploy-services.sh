@@ -24,6 +24,8 @@ fi
 # shellcheck source=scripts/resolve-ecr-registry.sh
 source "${ROOT_DIR}/scripts/resolve-ecr-registry.sh"
 
+bash "${ROOT_DIR}/scripts/validate-production-config.sh"
+
 bash "${ROOT_DIR}/scripts/render-k8s-manifests.sh" "${ROOT_DIR}/.rendered-k8s"
 
 RENDERED="${ROOT_DIR}/.rendered-k8s/infrastructure/kubernetes"
@@ -40,6 +42,20 @@ if [ -d "${RENDERED}/configmaps" ]; then
   kubectl apply -f "${RENDERED}/configmaps/"
 fi
 
+if [ "${RUN_POSTGRES_MIGRATIONS:-true}" = "true" ]; then
+  echo "Running Postgres migrations..."
+  if [ -f "${RENDERED}/postgres/migration-job.yaml" ]; then
+    kubectl delete job postgres-migrations -n "${K8S_NAMESPACE}" --ignore-not-found
+    kubectl apply -f "${RENDERED}/postgres/migration-job.yaml"
+    kubectl wait --for=condition=complete job/postgres-migrations -n "${K8S_NAMESPACE}" --timeout=180s
+  else
+    bash "${ROOT_DIR}/scripts/run-postgres-migrations.sh" || {
+      echo "Postgres migration script failed; ensure POSTGRES_* env vars are reachable."
+      exit 1
+    }
+  fi
+fi
+
 # Deploy API workloads first, then dedicated queue workers.
 for dir in gateway auth converter notification redis frontend; do
   for kind in deployment service ingress hpa; do
@@ -54,6 +70,10 @@ for dir in gateway converter notification; do
   manifest="${RENDERED}/${dir}/worker-deployment.yaml"
   if [ -f "${manifest}" ]; then
     kubectl apply -f "${manifest}"
+  fi
+  cleanup_manifest="${RENDERED}/${dir}/cleanup-cronjob.yaml"
+  if [ -f "${cleanup_manifest}" ]; then
+    kubectl apply -f "${cleanup_manifest}"
   fi
 done
 

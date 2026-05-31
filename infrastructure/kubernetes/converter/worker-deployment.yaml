@@ -31,6 +31,8 @@ spec:
       imagePullSecrets:
         - name: ${DOCKER_REGISTRY_SECRET_NAME}
 
+      terminationGracePeriodSeconds: 120
+
       containers:
         - name: converter-worker
           image: ${DOCKER_IMAGE_REGISTRY}/${DOCKER_IMAGE_NAMESPACE}/converter-service:${IMAGE_TAG}
@@ -99,10 +101,17 @@ spec:
             - name: worker-tmp
               mountPath: /tmp
 
+          lifecycle:
+            preStop:
+              exec:
+                command: ["/bin/sh", "-c", "sleep 10"]
+
       volumes:
         - name: converter-tmp
-          emptyDir: {}
+          emptyDir:
+            sizeLimit: 5Gi
         - name: worker-tmp
-          emptyDir: {}
+          emptyDir:
+            sizeLimit: 2Gi
 
       restartPolicy: Always

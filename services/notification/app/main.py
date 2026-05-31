@@ -8,6 +8,8 @@ from prometheus_fastapi_instrumentator import Instrumentator
 from app.config import APP_ENV, APP_NAME, APP_PORT, CORS_ALLOWED_ORIGINS
 from app.queue.consumer import start_consumer
 from app.websocket.events import start_websocket_background
+from shared.errors.handlers import register_exception_handlers
+from shared.logging.logger import configure_logging
 from shared.runtime.queue_consumer import queue_consumer_enabled
 
 _enable_docs = (
@@ -23,6 +25,8 @@ _enable_docs = (
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+
+    configure_logging(APP_NAME)
 
     if APP_ENV != "test":
         if queue_consumer_enabled():
@@ -50,6 +54,9 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+register_exception_handlers(app)
 
 
 @app.get("/health")

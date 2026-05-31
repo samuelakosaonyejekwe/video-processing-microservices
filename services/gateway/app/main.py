@@ -1,61 +1,60 @@
+import hashlib
+import logging
 import os
 from contextlib import asynccontextmanager
-import hashlib
 
 import jwt
-from jwt.exceptions import ExpiredSignatureError, PyJWTError
-from fastapi import Request
-
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
+from jwt.exceptions import ExpiredSignatureError, PyJWTError
 from prometheus_fastapi_instrumentator import Instrumentator
 
-from app.config import APP_ENV, CORS_ALLOWED_ORIGINS
 from app.config import (
+    APP_ENV,
+    CORS_ALLOWED_ORIGINS,
     JWT_ALGORITHM,
     JWT_AUDIENCE,
     JWT_ISSUER,
     JWT_PUBLIC_KEY,
 )
+from app.database.job_repository import mongo_available
+from app.database.mongo_client import close_mongo_client
 from app.middleware.auth_middleware import AuthMiddleware
 from app.middleware.rate_limit_middleware import RateLimitMiddleware
+from app.queue.consumer import start_consumer
+from app.queue.producer import get_gateway_producer
 from app.routes.auth_routes import router as auth_router
 from app.routes.converter_routes import router as converter_router
 from app.routes.jobs_routes import router as jobs_router
-from app.queue.consumer import start_consumer
-from app.queue.producer import get_gateway_producer
-from app.database.mongo_client import close_mongo_client
+from shared.errors.handlers import register_exception_handlers
+from shared.logging.logger import configure_logging
 from shared.runtime.queue_consumer import queue_consumer_enabled
 
 APP_NAME = os.getenv("APP_NAME") or "gateway-service"
+logger = logging.getLogger(__name__)
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    configure_logging(APP_NAME)
+    logger.info("Starting gateway service in %s mode", APP_ENV)
 
-    print("Starting gateway service...")
-
-    if APP_ENV != "test":
-        if queue_consumer_enabled():
-            start_consumer()
+    if APP_ENV != "test" and queue_consumer_enabled():
+        start_consumer()
 
     yield
 
-    print("Shutting down gateway service...")
+    logger.info("Shutting down gateway service...")
     try:
         get_gateway_producer().close()
-    except Exception:
-        pass
+    except Exception as error:
+        logger.warning("Gateway producer close failed: %s", error)
     close_mongo_client()
 
 
 _enable_docs = (
-    os.getenv("ENABLE_SWAGGER", "false").lower()
-    in (
-        "true",
-        "1",
-        "yes",
-    )
+    os.getenv("ENABLE_SWAGGER", "false").lower() in ("true", "1", "yes")
     or APP_ENV != "production"
 )
 
@@ -85,89 +84,90 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
 app.add_middleware(RateLimitMiddleware)
 app.add_middleware(AuthMiddleware)
 
 app.include_router(auth_router)
 app.include_router(converter_router)
 app.include_router(jobs_router)
+register_exception_handlers(app)
 
 
-@app.post("/health/verify-token")
-async def verify_token(request: Request):
+if APP_ENV != "production":
 
-    authorization = request.headers.get("Authorization")
-    if not authorization:
-        return {"valid": False, "detail": "Authorization header missing"}
+    @app.post("/health/verify-token")
+    async def verify_token(request: Request):
+        authorization = request.headers.get("Authorization")
+        if not authorization:
+            return {"valid": False, "detail": "Authorization header missing"}
 
-    parts = authorization.split()
-    if len(parts) != 2 or parts[0].lower() != "bearer":
-        return {"valid": False, "detail": "Invalid authorization header"}
+        parts = authorization.split()
+        if len(parts) != 2 or parts[0].lower() != "bearer":
+            return {"valid": False, "detail": "Invalid authorization header"}
 
-    token = parts[1]
+        token = parts[1]
 
-    try:
-        import app.config as jwt_config
+        try:
+            import app.config as jwt_config
 
-        algorithm = jwt_config.JWT_ALGORITHM
-        decode_key = (
-            jwt_config.JWT_PUBLIC_KEY
-            if algorithm.startswith("RS")
-            else jwt_config.JWT_SECRET
+            algorithm = jwt_config.JWT_ALGORITHM
+            decode_key = (
+                jwt_config.JWT_PUBLIC_KEY
+                if algorithm.startswith("RS")
+                else jwt_config.JWT_SECRET
+            )
+            payload = jwt.decode(
+                token,
+                decode_key,
+                algorithms=[algorithm],
+                issuer=jwt_config.JWT_ISSUER if algorithm.startswith("RS") else None,
+                audience=jwt_config.JWT_AUDIENCE if algorithm.startswith("RS") else None,
+            )
+            if payload.get("type") and payload.get("type") != "access":
+                return {"valid": False, "detail": "Invalid token type"}
+            return {"valid": True, "sub": payload.get("sub")}
+        except ExpiredSignatureError:
+            return {"valid": False, "detail": "Token expired"}
+        except PyJWTError:
+            return {"valid": False, "detail": "Invalid token"}
+
+    @app.get("/health/jwt")
+    async def jwt_health():
+        fingerprint = (
+            hashlib.sha256(JWT_PUBLIC_KEY.encode()).hexdigest()[:16]
+            if JWT_PUBLIC_KEY
+            else ""
         )
-        payload = jwt.decode(
-            token,
-            decode_key,
-            algorithms=[algorithm],
-            issuer=jwt_config.JWT_ISSUER if algorithm.startswith("RS") else None,
-            audience=jwt_config.JWT_AUDIENCE if algorithm.startswith("RS") else None,
-        )
-        if payload.get("type") and payload.get("type") != "access":
-            return {"valid": False, "detail": "Invalid token type"}
-        return {"valid": True, "sub": payload.get("sub")}
-    except ExpiredSignatureError:
-        return {"valid": False, "detail": "Token expired"}
-    except PyJWTError as exc:
         return {
-            "valid": False,
-            "detail": f"Invalid token: {exc.__class__.__name__}",
-            "algorithm": algorithm,
-            "key_length": len(decode_key or ""),
+            "algorithm": JWT_ALGORITHM,
+            "issuer": JWT_ISSUER,
+            "audience": JWT_AUDIENCE,
+            "public_key_loaded": bool(JWT_PUBLIC_KEY),
+            "public_key_fingerprint": fingerprint,
         }
 
 
-@app.get("/health/jwt")
-async def jwt_health():
+@app.get("/health/ready")
+async def readiness_check():
+    if not mongo_available():
+        return JSONResponse(
+            status_code=503,
+            content={
+                "status": "not_ready",
+                "service": APP_NAME,
+                "mongodb": "unavailable",
+            },
+        )
 
-    fingerprint = (
-        hashlib.sha256(JWT_PUBLIC_KEY.encode()).hexdigest()[:16]
-        if JWT_PUBLIC_KEY
-        else ""
-    )
-
-    return {
-        "algorithm": JWT_ALGORITHM,
-        "issuer": JWT_ISSUER,
-        "audience": JWT_AUDIENCE,
-        "public_key_loaded": bool(JWT_PUBLIC_KEY),
-        "public_key_fingerprint": fingerprint,
-    }
+    return {"status": "ready", "service": APP_NAME, "mongodb": "ok"}
 
 
 @app.get("/health")
 @app.get("/health/")
 async def health_check():
-
-    return {
-        "status": "healthy",
-        "service": APP_NAME,
-    }
+    return {"status": "healthy", "service": APP_NAME}
 
 
 @app.get("/")
 async def root():
-
-    return {
-        "message": "Gateway Service Running",
-    }
+    return {"message": "Gateway Service Running"}

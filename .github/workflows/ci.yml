@@ -91,7 +91,7 @@ jobs:
           for service in gateway auth converter notification; do
             echo "Testing $service..."
             pip install -r services/$service/requirements.txt
-            (cd services/$service && pytest)
+            (cd services/$service && pytest --cov=app --cov-report=term-missing --cov-fail-under=20)
           done
 
       - name: Run Integration Test Suite

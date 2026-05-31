@@ -1,4 +1,4 @@
-CREATE TABLE users (
+CREATE TABLE IF NOT EXISTS users (
 
     id SERIAL PRIMARY KEY,
 
@@ -8,11 +8,13 @@ CREATE TABLE users (
 
     password VARCHAR(255) NOT NULL,
 
+    role VARCHAR(50) NOT NULL DEFAULT 'user',
+
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
 
-CREATE TABLE conversions (
+CREATE TABLE IF NOT EXISTS conversions (
 
     id SERIAL PRIMARY KEY,
 

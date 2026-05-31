@@ -7,7 +7,6 @@
         "x-dead-letter-exchange": "video.dlx"
       }
     },
-
     {
       "name": "${VIDEO_UPLOAD_RETRY_QUEUE}",
       "durable": true,
@@ -17,18 +16,31 @@
         "x-dead-letter-routing-key": "${VIDEO_UPLOAD_QUEUE}"
       }
     },
-
     {
       "name": "${VIDEO_UPLOAD_DLQ}",
       "durable": true
     },
-
     {
       "name": "${NOTIFICATION_QUEUE}",
       "durable": true
+    },
+    {
+      "name": "${NOTIFICATION_RETRY_QUEUE}",
+      "durable": true
+    },
+    {
+      "name": "${GATEWAY_EVENTS_QUEUE}",
+      "durable": true
+    },
+    {
+      "name": "${VIDEO_COMPLETED_QUEUE}",
+      "durable": true
+    },
+    {
+      "name": "${VIDEO_FAILED_QUEUE}",
+      "durable": true
     }
   ],
-
   "exchanges": [
     {
       "name": "video.dlx",
@@ -36,7 +48,6 @@
       "durable": true
     }
   ],
-
   "bindings": [
     {
       "source": "video.dlx",

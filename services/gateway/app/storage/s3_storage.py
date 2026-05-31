@@ -2,20 +2,16 @@ import os
 
 from botocore.exceptions import ClientError
 
+from shared.storage.buckets import audio_bucket_name, video_bucket_name
 from shared.storage.s3_client import create_s3_client
 
 
 def _video_bucket() -> str:
-    return (
-        os.getenv("AWS_S3_VIDEO_BUCKET")
-        or os.getenv("AWS_S3_BUCKET")
-        or os.getenv("S3_UPLOAD_BUCKET")
-        or ""
-    )
+    return video_bucket_name()
 
 
 def _audio_bucket() -> str:
-    return os.getenv("S3_AUDIO_BUCKET") or os.getenv("AWS_S3_AUDIO_BUCKET") or ""
+    return audio_bucket_name()
 
 
 def audio_object_key(job_id: str) -> str:

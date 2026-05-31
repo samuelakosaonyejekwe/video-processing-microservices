@@ -322,7 +322,7 @@ spec:
           readinessProbe:
 
             httpGet:
-              path: ${AUTH_HEALTHCHECK_PATH}
+              path: /health/database
               port: ${AUTH_APP_PORT}
 
             initialDelaySeconds: 15

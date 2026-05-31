@@ -164,4 +164,11 @@ class RabbitMQProducer:
             logger.error("Failed to close RabbitMQ connection: %s", str(error))
 
 
-rabbitmq_producer = RabbitMQProducer()
+_rabbitmq_producer = None
+
+
+def get_notification_producer():
+    global _rabbitmq_producer
+    if _rabbitmq_producer is None:
+        _rabbitmq_producer = RabbitMQProducer()
+    return _rabbitmq_producer

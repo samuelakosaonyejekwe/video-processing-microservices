@@ -471,6 +471,10 @@ export PROMETHEUS_LABEL_VALUE="${PROMETHEUS_LABEL_VALUE:-prometheus}"
 export APPLY_NETWORK_POLICIES="${APPLY_NETWORK_POLICIES:-true}"
 export DEPLOY_MONITORING_STACK="${DEPLOY_MONITORING_STACK:-true}"
 
+if [ "${APP_ENV:-development}" = "production" ] && [ "${POSTGRES_SSL_MODE:-disable}" = "disable" ]; then
+  export POSTGRES_SSL_MODE="require"
+fi
+
 # SMTP alias
 _export_alias SMTP_EMAIL SMTP_EMAIL SMTP_USERNAME
 _export_alias SMTP_USERNAME SMTP_USERNAME SMTP_EMAIL

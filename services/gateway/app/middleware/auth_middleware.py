@@ -20,6 +20,7 @@ class AuthMiddleware(BaseHTTPMiddleware):
             "/redoc",
             "/health",
             "/health/",
+            "/health/ready",
             "/health/jwt",
             "/health/verify-token",
             "/auth/login",

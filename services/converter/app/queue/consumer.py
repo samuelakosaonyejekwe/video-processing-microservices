@@ -3,6 +3,7 @@ import logging
 import os
 import subprocess
 import tempfile
+import threading
 import time
 import uuid
 
@@ -55,6 +56,10 @@ class ConverterEventConsumer:
         self.channel = None
 
         self.s3_client = create_s3_client()
+
+        self._should_stop = False
+
+        self._ready_event = threading.Event()
 
         self.validate_environment()
 
@@ -284,7 +289,7 @@ class ConverterEventConsumer:
 
     def start(self):
 
-        while True:
+        while not self._should_stop:
 
             try:
 
@@ -295,15 +300,30 @@ class ConverterEventConsumer:
                     on_message_callback=self.process_message,
                 )
 
+                self._ready_event.set()
+
                 self.channel.start_consuming()
 
             except Exception as error:
+
+                if self._should_stop:
+                    break
 
                 logger.error("Converter consumer crashed: %s", str(error))
 
                 time.sleep(5)
 
                 self.reconnect()
+
+    def stop(self) -> None:
+        self._should_stop = True
+        self._ready_event.clear()
+        try:
+            if self.channel and self.channel.is_open:
+                self.channel.stop_consuming()
+        except Exception as error:
+            logger.warning("Converter consumer stop_consuming failed: %s", error)
+        self.close()
 
     def close(self):
 
@@ -330,13 +350,16 @@ class ConverterEventConsumer:
 
 _consumer_instance = None
 _consumer_thread = None
+_on_ready_callback = None
 
 
-def start_consumer():
+def start_consumer(on_ready=None):
 
     import threading
 
-    global _consumer_instance, _consumer_thread
+    global _consumer_instance, _consumer_thread, _on_ready_callback
+
+    _on_ready_callback = on_ready
 
     if _consumer_thread and _consumer_thread.is_alive():
         return
@@ -347,6 +370,19 @@ def start_consumer():
 
         try:
             _consumer_instance = ConverterEventConsumer()
+
+            if _on_ready_callback:
+
+                def _notify_ready():
+                    if _consumer_instance._ready_event.wait(timeout=60):
+                        _on_ready_callback()
+
+                threading.Thread(
+                    target=_notify_ready,
+                    name="converter-consumer-ready",
+                    daemon=True,
+                ).start()
+
             _consumer_instance.start()
         except Exception as error:
             logger.error(
@@ -357,12 +393,24 @@ def start_consumer():
     _consumer_thread = threading.Thread(
         target=_run,
         name="converter-consumer",
-        daemon=True,
+        daemon=False,
     )
 
     _consumer_thread.start()
 
     logger.info("Converter consumer startup initiated")
+
+
+def stop_consumer() -> None:
+    global _consumer_instance, _consumer_thread
+
+    if _consumer_instance is not None:
+        _consumer_instance.stop()
+        _consumer_instance = None
+
+    if _consumer_thread and _consumer_thread.is_alive():
+        _consumer_thread.join(timeout=15)
+    _consumer_thread = None
 
 
 if __name__ == "__main__":

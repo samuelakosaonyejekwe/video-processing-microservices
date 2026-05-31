@@ -130,6 +130,7 @@ logs/
 security/trivy/reports/
 security-audit/
 .rendered-k8s/
+.rendered-helm/
 .env.compose.runtime
 .compose-secrets/
 

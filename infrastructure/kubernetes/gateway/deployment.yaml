@@ -117,7 +117,7 @@ spec:
 
           readinessProbe:
             httpGet:
-              path: /health
+              path: /health/ready
               port: 8080
             initialDelaySeconds: 10
             periodSeconds: 10
@@ -148,7 +148,8 @@ spec:
 
       volumes:
         - name: tmp-volume
-          emptyDir: {}
+          emptyDir:
+            sizeLimit: 2Gi
 
       restartPolicy: Always
       terminationGracePeriodSeconds: 30

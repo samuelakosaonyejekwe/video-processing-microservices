@@ -220,4 +220,11 @@ class AuthEventProducer:
             logger.error("Failed to close RabbitMQ connection: %s", str(error))
 
 
-auth_event_producer = AuthEventProducer()
+auth_event_producer = None
+
+
+def get_auth_event_producer():
+    global auth_event_producer
+    if auth_event_producer is None:
+        auth_event_producer = AuthEventProducer()
+    return auth_event_producer

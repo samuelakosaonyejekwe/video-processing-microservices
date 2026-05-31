@@ -9,6 +9,8 @@ from app.config import APP_ENV, APP_NAME, CORS_ALLOWED_ORIGINS
 from app.queue.consumer import start_consumer
 from app.routes.convert import router as convert_router
 from app.routes.health import router as health_router
+from shared.errors.handlers import register_exception_handlers
+from shared.logging.logger import configure_logging
 from shared.runtime.queue_consumer import queue_consumer_enabled
 
 _enable_docs = (
@@ -24,6 +26,8 @@ _enable_docs = (
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+
+    configure_logging(APP_NAME)
 
     if APP_ENV != "test" and queue_consumer_enabled():
         start_consumer()
@@ -52,6 +56,7 @@ app.add_middleware(
 
 app.include_router(convert_router)
 app.include_router(health_router)
+register_exception_handlers(app)
 
 
 @app.get("/")

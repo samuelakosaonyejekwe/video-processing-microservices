@@ -7,6 +7,7 @@ import uuid
 import pika
 
 from pika.exceptions import AMQPConnectionError, AMQPChannelError
+from shared.events.schema import build_event
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
 
@@ -139,19 +140,17 @@ class ConverterEventProducer:
 
             correlation_id = str(uuid.uuid4())
 
-            event = {
-                "event_id": str(uuid.uuid4()),
-                "correlation_id": correlation_id,
-                "event_type": "video_conversion_completed",
-                "timestamp": int(time.time()),
-                "payload": {
+            event = build_event(
+                "video_conversion_completed",
+                {
                     "job_id": job_id,
                     "user_id": user_id,
                     "original_filename": original_filename,
                     "audio_s3_key": audio_s3_key,
                     "output_format": output_format,
                 },
-            }
+                correlation_id,
+            )
 
             self.channel.basic_publish(
                 exchange="",
@@ -187,18 +186,16 @@ class ConverterEventProducer:
 
             correlation_id = str(uuid.uuid4())
 
-            event = {
-                "event_id": str(uuid.uuid4()),
-                "correlation_id": correlation_id,
-                "event_type": "video_conversion_failed",
-                "timestamp": int(time.time()),
-                "payload": {
+            event = build_event(
+                "video_conversion_failed",
+                {
                     "job_id": job_id,
                     "user_id": user_id,
                     "original_filename": original_filename,
                     "error_message": error_message,
                 },
-            }
+                correlation_id,
+            )
 
             self.channel.basic_publish(
                 exchange="",
@@ -360,19 +357,17 @@ def publish_conversion_job(
 
     correlation_id = str(uuid.uuid4())
 
-    event = {
-        "event_id": str(uuid.uuid4()),
-        "correlation_id": correlation_id,
-        "event_type": "video_uploaded",
-        "timestamp": int(time.time()),
-        "payload": {
+    event = build_event(
+        "video_uploaded",
+        {
             "job_id": job_id,
             "user_id": user_id,
             "filename": filename,
             "s3_key": s3_key,
             "content_type": content_type,
         },
-    }
+        correlation_id,
+    )
 
     producer.channel.basic_publish(
         exchange="",

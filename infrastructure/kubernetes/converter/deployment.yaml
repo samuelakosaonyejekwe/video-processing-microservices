@@ -23,6 +23,8 @@ spec:
       imagePullSecrets:
         - name: ${DOCKER_REGISTRY_SECRET_NAME}
 
+      terminationGracePeriodSeconds: 120
+
       containers:
         - name: converter-service
 
@@ -71,7 +73,7 @@ spec:
 
           readinessProbe:
             httpGet:
-              path: /health
+              path: /health/mongodb
               port: 8002
             initialDelaySeconds: 15
             periodSeconds: 5
@@ -100,8 +102,14 @@ spec:
             - name: converter-tmp
               mountPath: /tmp/converter
 
+          lifecycle:
+            preStop:
+              exec:
+                command: ["/bin/sh", "-c", "sleep 10"]
+
       volumes:
         - name: converter-tmp
-          emptyDir: {}
+          emptyDir:
+            sizeLimit: 5Gi
 
       restartPolicy: Always

@@ -1,8 +1,9 @@
 const API = window.GATEWAY_URL || "/api";
 
 const state = {
-  token: localStorage.getItem("access_token") || "",
-  email: localStorage.getItem("user_email") || "",
+  token: sessionStorage.getItem("access_token") || "",
+  refreshToken: sessionStorage.getItem("refresh_token") || "",
+  email: sessionStorage.getItem("user_email") || "",
   jobId: "",
   filename: "",
   pollTimer: null,
@@ -67,9 +68,43 @@ function authHeaders(extra = {}) {
   };
 }
 
-async function apiFetch(path, options = {}) {
+async function refreshAccessToken() {
+  if (!state.refreshToken) {
+    throw new Error("Session expired. Please sign in again.");
+  }
+
+  const data = await fetch(`${API}/auth/refresh`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ refresh_token: state.refreshToken }),
+  }).then(async (response) => {
+    const body = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      throw new Error(body.detail || "Session expired. Please sign in again.");
+    }
+    return body;
+  });
+
+  state.token = data.access_token;
+  state.refreshToken = data.refresh_token;
+  sessionStorage.setItem("access_token", state.token);
+  sessionStorage.setItem("refresh_token", state.refreshToken);
+  return state.token;
+}
+
+async function apiFetch(path, options = {}, allowRefresh = true) {
   const response = await fetch(`${API}${path}`, options);
   const body = await response.json().catch(() => ({}));
+
+  if (response.status === 401 && allowRefresh && state.refreshToken) {
+    await refreshAccessToken();
+    const retryHeaders = {
+      ...(options.headers || {}),
+      Authorization: `Bearer ${state.token}`,
+    };
+    return apiFetch(path, { ...options, headers: retryHeaders }, false);
+  }
+
   if (!response.ok) {
     const detail = body.detail || body.message || `Request failed (${response.status})`;
     throw new Error(typeof detail === "string" ? detail : JSON.stringify(detail));
@@ -120,9 +155,11 @@ async function handleLogin(event) {
       body: JSON.stringify({ email, password }),
     });
     state.token = data.access_token;
+    state.refreshToken = data.refresh_token;
     state.email = email;
-    localStorage.setItem("access_token", state.token);
-    localStorage.setItem("user_email", state.email);
+    sessionStorage.setItem("access_token", state.token);
+    sessionStorage.setItem("refresh_token", state.refreshToken);
+    sessionStorage.setItem("user_email", state.email);
     showAuthenticatedView();
     resetConversionUi();
   } catch (error) {
@@ -149,10 +186,23 @@ async function handleRegister(event) {
   }
 }
 
-function handleLogout() {
-  localStorage.removeItem("access_token");
-  localStorage.removeItem("user_email");
+async function handleLogout() {
+  if (state.token) {
+    try {
+      await apiFetch("/auth/logout", {
+        method: "POST",
+        headers: authHeaders(),
+      });
+    } catch (error) {
+      // Ignore logout errors and clear local session anyway.
+    }
+  }
+
+  sessionStorage.removeItem("access_token");
+  sessionStorage.removeItem("refresh_token");
+  sessionStorage.removeItem("user_email");
   state.token = "";
+  state.refreshToken = "";
   state.email = "";
   showGuestView();
   switchTab("login");

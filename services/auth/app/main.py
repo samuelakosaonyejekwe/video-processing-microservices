@@ -22,12 +22,16 @@ from app.routes.login import router as login_router
 from app.routes.logout import router as logout_router
 from app.routes.refresh_token import router as refresh_token_router
 from app.routes.register import router as register_router
+from shared.errors.handlers import register_exception_handlers
+from shared.logging.logger import configure_logging
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
 
-    if APP_ENV != "test":
+    configure_logging(APP_NAME)
+
+    if APP_ENV not in ("test", "production"):
         Base.metadata.create_all(bind=engine)
 
     print(f"{APP_NAME} starting in {APP_ENV} mode")
@@ -67,25 +71,28 @@ app.include_router(register_router)
 app.include_router(refresh_token_router)
 app.include_router(logout_router)
 app.include_router(db_health_router)
+register_exception_handlers(app)
 
 
-@app.get("/health/jwt")
-async def jwt_health():
+if APP_ENV != "production":
 
-    fingerprint = (
-        hashlib.sha256(JWT_PUBLIC_KEY.encode()).hexdigest()[:16]
-        if JWT_PUBLIC_KEY
-        else ""
-    )
+    @app.get("/health/jwt")
+    async def jwt_health():
 
-    return {
-        "algorithm": JWT_ALGORITHM,
-        "issuer": JWT_ISSUER,
-        "audience": JWT_AUDIENCE,
-        "private_key_loaded": bool(JWT_PRIVATE_KEY),
-        "public_key_loaded": bool(JWT_PUBLIC_KEY),
-        "public_key_fingerprint": fingerprint,
-    }
+        fingerprint = (
+            hashlib.sha256(JWT_PUBLIC_KEY.encode()).hexdigest()[:16]
+            if JWT_PUBLIC_KEY
+            else ""
+        )
+
+        return {
+            "algorithm": JWT_ALGORITHM,
+            "issuer": JWT_ISSUER,
+            "audience": JWT_AUDIENCE,
+            "private_key_loaded": bool(JWT_PRIVATE_KEY),
+            "public_key_loaded": bool(JWT_PUBLIC_KEY),
+            "public_key_fingerprint": fingerprint,
+        }
 
 
 @app.get("/health")

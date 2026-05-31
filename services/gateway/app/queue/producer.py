@@ -7,6 +7,7 @@ import uuid
 import pika
 
 from pika.exceptions import AMQPConnectionError, AMQPChannelError
+from shared.events.schema import build_event
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
 
@@ -142,19 +143,17 @@ class GatewayEventProducer:
 
             correlation_id = str(uuid.uuid4())
 
-            event = {
-                "event_id": str(uuid.uuid4()),
-                "correlation_id": correlation_id,
-                "event_type": "video_uploaded",
-                "timestamp": int(time.time()),
-                "payload": {
+            event = build_event(
+                "video_uploaded",
+                {
                     "job_id": job_id,
                     "user_id": user_id,
                     "filename": filename,
                     "s3_key": s3_key,
                     "content_type": content_type,
                 },
-            }
+                correlation_id,
+            )
 
             self.channel.basic_publish(
                 exchange="",
@@ -188,17 +187,15 @@ class GatewayEventProducer:
 
             correlation_id = str(uuid.uuid4())
 
-            event = {
-                "event_id": str(uuid.uuid4()),
-                "correlation_id": correlation_id,
-                "event_type": "notification_requested",
-                "timestamp": int(time.time()),
-                "payload": {
+            event = build_event(
+                "notification_requested",
+                {
                     "recipient": recipient,
                     "subject": subject,
                     "content": content,
                 },
-            }
+                correlation_id,
+            )
 
             self.channel.basic_publish(
                 exchange="",
@@ -232,13 +229,7 @@ class GatewayEventProducer:
 
             correlation_id = str(uuid.uuid4())
 
-            event = {
-                "event_id": str(uuid.uuid4()),
-                "correlation_id": correlation_id,
-                "event_type": event_type,
-                "timestamp": int(time.time()),
-                "payload": payload,
-            }
+            event = build_event(event_type, payload, correlation_id)
 
             self.channel.basic_publish(
                 exchange="",
