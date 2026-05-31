@@ -21,10 +21,6 @@ spec:
             - -ec
             - |
               psql "${DATABASE_URL}" -f /schema/schema.sql
-              for migration in /schema/migrations/*.sql; do
-                echo "Running ${migration}"
-                psql "${DATABASE_URL}" -f "${migration}"
-              done
           env:
             - name: DATABASE_URL
               value: "postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@${POSTGRES_HOST}:${POSTGRES_PORT}/${POSTGRES_DB}?sslmode=${POSTGRES_SSL_MODE}"
