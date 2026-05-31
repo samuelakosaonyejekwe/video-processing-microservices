@@ -43,6 +43,7 @@ async def upload_video(
         )
         correlation_id = await asyncio.to_thread(
             _publish_upload,
+            job_id,
             user_id,
             file.filename,
             s3_key,
@@ -65,10 +66,11 @@ async def upload_video(
     }
 
 
-def _publish_upload(user_id, filename, s3_key, content_type):
+def _publish_upload(job_id, user_id, filename, s3_key, content_type):
 
     producer = get_gateway_producer()
     return producer.publish_video_upload_event(
+        job_id=job_id,
         user_id=user_id,
         filename=filename,
         s3_key=s3_key,

@@ -21,6 +21,7 @@ from app.middleware.auth_middleware import AuthMiddleware
 from app.middleware.rate_limit_middleware import RateLimitMiddleware
 from app.routes.auth_routes import router as auth_router
 from app.routes.converter_routes import router as converter_router
+from app.routes.jobs_routes import router as jobs_router
 from app.queue.producer import get_gateway_producer
 
 APP_NAME = os.getenv("APP_NAME") or "gateway-service"
@@ -82,6 +83,7 @@ app.add_middleware(AuthMiddleware)
 
 app.include_router(auth_router)
 app.include_router(converter_router)
+app.include_router(jobs_router)
 
 
 @app.post("/health/verify-token")

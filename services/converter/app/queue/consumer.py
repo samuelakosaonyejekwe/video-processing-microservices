@@ -209,29 +209,35 @@ class ConverterEventConsumer:
 
             s3_key = payload.get("s3_key")
 
+            job_id = payload.get("job_id")
+
             if not s3_key:
 
                 raise ValueError("Missing s3_key in conversion payload")
 
-            logger.info(
-                "Processing conversion request " "correlation_id=%s", correlation_id
-            )
+            if not job_id:
 
-            unique_id = str(uuid.uuid4())
+                job_id = str(uuid.uuid4())
+
+            logger.info(
+                "Processing conversion request " "correlation_id=%s job_id=%s",
+                correlation_id,
+                job_id,
+            )
 
             with tempfile.TemporaryDirectory(
                 dir=self.temp_storage_path
             ) as temp_directory:
 
-                local_video_path = os.path.join(temp_directory, f"{unique_id}.mp4")
+                local_video_path = os.path.join(temp_directory, f"{job_id}.mp4")
 
-                local_audio_path = os.path.join(temp_directory, f"{unique_id}.mp3")
+                local_audio_path = os.path.join(temp_directory, f"{job_id}.mp3")
 
                 self.download_video(s3_key, local_video_path)
 
                 self.convert_video_to_audio(local_video_path, local_audio_path)
 
-                audio_s3_key = f"{self.s3_audio_prefix.rstrip('/')}/{unique_id}.mp3"
+                audio_s3_key = f"{self.s3_audio_prefix.rstrip('/')}/{job_id}.mp3"
 
                 self.upload_audio(local_audio_path, audio_s3_key)
 

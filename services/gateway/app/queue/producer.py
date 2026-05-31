@@ -125,7 +125,9 @@ class GatewayEventProducer:
 
         self.connect()
 
-    def publish_video_upload_event(self, user_id, filename, s3_key, content_type):
+    def publish_video_upload_event(
+        self, job_id, user_id, filename, s3_key, content_type
+    ):
 
         try:
 
@@ -137,6 +139,7 @@ class GatewayEventProducer:
                 "event_type": "video_uploaded",
                 "timestamp": int(time.time()),
                 "payload": {
+                    "job_id": job_id,
                     "user_id": user_id,
                     "filename": filename,
                     "s3_key": s3_key,
