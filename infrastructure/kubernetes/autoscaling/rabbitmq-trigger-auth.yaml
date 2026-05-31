@@ -7,13 +7,4 @@ spec:
   secretTargetRef:
     - parameter: host
       name: rabbitmq-secret
-      key: RABBITMQ_HOST
-    - parameter: port
-      name: rabbitmq-secret
-      key: RABBITMQ_PORT
-    - parameter: username
-      name: rabbitmq-secret
-      key: RABBITMQ_USERNAME
-    - parameter: password
-      name: rabbitmq-secret
-      key: RABBITMQ_PASSWORD
+      key: KEDA_RABBITMQ_HOST

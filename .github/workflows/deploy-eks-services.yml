@@ -111,9 +111,11 @@ jobs:
           SKIP_INFRA_DEPLOY: "true"
           SKIP_MONGO_PASSWORD_SYNC: "true"
           INSTALL_KEDA: "true"
-          KEDA_INSTALL_TIMEOUT: "90s"
-          DEPLOY_ROLLOUT_TIMEOUT: "90s"
-          WORKER_ROLLOUT_TIMEOUT: "90s"
+          KEDA_INSTALL_TIMEOUT: "120s"
+          KEDA_SCALEDOBJECT_WAIT_TIMEOUT: "120s"
+          DEPLOY_JOB_WAIT_TIMEOUT: "120s"
+          DEPLOY_ROLLOUT_TIMEOUT: "120s"
+          WORKER_ROLLOUT_TIMEOUT: "120s"
           RUN_POSTGRES_MIGRATIONS: "true"
         run: |
           chmod +x scripts/*.sh scripts/lib/*.sh
@@ -122,6 +124,7 @@ jobs:
           bash scripts/deploy-services.sh
           bash scripts/verify-deployment.sh
           bash scripts/validate-hpa.sh
+          bash scripts/validate-keda.sh
           bash scripts/validate-queue-workers.sh
 
       - name: Production Validation

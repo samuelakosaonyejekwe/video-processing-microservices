@@ -40,12 +40,21 @@ _create_secret() {
 
 sanitize_secret_env
 
-_rabbitmq_password_urlencoded() {
-  python3 -c "import urllib.parse, os; print(urllib.parse.quote_plus(os.environ['RABBITMQ_PASSWORD']))"
+_rabbitmq_component_urlencoded() {
+  python3 -c "import urllib.parse, os, sys; print(urllib.parse.quote_plus(os.environ[sys.argv[1]]))" "$1"
 }
 
 if [ -n "${RABBITMQ_USERNAME:-}" ] && [ -n "${RABBITMQ_PASSWORD:-}" ] && [ -n "${RABBITMQ_HOST:-}" ]; then
-  export RABBITMQ_URI="amqp://${RABBITMQ_USERNAME}:$(_rabbitmq_password_urlencoded)@${RABBITMQ_HOST}:${RABBITMQ_PORT:-5672}/"
+  _rabbitmq_user_encoded="$(_rabbitmq_component_urlencoded RABBITMQ_USERNAME)"
+  _rabbitmq_pass_encoded="$(_rabbitmq_component_urlencoded RABBITMQ_PASSWORD)"
+  _rabbitmq_vhost="${RABBITMQ_VHOST:-/}"
+  if [ "${_rabbitmq_vhost}" = "/" ]; then
+    _rabbitmq_vhost_path=""
+  else
+    _rabbitmq_vhost_path="${_rabbitmq_vhost#/}"
+  fi
+  export RABBITMQ_URI="amqp://${_rabbitmq_user_encoded}:${_rabbitmq_pass_encoded}@${RABBITMQ_HOST}:${RABBITMQ_PORT:-5672}/${_rabbitmq_vhost_path}"
+  export KEDA_RABBITMQ_HOST="${RABBITMQ_URI}"
 fi
 
 export POSTGRES_URI="${POSTGRES_URI:-postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@${POSTGRES_HOST}:${POSTGRES_PORT}/${POSTGRES_DB}?sslmode=${POSTGRES_SSL_MODE}}"
@@ -106,7 +115,8 @@ _create_secret rabbitmq-secret "${SECRETS_DIR}/rabbitmq-secret.yaml" \
   RABBITMQ_PORT RABBITMQ_PORT \
   RABBITMQ_ERLANG_COOKIE RABBITMQ_ERLANG_COOKIE \
   RABBITMQ_AMQP_URL RABBITMQ_AMQP_URL \
-  RABBITMQ_URI RABBITMQ_URI
+  RABBITMQ_URI RABBITMQ_URI \
+  KEDA_RABBITMQ_HOST KEDA_RABBITMQ_HOST
 
 _create_secret mongodb-secret "${SECRETS_DIR}/mongodb-secret.yaml" \
   MONGO_HOST MONGO_HOST \

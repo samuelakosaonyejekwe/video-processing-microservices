@@ -6,8 +6,8 @@ ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 # shellcheck source=scripts/lib/env-aliases.sh
 source "${ROOT_DIR}/scripts/lib/env-aliases.sh"
 
-ROLLOUT_TIMEOUT="${DEPLOY_ROLLOUT_TIMEOUT:-90s}"
-WORKER_ROLLOUT_TIMEOUT="${WORKER_ROLLOUT_TIMEOUT:-90s}"
+ROLLOUT_TIMEOUT="${DEPLOY_ROLLOUT_TIMEOUT:-120s}"
+WORKER_ROLLOUT_TIMEOUT="${WORKER_ROLLOUT_TIMEOUT:-120s}"
 
 if [ "${FORCE_ROLLOUT_RESTART:-false}" = "true" ]; then
   echo "Restarting microservice deployments (FORCE_ROLLOUT_RESTART=true)..."

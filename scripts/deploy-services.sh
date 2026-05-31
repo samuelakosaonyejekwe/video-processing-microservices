@@ -61,7 +61,7 @@ if [ "${RUN_POSTGRES_MIGRATIONS:-true}" = "true" ]; then
   if [ -f "${RENDERED}/postgres/migration-job.yaml" ]; then
     kubectl delete job postgres-migrations -n "${K8S_NAMESPACE}" --ignore-not-found --wait=true
     kubectl apply -f "${RENDERED}/postgres/migration-job.yaml"
-    kubectl wait --for=condition=complete job/postgres-migrations -n "${K8S_NAMESPACE}" --timeout=90s
+    kubectl wait --for=condition=complete job/postgres-migrations -n "${K8S_NAMESPACE}" --timeout="${DEPLOY_JOB_WAIT_TIMEOUT:-120s}"
   else
     bash "${ROOT_DIR}/scripts/run-postgres-migrations.sh" || {
       echo "Postgres migration script failed; ensure POSTGRES_* env vars are reachable."
@@ -73,7 +73,7 @@ fi
 if [ -f "${RENDERED}/mongodb/index-job.yaml" ]; then
   kubectl delete job mongodb-index-setup -n "${K8S_NAMESPACE}" --ignore-not-found
   kubectl apply -f "${RENDERED}/mongodb/index-job.yaml"
-  kubectl wait --for=condition=complete job/mongodb-index-setup -n "${K8S_NAMESPACE}" --timeout=90s
+  kubectl wait --for=condition=complete job/mongodb-index-setup -n "${K8S_NAMESPACE}" --timeout="${DEPLOY_JOB_WAIT_TIMEOUT:-120s}"
 fi
 
 if [ -f "${RENDERED}/cleanup/s3-orphan-cleanup-cronjob.yaml" ]; then
@@ -114,6 +114,12 @@ trigger_auth_manifest="${scaling_dir}/rabbitmq-trigger-auth.yaml"
 scaledobject_manifest="${scaling_dir}/converter-scaledobject.yaml"
 if [ -f "${scaledobject_manifest}" ]; then
   if kubectl get crd scaledobjects.keda.sh >/dev/null 2>&1; then
+    echo "Refreshing RabbitMQ secret for KEDA..."
+    bash "${ROOT_DIR}/scripts/render-k8s-secrets.sh" "${ROOT_DIR}/.rendered-k8s"
+    rabbitmq_secret="${RENDERED}/secrets/rabbitmq-secret.yaml"
+    if [ -f "${rabbitmq_secret}" ]; then
+      kubectl apply -f "${rabbitmq_secret}"
+    fi
     if [ -f "${trigger_auth_manifest}" ]; then
       echo "Applying KEDA TriggerAuthentication..."
       kubectl apply -f "${trigger_auth_manifest}"
@@ -125,7 +131,7 @@ if [ -f "${scaledobject_manifest}" ]; then
       kubectl wait --for=condition=Ready \
         "scaledobject/${CONVERTER_SCALEDOBJECT_NAME:-converter-worker-scaler}" \
         -n "${K8S_NAMESPACE}" \
-        --timeout=90s
+        --timeout="${KEDA_SCALEDOBJECT_WAIT_TIMEOUT:-120s}"
     fi
   else
     echo "ERROR: KEDA CRD missing after install step." >&2

@@ -10,7 +10,7 @@ source "${ROOT_DIR}/scripts/lib/env-aliases.sh"
 KEDA_RELEASE_NAME="${KEDA_RELEASE_NAME:-keda}"
 KEDA_HELM_REPOSITORY="${KEDA_HELM_REPOSITORY:-https://kedacore.github.io/charts}"
 KEDA_CHART_NAME="${KEDA_CHART_NAME:-keda}"
-KEDA_INSTALL_TIMEOUT="${KEDA_INSTALL_TIMEOUT:-90s}"
+KEDA_INSTALL_TIMEOUT="${KEDA_INSTALL_TIMEOUT:-120s}"
 
 if kubectl get crd scaledobjects.keda.sh >/dev/null 2>&1; then
   echo "KEDA CRD already present."

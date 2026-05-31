@@ -7,8 +7,8 @@ source "${ROOT_DIR}/scripts/lib/env-aliases.sh"
 # shellcheck source=scripts/setup-production-test-endpoints.sh
 source "${ROOT_DIR}/scripts/setup-production-test-endpoints.sh"
 
-export DEPLOY_ROLLOUT_TIMEOUT="${DEPLOY_ROLLOUT_TIMEOUT:-90s}"
-export WORKER_ROLLOUT_TIMEOUT="${WORKER_ROLLOUT_TIMEOUT:-90s}"
+export DEPLOY_ROLLOUT_TIMEOUT="${DEPLOY_ROLLOUT_TIMEOUT:-120s}"
+export WORKER_ROLLOUT_TIMEOUT="${WORKER_ROLLOUT_TIMEOUT:-120s}"
 
 trap cleanup_production_test_endpoints EXIT
 

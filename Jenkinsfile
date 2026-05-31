@@ -498,8 +498,8 @@ pipeline {
             steps {
 
                 sh '''
-                    export DEPLOY_ROLLOUT_TIMEOUT=90s
-                    export WORKER_ROLLOUT_TIMEOUT=90s
+                    export DEPLOY_ROLLOUT_TIMEOUT=120s
+                    export WORKER_ROLLOUT_TIMEOUT=120s
                     chmod +x scripts/verify-deployment.sh scripts/lib/env-aliases.sh
                     bash scripts/verify-deployment.sh
                     bash scripts/validate-queue-workers.sh

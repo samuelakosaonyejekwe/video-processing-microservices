@@ -28,6 +28,10 @@ spec:
             matchLabels:
               kubernetes.io/metadata.name: ${K8S_NAMESPACE}
 
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: ${KEDA_NAMESPACE}
+
       ports:
 
         - protocol: TCP
