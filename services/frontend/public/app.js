@@ -9,7 +9,6 @@ const state = {
 };
 
 const els = {
-  gatewayStatus: document.getElementById("gateway-status"),
   authCard: document.getElementById("auth-card"),
   appCard: document.getElementById("app-card"),
   loginForm: document.getElementById("login-form"),
@@ -99,17 +98,6 @@ function resetConversionUi() {
   setProgress(0);
   setStep("upload");
   setAlert("Upload a video file to extract its audio track as MP3.", "info");
-}
-
-async function checkGateway() {
-  try {
-    const data = await apiFetch("/health");
-    els.gatewayStatus.textContent = `API ${data.status || "online"}`;
-    els.gatewayStatus.classList.add("ok");
-  } catch {
-    els.gatewayStatus.textContent = "API offline";
-    els.gatewayStatus.classList.add("error");
-  }
 }
 
 function switchTab(mode) {
@@ -295,7 +283,6 @@ function bindEvents() {
 
 function init() {
   bindEvents();
-  checkGateway();
   switchTab("login");
   if (state.token) {
     showAuthenticatedView();
