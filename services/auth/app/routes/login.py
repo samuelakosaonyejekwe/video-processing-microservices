@@ -94,7 +94,7 @@ def login(data: LoginRequest):
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             detail="Authentication service temporarily unavailable",
         ) from error
-    except (PyJWTError, ValueError) as error:
+    except (PyJWTError, ValueError, TypeError) as error:
         logger.exception(
             "Token generation failed during login for email=%s", data.email
         )

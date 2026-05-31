@@ -1,5 +1,7 @@
 import os
 
+from shared.security.pem_loader import load_pem
+
 
 def first_env(*names: str, default: str = "") -> str:
 
@@ -27,22 +29,6 @@ POSTGRES_USER = first_env("POSTGRES_USER", default="postgres")
 POSTGRES_PASSWORD = first_env("POSTGRES_PASSWORD")
 
 POSTGRES_SSL_MODE = first_env("POSTGRES_SSL_MODE", default="prefer")
-
-
-def load_pem(env_name: str, file_path: str) -> str:
-
-    if os.path.exists(file_path):
-        with open(file_path, encoding="utf-8") as pem_file:
-            file_value = pem_file.read().strip()
-            if file_value:
-                return file_value
-
-    value = os.getenv(env_name)
-    if value and value.strip():
-        return value.strip()
-
-    return ""
-
 
 JWT_PRIVATE_KEY = load_pem("JWT_PRIVATE_KEY", "/run/secrets/jwt-private.pem")
 JWT_PUBLIC_KEY = load_pem("JWT_PUBLIC_KEY", "/run/secrets/jwt-public.pem")

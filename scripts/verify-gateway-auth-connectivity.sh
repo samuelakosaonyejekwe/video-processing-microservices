@@ -27,10 +27,21 @@ echo "Checking auth connectivity from pod/${gateway_pod} -> ${health_url}"
 if kubectl exec -n "${K8S_NAMESPACE}" "${gateway_pod}" -- \
   curl -sf --max-time 10 "${health_url}" >/dev/null; then
   echo "Gateway -> auth connectivity OK."
-  exit 0
+else
+  echo "ERROR: Gateway cannot reach auth at ${health_url}" >&2
+  exit 1
 fi
 
-echo "ERROR: Gateway cannot reach auth at ${health_url}" >&2
-kubectl exec -n "${K8S_NAMESPACE}" "${gateway_pod}" -- \
-  curl -sv --max-time 10 "${health_url}" 2>&1 | tail -20 || true
-exit 1
+auth_jwt_url="${auth_url%/}/health/jwt"
+echo "Checking auth JWT signing at ${auth_jwt_url}"
+jwt_health="$(kubectl exec -n "${K8S_NAMESPACE}" "${gateway_pod}" -- \
+  curl -sf --max-time 10 "${auth_jwt_url}" 2>/dev/null || true)"
+if [ -z "${jwt_health}" ]; then
+  echo "ERROR: Auth JWT health endpoint unavailable at ${auth_jwt_url}" >&2
+  exit 1
+fi
+if ! printf '%s' "${jwt_health}" | grep -q '"signing_ok"[[:space:]]*:[[:space:]]*true'; then
+  echo "ERROR: Auth JWT signing check failed: ${jwt_health}" >&2
+  exit 1
+fi
+echo "Auth JWT signing OK."

@@ -2,6 +2,7 @@ import os
 from contextlib import asynccontextmanager
 import hashlib
 
+import jwt
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from prometheus_fastapi_instrumentator import Instrumentator
@@ -80,25 +81,39 @@ app.include_router(db_health_router)
 register_exception_handlers(app)
 
 
-if APP_ENV != "production":
+@app.get("/health/jwt")
+async def jwt_health():
+    fingerprint = (
+        hashlib.sha256(JWT_PUBLIC_KEY.encode()).hexdigest()[:16]
+        if JWT_PUBLIC_KEY
+        else ""
+    )
+    signing_ok = False
+    if JWT_PRIVATE_KEY and JWT_PUBLIC_KEY:
+        try:
+            token = jwt.encode(
+                {"healthcheck": "1"},
+                JWT_PRIVATE_KEY,
+                algorithm=JWT_ALGORITHM,
+            )
+            jwt.decode(
+                token,
+                JWT_PUBLIC_KEY,
+                algorithms=[JWT_ALGORITHM],
+            )
+            signing_ok = True
+        except jwt.PyJWTError:
+            signing_ok = False
 
-    @app.get("/health/jwt")
-    async def jwt_health():
-
-        fingerprint = (
-            hashlib.sha256(JWT_PUBLIC_KEY.encode()).hexdigest()[:16]
-            if JWT_PUBLIC_KEY
-            else ""
-        )
-
-        return {
-            "algorithm": JWT_ALGORITHM,
-            "issuer": JWT_ISSUER,
-            "audience": JWT_AUDIENCE,
-            "private_key_loaded": bool(JWT_PRIVATE_KEY),
-            "public_key_loaded": bool(JWT_PUBLIC_KEY),
-            "public_key_fingerprint": fingerprint,
-        }
+    return {
+        "algorithm": JWT_ALGORITHM,
+        "issuer": JWT_ISSUER,
+        "audience": JWT_AUDIENCE,
+        "private_key_loaded": bool(JWT_PRIVATE_KEY),
+        "public_key_loaded": bool(JWT_PUBLIC_KEY),
+        "public_key_fingerprint": fingerprint,
+        "signing_ok": signing_ok,
+    }
 
 
 @app.get("/health")

@@ -39,22 +39,7 @@ if not CONVERTER_SERVICE_URL:
 APP_ENV = first_env("APP_ENV", "ENVIRONMENT", default="production")
 
 
-def load_pem(env_name: str, file_path: str) -> str:
-
-    if os.path.exists(file_path):
-        with open(file_path, encoding="utf-8") as pem_file:
-            file_value = pem_file.read().strip()
-            if file_value:
-                return file_value
-
-    value = os.getenv(env_name)
-    if value and value.strip():
-        return value.strip()
-
-    return ""
-
-
-JWT_PUBLIC_KEY = load_pem("JWT_PUBLIC_KEY", "/run/secrets/jwt-public.pem")
+from shared.security.pem_loader import load_pem
 
 JWT_ISSUER = first_env(
     "JWT_ISSUER", "JWT_TOKEN_ISSUER", default="video-converter-platform"

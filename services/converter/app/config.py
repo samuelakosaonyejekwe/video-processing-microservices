@@ -112,19 +112,7 @@ MAX_CONVERSION_TIMEOUT_SECONDS = int(
 MAX_VIDEO_UPLOAD_SIZE_MB = int(first_env("MAX_VIDEO_UPLOAD_SIZE_MB", default="500"))
 
 
-def load_pem(env_name: str, file_path: str) -> str:
-    if os.path.exists(file_path):
-        with open(file_path, encoding="utf-8") as pem_file:
-            file_value = pem_file.read().strip()
-            if file_value:
-                return file_value
-
-    value = os.getenv(env_name)
-    if value and value.strip():
-        return value.strip()
-
-    return ""
-
+from shared.security.pem_loader import load_pem
 
 JWT_PUBLIC_KEY = load_pem("JWT_PUBLIC_KEY", "/run/secrets/jwt-public.pem")
 
