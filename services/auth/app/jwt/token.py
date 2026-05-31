@@ -48,7 +48,7 @@ def hash_refresh_token(token: str) -> str:
 # =========================================================
 
 
-def create_access_token(user_id: str, role: str) -> str:
+def create_access_token(user_id: str, role: str, email: str = "") -> str:
 
     now = datetime.now(timezone.utc)
 
@@ -58,6 +58,7 @@ def create_access_token(user_id: str, role: str) -> str:
         "sub": str(user_id),
         "type": "access",
         "role": role,
+        "email": email,
         "iss": JWT_ISSUER,
         "aud": JWT_AUDIENCE,
         "iat": int(now.timestamp()),
@@ -78,7 +79,7 @@ def create_access_token(user_id: str, role: str) -> str:
 # =========================================================
 
 
-def create_refresh_token(user_id: str, role: str) -> str:
+def create_refresh_token(user_id: str, role: str, email: str = "") -> str:
 
     now = datetime.now(timezone.utc)
 
@@ -88,6 +89,7 @@ def create_refresh_token(user_id: str, role: str) -> str:
         "sub": str(user_id),
         "type": "refresh",
         "role": role,
+        "email": email,
         "iss": JWT_ISSUER,
         "aud": JWT_AUDIENCE,
         "iat": int(now.timestamp()),

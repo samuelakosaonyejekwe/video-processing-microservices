@@ -16,6 +16,7 @@ from app.config import (
 )
 from app.database.connection import engine
 from app.models.user_entity import Base
+from app.middleware.rate_limit_middleware import AuthRateLimitMiddleware
 from app.routes.db_health import router as db_health_router
 from app.routes.login import router as login_router
 from app.routes.logout import router as logout_router
@@ -50,6 +51,8 @@ app = FastAPI(
 )
 
 Instrumentator().instrument(app).expose(app, endpoint="/metrics")
+
+app.add_middleware(AuthRateLimitMiddleware)
 
 app.add_middleware(
     CORSMiddleware,

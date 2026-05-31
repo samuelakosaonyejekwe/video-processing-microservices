@@ -189,11 +189,17 @@ class ConverterEventConsumer:
             output_audio_path,
         ]
 
-        subprocess.run(ffmpeg_command, check=True)
+        timeout_seconds = int(os.getenv("MAX_CONVERSION_TIMEOUT_SECONDS", "3600"))
+        subprocess.run(ffmpeg_command, check=True, timeout=timeout_seconds)
 
         logger.info("FFmpeg conversion completed successfully")
 
     def process_message(self, ch, method, properties, body):
+
+        job_id = None
+        user_id = None
+        filename = None
+        correlation_id = None
 
         try:
 
@@ -260,33 +266,19 @@ class ConverterEventConsumer:
 
             logger.error("Conversion processing failed: %s", str(error))
 
-            try:
-
-                self.channel.basic_publish(
-                    exchange="",
-                    routing_key=self.video_upload_retry_queue,
-                    body=body,
-                    properties=pika.BasicProperties(delivery_mode=2),
-                )
-
-            except Exception as retry_error:
-
-                logger.error("Retry queue publish failed: %s", str(retry_error))
-
-            try:
-
-                failed_message = {"error": str(error), "failed_message": body.decode()}
-
-                self.channel.basic_publish(
-                    exchange="",
-                    routing_key=self.video_upload_dlq,
-                    body=json.dumps(failed_message),
-                    properties=pika.BasicProperties(delivery_mode=2),
-                )
-
-            except Exception as dlq_error:
-
-                logger.error("DLQ publish failed: %s", str(dlq_error))
+            if job_id:
+                try:
+                    get_converter_producer().publish_conversion_failed_event(
+                        job_id=job_id,
+                        user_id=user_id,
+                        original_filename=filename,
+                        error_message=str(error),
+                    )
+                except Exception as publish_error:
+                    logger.error(
+                        "Failed to publish conversion failed event: %s",
+                        publish_error,
+                    )
 
             ch.basic_nack(delivery_tag=method.delivery_tag, requeue=False)
 

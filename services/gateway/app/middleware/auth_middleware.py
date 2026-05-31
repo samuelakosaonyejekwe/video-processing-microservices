@@ -6,7 +6,7 @@ from starlette.middleware.base import BaseHTTPMiddleware
 import jwt
 from jwt.exceptions import ExpiredSignatureError, PyJWTError
 
-import app.config as jwt_config
+from shared.security.token_revocation import is_token_revoked
 
 
 class AuthMiddleware(BaseHTTPMiddleware):
@@ -54,6 +54,8 @@ class AuthMiddleware(BaseHTTPMiddleware):
             )
 
         try:
+            import app.config as jwt_config
+
             algorithm = jwt_config.JWT_ALGORITHM
             decode_key = (
                 jwt_config.JWT_PUBLIC_KEY
@@ -77,6 +79,13 @@ class AuthMiddleware(BaseHTTPMiddleware):
                 return JSONResponse(
                     status_code=401,
                     content={"detail": "Invalid token type"},
+                )
+
+            jti = payload.get("jti")
+            if jti and is_token_revoked(jti):
+                return JSONResponse(
+                    status_code=401,
+                    content={"detail": "Token revoked"},
                 )
 
             request.state.user = payload

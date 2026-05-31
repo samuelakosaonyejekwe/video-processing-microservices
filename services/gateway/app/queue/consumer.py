@@ -10,7 +10,7 @@ from app.config import FRONTEND_URL
 from app.database.job_repository import (
     claim_notification_send,
     mark_job_completed,
-    mark_notification_sent,
+    mark_job_failed,
 )
 from app.queue.producer import get_gateway_producer
 
@@ -156,11 +156,25 @@ class GatewayEventConsumer:
             subject=subject,
             content=content,
         )
-        mark_notification_sent(job_id)
         logger.info(
             "Completion notification queued job_id=%s recipient=%s",
             job_id,
             recipient,
+        )
+
+    def _handle_conversion_failed(self, payload: dict) -> None:
+        job_id = payload.get("job_id")
+        error_message = payload.get("error_message") or "Conversion failed"
+
+        if not job_id:
+            logger.warning("Conversion failed event missing job_id")
+            return
+
+        mark_job_failed(job_id, error_message)
+        logger.warning(
+            "Marked job failed job_id=%s error=%s",
+            job_id,
+            error_message,
         )
 
     def _handle_conversion_completed(self, payload: dict) -> None:
@@ -198,11 +212,7 @@ class GatewayEventConsumer:
                 self._handle_conversion_completed(payload)
 
             elif event_type == "video_conversion_failed":
-                logger.warning(
-                    "Conversion failed job_id=%s error=%s",
-                    payload.get("job_id"),
-                    payload.get("error_message"),
-                )
+                self._handle_conversion_failed(payload)
 
             elif event_type == "notification_sent":
                 logger.info("Processed notification event")

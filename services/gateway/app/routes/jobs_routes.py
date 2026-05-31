@@ -11,15 +11,31 @@ from app.storage.s3_storage import (
 router = APIRouter(tags=["Jobs"])
 
 
-def _status_from_mongo(job_id: str) -> dict | None:
+def _get_authenticated_user_id(request: Request) -> str | None:
+    if not hasattr(request.state, "user"):
+        return None
+    return request.state.user.get("sub")
+
+
+def _authorize_job_access(job_id: str, request: Request) -> dict:
     job = get_job(job_id)
     if not job:
-        return None
+        raise HTTPException(status_code=404, detail="Job not found")
 
+    user_id = _get_authenticated_user_id(request)
+    if user_id and job.get("user_id") not in (None, "anonymous") and job.get("user_id") != user_id:
+        raise HTTPException(status_code=404, detail="Job not found")
+
+    return job
+
+
+def _status_from_mongo(job: dict, job_id: str) -> dict:
     response = {
         "job_id": job_id,
         "status": job.get("status", "processing"),
     }
+    if job.get("error_message"):
+        response["error_message"] = job["error_message"]
     audio_key = job.get("audio_s3_key")
     if audio_key:
         response["audio_key"] = audio_key
@@ -46,18 +62,18 @@ def _status_from_s3(job_id: str) -> dict:
 
 
 @router.get("/jobs/{job_id}/status")
-async def get_job_status(job_id: str):
-    mongo_status = _status_from_mongo(job_id)
-    if mongo_status:
-        if mongo_status["status"] == "completed":
-            return mongo_status
-        # Still processing in MongoDB; confirm S3 in case completion event was missed.
-        s3_status = _status_from_s3(job_id)
-        if s3_status["status"] == "completed":
-            return s3_status
+async def get_job_status(job_id: str, request: Request):
+    job = _authorize_job_access(job_id, request)
+    mongo_status = _status_from_mongo(job, job_id)
+
+    if mongo_status["status"] in ("completed", "failed"):
         return mongo_status
 
-    return _status_from_s3(job_id)
+    s3_status = _status_from_s3(job_id)
+    if s3_status["status"] == "completed":
+        return s3_status
+
+    return mongo_status
 
 
 @router.get("/jobs/{job_id}/download")
@@ -66,12 +82,11 @@ async def download_job_audio(job_id: str, request: Request):
     if not bucket:
         raise HTTPException(status_code=503, detail="Audio storage is not configured")
 
-    job = get_job(job_id)
-    audio_key = None
-    if job and job.get("audio_s3_key"):
-        audio_key = job["audio_s3_key"]
-    else:
-        audio_key = audio_object_key(job_id)
+    job = _authorize_job_access(job_id, request)
+    if job.get("status") == "failed":
+        raise HTTPException(status_code=404, detail="Conversion failed for this job")
+
+    audio_key = job.get("audio_s3_key") or audio_object_key(job_id)
 
     if not object_exists(bucket, audio_key):
         raise HTTPException(
@@ -79,19 +94,14 @@ async def download_job_audio(job_id: str, request: Request):
             detail="Audio not ready yet. Conversion may still be in progress.",
         )
 
-    original_name = request.query_params.get("filename")
-    if not original_name and job:
-        original_name = job.get("filename")
-    if not original_name:
-        original_name = f"{job_id}.mp3"
-
+    original_name = request.query_params.get("filename") or job.get("filename") or f"{job_id}.mp3"
     base_name = original_name.rsplit(".", 1)[0]
     download_name = f"{base_name}.mp3"
 
     try:
         download_url = generate_presigned_download_url(bucket, audio_key, download_name)
     except RuntimeError as error:
-        raise HTTPException(status_code=503, detail=str(error)) from error
+        raise HTTPException(status_code=503, detail="Download unavailable") from error
 
     return {
         "job_id": job_id,

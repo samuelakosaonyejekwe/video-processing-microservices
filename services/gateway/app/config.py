@@ -17,7 +17,7 @@ def first_env(*names: str, default: str = "") -> str:
 
 
 AUTH_SERVICE_HOST = first_env("AUTH_SERVICE_HOST", "AUTH_HOST", default="auth-service")
-AUTH_SERVICE_PORT = first_env("AUTH_SERVICE_PORT", "AUTH_PORT", default="8001")
+AUTH_SERVICE_PORT = first_env("AUTH_SERVICE_PORT", "AUTH_PORT", default="8000")
 CONVERTER_SERVICE_HOST = first_env(
     "CONVERTER_SERVICE_HOST", "CONVERTER_HOST", default="converter-service"
 )
@@ -91,10 +91,25 @@ RATE_LIMIT_WINDOW_SECONDS = (
     int(first_env("RATE_LIMIT_WINDOW_MS", default="60000")) // 1000
 ) or int(first_env("RATE_LIMIT_WINDOW_SECONDS", default="60"))
 
+MAX_VIDEO_UPLOAD_SIZE_MB = int(first_env("MAX_VIDEO_UPLOAD_SIZE_MB", default="500"))
+
 _cors_raw = first_env("CORS_ALLOWED_ORIGINS", "FRONTEND_URL", default="*")
 CORS_ALLOWED_ORIGINS = [
     origin.strip() for origin in _cors_raw.split(",") if origin.strip()
 ] or ["*"]
+
+if APP_ENV == "production" and CORS_ALLOWED_ORIGINS == ["*"]:
+    _frontend_origin = first_env("FRONTEND_URL")
+    if _frontend_origin:
+        CORS_ALLOWED_ORIGINS = [
+            origin.strip()
+            for origin in _frontend_origin.split(",")
+            if origin.strip()
+        ]
+    else:
+        raise RuntimeError(
+            "CORS_ALLOWED_ORIGINS or FRONTEND_URL must be set in production"
+        )
 
 VIDEO_UPLOAD_QUEUE = first_env(
     "VIDEO_UPLOAD_QUEUE",

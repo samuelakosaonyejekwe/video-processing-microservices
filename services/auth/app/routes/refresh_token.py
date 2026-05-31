@@ -1,10 +1,16 @@
 from fastapi import APIRouter, HTTPException, status
 from pydantic import BaseModel
 
+from app.jwt.revocation import refresh_token_ttl_seconds
 from app.jwt.token import (
     create_access_token,
     create_refresh_token,
     verify_refresh_token,
+)
+from shared.security.token_revocation import (
+    get_stored_refresh_jti,
+    revoke_token,
+    store_refresh_token,
 )
 
 router = APIRouter(prefix="/auth", tags=["Authentication"])
@@ -27,15 +33,45 @@ async def refresh_token(body: RefreshRequest):
 
     user_id = payload.get("sub")
     role = payload.get("role", "user")
+    email = payload.get("email", "")
+    refresh_jti = payload.get("jti")
+    expires_at = payload.get("exp")
 
     if not user_id:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid refresh token"
         )
 
-    new_access_token = create_access_token(user_id=user_id, role=role)
+    stored_jti = get_stored_refresh_jti(str(user_id))
+    if stored_jti and refresh_jti and stored_jti != refresh_jti:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Refresh token has been revoked",
+        )
 
-    new_refresh_token = create_refresh_token(user_id=user_id, role=role)
+    if refresh_jti and expires_at:
+        ttl_seconds = max(int(expires_at) - __import__("time").time(), 1)
+        revoke_token(refresh_jti, ttl_seconds)
+
+    new_access_token = create_access_token(
+        user_id=user_id,
+        role=role,
+        email=email,
+    )
+
+    new_refresh_token = create_refresh_token(
+        user_id=user_id,
+        role=role,
+        email=email,
+    )
+
+    new_payload = verify_refresh_token(new_refresh_token)
+    if new_payload and new_payload.get("jti"):
+        store_refresh_token(
+            str(user_id),
+            new_payload["jti"],
+            refresh_token_ttl_seconds(),
+        )
 
     return {
         "access_token": new_access_token,

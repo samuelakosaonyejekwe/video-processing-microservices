@@ -75,6 +75,20 @@ CORS_ALLOWED_ORIGINS = [
     origin.strip() for origin in _cors_raw.split(",") if origin.strip()
 ] or ["http://localhost:3000"]
 
+if APP_ENV == "production":
+    if not CORS_ALLOWED_ORIGINS or CORS_ALLOWED_ORIGINS == ["http://localhost:3000"]:
+        _frontend_origin = first_env("FRONTEND_URL")
+        if _frontend_origin:
+            CORS_ALLOWED_ORIGINS = [
+                origin.strip()
+                for origin in _frontend_origin.split(",")
+                if origin.strip()
+            ]
+        elif "*" in CORS_ALLOWED_ORIGINS:
+            raise ValueError(
+                "CORS_ALLOWED_ORIGINS or FRONTEND_URL must be set in production"
+            )
+
 DATABASE_URL = (
     f"postgresql://{POSTGRES_USER}:"
     f"{POSTGRES_PASSWORD}@"

@@ -180,7 +180,7 @@ class ConverterEventProducer:
             raise error
 
     def publish_conversion_failed_event(
-        self, user_id, original_filename, error_message
+        self, job_id, user_id, original_filename, error_message
     ):
 
         try:
@@ -193,6 +193,7 @@ class ConverterEventProducer:
                 "event_type": "video_conversion_failed",
                 "timestamp": int(time.time()),
                 "payload": {
+                    "job_id": job_id,
                     "user_id": user_id,
                     "original_filename": original_filename,
                     "error_message": error_message,
@@ -201,7 +202,7 @@ class ConverterEventProducer:
 
             self.channel.basic_publish(
                 exchange="",
-                routing_key=self.video_failed_queue,
+                routing_key=self.video_completed_queue,
                 body=json.dumps(event),
                 properties=pika.BasicProperties(
                     delivery_mode=2,
@@ -347,7 +348,7 @@ def get_converter_producer() -> ConverterEventProducer:
 def publish_conversion_job(
     job_id: str,
     filename: str,
-    local_path: str,
+    s3_key: str,
     content_type: str,
     user_id: str = "anonymous",
 ) -> str:
@@ -368,7 +369,7 @@ def publish_conversion_job(
             "job_id": job_id,
             "user_id": user_id,
             "filename": filename,
-            "local_path": local_path,
+            "s3_key": s3_key,
             "content_type": content_type,
         },
     }

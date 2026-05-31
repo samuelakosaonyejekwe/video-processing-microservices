@@ -29,7 +29,9 @@ class NotificationConsumer:
 
         self.notification_queue = os.getenv("NOTIFICATION_QUEUE")
 
-        self.retry_queue = os.getenv("VIDEO_UPLOAD_RETRY_QUEUE")
+        self.retry_queue = os.getenv(
+            "NOTIFICATION_RETRY_QUEUE", "notification-retry-queue"
+        )
 
         self.connection = None
 
@@ -90,6 +92,7 @@ class NotificationConsumer:
                 self.channel = self.connection.channel()
 
                 self.channel.queue_declare(queue=self.notification_queue, durable=True)
+                self.channel.queue_declare(queue=self.retry_queue, durable=True)
 
                 self.channel.basic_qos(prefetch_count=1)
 
@@ -131,7 +134,8 @@ class NotificationConsumer:
 
                 raise ValueError("Missing recipient in notification payload")
 
-            send_email(recipient, subject, content)
+            if not send_email(recipient, subject, content):
+                raise RuntimeError(f"Email delivery failed for recipient={recipient}")
 
             broadcast_event_sync(
                 {

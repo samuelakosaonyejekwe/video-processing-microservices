@@ -86,7 +86,7 @@ MONGO_HOST = first_env("MONGO_HOST", default="mongodb")
 
 MONGO_PORT = int(first_env("MONGO_PORT", default="27017"))
 
-MONGO_DATABASE = first_env("MONGO_DATABASE", default="video_to_audio_converter")
+MONGO_DATABASE = first_env("MONGO_DATABASE", default="video_converter")
 
 MONGO_USERNAME = first_env("MONGO_USERNAME", default="mongo")
 
@@ -105,6 +105,29 @@ MONGO_URI = first_env("MONGO_URI") or (
     f"?authSource=admin"
 )
 
+MAX_CONVERSION_TIMEOUT_SECONDS = int(
+    first_env("MAX_CONVERSION_TIMEOUT_SECONDS", default="3600")
+)
+
+MAX_VIDEO_UPLOAD_SIZE_MB = int(first_env("MAX_VIDEO_UPLOAD_SIZE_MB", default="500"))
+
+
+def load_pem(env_name: str, file_path: str) -> str:
+    if os.path.exists(file_path):
+        with open(file_path, encoding="utf-8") as pem_file:
+            file_value = pem_file.read().strip()
+            if file_value:
+                return file_value
+
+    value = os.getenv(env_name)
+    if value and value.strip():
+        return value.strip()
+
+    return ""
+
+
+JWT_PUBLIC_KEY = load_pem("JWT_PUBLIC_KEY", "/run/secrets/jwt-public.pem")
+
 JWT_ISSUER = first_env(
     "JWT_ISSUER", "JWT_TOKEN_ISSUER", default="video-converter-platform"
 )
@@ -114,3 +137,12 @@ JWT_AUDIENCE = first_env(
 )
 
 JWT_ALGORITHM = first_env("JWT_ALGORITHM", default="RS256")
+
+if APP_ENV == "production" and CORS_ALLOWED_ORIGINS == ["http://localhost:3000"]:
+    _frontend_origin = first_env("FRONTEND_URL")
+    if _frontend_origin:
+        CORS_ALLOWED_ORIGINS = [
+            origin.strip()
+            for origin in _frontend_origin.split(",")
+            if origin.strip()
+        ]

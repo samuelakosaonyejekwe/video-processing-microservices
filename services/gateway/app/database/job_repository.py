@@ -102,20 +102,67 @@ def mark_job_completed(job_id: str, audio_s3_key: str) -> dict | None:
     )
 
 
-def claim_notification_send(job_id: str) -> dict | None:
-    """Return job eligible for notification without marking sent yet."""
+def mark_job_failed(job_id: str, error_message: str) -> dict | None:
     collection = _collection()
     if collection is None:
         return None
 
-    return collection.find_one(
+    now = datetime.now(timezone.utc)
+    return collection.find_one_and_update(
+        {"job_id": job_id},
+        {
+            "$set": {
+                "status": "failed",
+                "error_message": error_message,
+                "updated_at": now,
+                "completed_at": now,
+            }
+        },
+        return_document=ReturnDocument.AFTER,
+        projection={"_id": 0},
+    )
+
+
+def delete_job(job_id: str) -> None:
+    collection = _collection()
+    if collection is None:
+        return
+
+    try:
+        collection.delete_one({"job_id": job_id})
+    except Exception as error:
+        logger.warning("Failed to delete job job_id=%s: %s", job_id, error)
+
+
+def claim_notification_send(job_id: str) -> dict | None:
+    """Atomically claim a completed job for notification dispatch."""
+    collection = _collection()
+    if collection is None:
+        return None
+
+    now = datetime.now(timezone.utc)
+    return collection.find_one_and_update(
         {
             "job_id": job_id,
             "status": "completed",
-            "notification_sent": {"$ne": True},
+            "notification_sent": False,
             "user_email": {"$nin": [None, ""]},
         },
+        {"$set": {"notification_sent": True, "updated_at": now}},
+        return_document=ReturnDocument.AFTER,
         projection={"_id": 0},
+    )
+
+
+def release_notification_claim(job_id: str) -> None:
+    collection = _collection()
+    if collection is None:
+        return
+
+    now = datetime.now(timezone.utc)
+    collection.update_one(
+        {"job_id": job_id},
+        {"$set": {"notification_sent": False, "updated_at": now}},
     )
 
 

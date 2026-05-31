@@ -4,8 +4,14 @@ from pydantic import BaseModel, EmailStr
 from sqlalchemy.orm import Session
 
 from app.database.connection import SessionLocal
-from app.jwt.token import create_access_token, create_refresh_token
+from app.jwt.revocation import refresh_token_ttl_seconds
+from app.jwt.token import (
+    create_access_token,
+    create_refresh_token,
+    verify_refresh_token,
+)
 from app.models.user_entity import UserEntity
+from shared.security.token_revocation import store_refresh_token
 
 router = APIRouter(prefix="/auth", tags=["Authentication"])
 
@@ -42,9 +48,25 @@ def login(data: LoginRequest):
                 status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid credentials"
             )
 
-        access_token = create_access_token(user_id=str(user.id), role=user.role)
+        access_token = create_access_token(
+            user_id=str(user.id),
+            role=user.role,
+            email=user.email,
+        )
 
-        refresh_token = create_refresh_token(user_id=str(user.id), role=user.role)
+        refresh_token = create_refresh_token(
+            user_id=str(user.id),
+            role=user.role,
+            email=user.email,
+        )
+
+        refresh_payload = verify_refresh_token(refresh_token)
+        if refresh_payload and refresh_payload.get("jti"):
+            store_refresh_token(
+                str(user.id),
+                refresh_payload["jti"],
+                refresh_token_ttl_seconds(),
+            )
 
         return {
             "access_token": access_token,

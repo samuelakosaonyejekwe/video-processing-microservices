@@ -1,5 +1,3 @@
-def validate_video_extension(filename: str):
+from shared.security.upload_validation import validate_video_extension
 
-    allowed_extensions = [".mp4", ".mov", ".avi", ".mkv"]
-
-    return filename.lower().endswith(tuple(allowed_extensions))
+__all__ = ["validate_video_extension"]

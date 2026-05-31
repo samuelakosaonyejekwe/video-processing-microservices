@@ -1,44 +1,12 @@
-from fastapi import HTTPException
-from fastapi import Depends
-from fastapi import status
-
-from fastapi.security import HTTPBearer
-from fastapi.security import HTTPAuthorizationCredentials
-
+from fastapi import Depends, HTTPException, status
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 import jwt
 from jwt.exceptions import ExpiredSignatureError, PyJWTError
 
-from app.config import JWT_PUBLIC_KEY, JWT_ISSUER, JWT_AUDIENCE, JWT_ALGORITHM
-
-# =========================================================
-# SECURITY SCHEME
-# =========================================================
+from app.config import JWT_ALGORITHM, JWT_AUDIENCE, JWT_ISSUER, JWT_PUBLIC_KEY
+from app.jwt.revocation import is_token_revoked
 
 security = HTTPBearer()
-
-# =========================================================
-# TOKEN REVOCATION CHECK
-# =========================================================
-
-
-async def is_token_revoked(jti: str) -> bool:
-
-    # Replace later with:
-    #
-    # - Redis lookup
-    # - MongoDB lookup
-    # - PostgreSQL token table
-    # - distributed cache
-    #
-    # for logout invalidation
-    # and token revocation lifecycle
-
-    return False
-
-
-# =========================================================
-# TOKEN VERIFICATION
-# =========================================================
 
 
 async def verify_token(credentials: HTTPAuthorizationCredentials = Depends(security)):
@@ -46,7 +14,6 @@ async def verify_token(credentials: HTTPAuthorizationCredentials = Depends(secur
     token = credentials.credentials
 
     try:
-
         payload = jwt.decode(
             token,
             JWT_PUBLIC_KEY,
@@ -56,63 +23,54 @@ async def verify_token(credentials: HTTPAuthorizationCredentials = Depends(secur
         )
 
         if payload.get("type") != "access":
-
             raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token type"
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Invalid token type",
             )
 
-        if await is_token_revoked(payload["jti"]):
-
+        jti = payload.get("jti")
+        if jti and await is_token_revoked(jti):
             raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED, detail="Token revoked"
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Token revoked",
             )
 
         return payload
 
     except ExpiredSignatureError as exc:
-
         raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED, detail="Token expired"
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Token expired",
         ) from exc
 
     except PyJWTError as exc:
-
         raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token"
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid token",
         ) from exc
+
+    except HTTPException:
+        raise
 
     except Exception as exc:
-
         raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED, detail="Authentication failed"
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Authentication failed",
         ) from exc
-
-
-# =========================================================
-# ROLE-BASED ACCESS CONTROL
-# =========================================================
 
 
 def require_roles(*roles):
 
     def role_checker(user):
-
         if user.get("role") not in roles:
-
             raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN, detail="Insufficient permissions"
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Insufficient permissions",
             )
-
         return user
 
     return role_checker
 
 
-# =========================================================
-# BACKWARD-COMPATIBILITY GUARD
-# =========================================================
-
-
 async def auth_guard(credentials: HTTPAuthorizationCredentials = Depends(security)):
-
     return await verify_token(credentials)

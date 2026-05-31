@@ -77,3 +77,11 @@ def upload_video_to_s3(local_file_path: str, object_key: str, content_type: str)
         raise RuntimeError(f"S3 upload failed: {error}") from error
 
     return f"s3://{bucket}/{object_key}"
+
+
+def delete_object(bucket: str, object_key: str) -> None:
+    client = create_s3_client()
+    try:
+        client.delete_object(Bucket=bucket, Key=object_key)
+    except ClientError as error:
+        raise RuntimeError(f"S3 delete failed: {error}") from error

@@ -38,6 +38,10 @@ spec:
               containerPort: 3000
               protocol: TCP
 
+          env:
+            - name: GATEWAY_UPSTREAM
+              value: "gateway-service:80"
+
           resources:
             requests:
               cpu: "${FRONTEND_CPU_REQUEST}"

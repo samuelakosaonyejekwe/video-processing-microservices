@@ -1,18 +1,15 @@
-from datetime import datetime
-from datetime import timezone
+import time
 
-from fastapi import APIRouter
-from fastapi import Depends
-from fastapi import HTTPException
-from fastapi import status
+from fastapi import APIRouter, Depends, HTTPException, status
 
 from app.jwt.auth_guard import verify_token
+from app.jwt.revocation import refresh_token_ttl_seconds
+from shared.security.token_revocation import (
+    invalidate_refresh_token,
+    revoke_token,
+)
 
 router = APIRouter(prefix="/auth", tags=["Authentication"])
-
-# =========================================================
-# LOGOUT ROUTE
-# =========================================================
 
 
 @router.post("/logout")
@@ -26,6 +23,8 @@ async def logout(payload: dict = Depends(verify_token)):
 
         token_type = payload.get("type")
 
+        expires_at = payload.get("exp")
+
         if not user_id:
 
             raise HTTPException(
@@ -38,32 +37,17 @@ async def logout(payload: dict = Depends(verify_token)):
                 status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token type"
             )
 
-        # =================================================
-        # FUTURE TOKEN REVOCATION STORAGE
-        # =================================================
-        #
-        # Store revoked token here later using:
-        #
-        # - Redis
-        # - PostgreSQL
-        # - MongoDB
-        # - distributed cache
-        #
-        # Example:
-        #
-        # revoked_token_service.revoke(
-        #     jti=jti,
-        #     user_id=user_id
-        # )
-        #
-        # =================================================
+        if jti and expires_at:
+            ttl_seconds = max(int(expires_at) - int(time.time()), 1)
+            revoke_token(jti, ttl_seconds)
+
+        invalidate_refresh_token(str(user_id))
 
         return {
             "success": True,
             "message": "Logout successful",
             "user_id": user_id,
             "revoked_token_id": jti,
-            "timestamp": datetime.now(timezone.utc).isoformat(),
         }
 
     except HTTPException:

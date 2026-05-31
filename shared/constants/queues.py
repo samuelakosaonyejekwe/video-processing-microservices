@@ -10,6 +10,10 @@ VIDEO_UPLOAD_DLQ = os.getenv("VIDEO_UPLOAD_DLQ", "video-upload-dlq")
 
 NOTIFICATION_QUEUE = os.getenv("NOTIFICATION_QUEUE", "notification-queue")
 
+NOTIFICATION_RETRY_QUEUE = os.getenv(
+    "NOTIFICATION_RETRY_QUEUE", "notification-retry-queue"
+)
+
 GATEWAY_EVENTS_QUEUE = os.getenv("GATEWAY_EVENTS_QUEUE", "gateway-events-queue")
 
 EMAIL_QUEUE = os.getenv("EMAIL_QUEUE", "email-queue")

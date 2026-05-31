@@ -20,7 +20,9 @@ botocore==1.35.24
 
 pymongo==4.8.0
 
-python-multipart==0.0.9
+python-multipart==0.0.18
+
+redis==5.0.8
 
 PyJWT[crypto]==2.9.0
 

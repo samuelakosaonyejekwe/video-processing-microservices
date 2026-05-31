@@ -61,14 +61,10 @@ function setProgress(value) {
 }
 
 function authHeaders(extra = {}) {
-  const headers = {
+  return {
     Authorization: `Bearer ${state.token}`,
     ...extra,
   };
-  if (state.email) {
-    headers["X-User-Email"] = state.email;
-  }
-  return headers;
 }
 
 async function apiFetch(path, options = {}) {
@@ -193,6 +189,16 @@ async function pollJobStatus() {
       els.downloadBtn.classList.remove("hidden");
       els.uploadBtn.disabled = false;
       setAlert("Conversion complete. Download your MP3 below.", "success");
+      return;
+    }
+
+    if (status.status === "failed") {
+      clearInterval(state.pollTimer);
+      setStep("upload");
+      setProgress(0);
+      els.uploadBtn.disabled = false;
+      const reason = status.error_message || "Conversion failed.";
+      setAlert(reason, "error");
       return;
     }
 
