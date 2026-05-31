@@ -1,4 +1,7 @@
 const API = window.GATEWAY_URL || "/api";
+const WS_URL =
+  window.NOTIFICATION_WS_URL ||
+  `${window.location.protocol === "https:" ? "wss" : "ws"}://${window.location.hostname}:${window.WEBSOCKET_PORT || "8004"}`;
 
 const state = {
   token: sessionStorage.getItem("access_token") || "",
@@ -7,6 +10,8 @@ const state = {
   jobId: "",
   filename: "",
   pollTimer: null,
+  socket: null,
+  authenticated: Boolean(sessionStorage.getItem("user_email")),
 };
 
 const els = {
@@ -62,9 +67,20 @@ function setProgress(value) {
 }
 
 function authHeaders(extra = {}) {
+  const headers = { ...extra };
+  if (state.token) {
+    headers.Authorization = `Bearer ${state.token}`;
+  }
+  return headers;
+}
+
+function fetchOptions(options = {}) {
   return {
-    Authorization: `Bearer ${state.token}`,
-    ...extra,
+    credentials: "include",
+    ...options,
+    headers: {
+      ...(options.headers || {}),
+    },
   };
 }
 
@@ -73,11 +89,11 @@ async function refreshAccessToken() {
     throw new Error("Session expired. Please sign in again.");
   }
 
-  const data = await fetch(`${API}/auth/refresh`, {
+  const data = await fetch(`${API}/auth/refresh`, fetchOptions({
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ refresh_token: state.refreshToken }),
-  }).then(async (response) => {
+  })).then(async (response) => {
     const body = await response.json().catch(() => ({}));
     if (!response.ok) {
       throw new Error(body.detail || "Session expired. Please sign in again.");
@@ -93,7 +109,7 @@ async function refreshAccessToken() {
 }
 
 async function apiFetch(path, options = {}, allowRefresh = true) {
-  const response = await fetch(`${API}${path}`, options);
+  const response = await fetch(`${API}${path}`, fetchOptions(options));
   const body = await response.json().catch(() => ({}));
 
   if (response.status === 401 && allowRefresh && state.refreshToken) {
@@ -154,11 +170,16 @@ async function handleLogin(event) {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ email, password }),
     });
-    state.token = data.access_token;
-    state.refreshToken = data.refresh_token;
+    state.token = data.access_token || state.token;
+    state.refreshToken = data.refresh_token || state.refreshToken;
     state.email = email;
-    sessionStorage.setItem("access_token", state.token);
-    sessionStorage.setItem("refresh_token", state.refreshToken);
+    state.authenticated = true;
+    if (state.token) {
+      sessionStorage.setItem("access_token", state.token);
+    }
+    if (state.refreshToken) {
+      sessionStorage.setItem("refresh_token", state.refreshToken);
+    }
     sessionStorage.setItem("user_email", state.email);
     showAuthenticatedView();
     resetConversionUi();
@@ -204,6 +225,8 @@ async function handleLogout() {
   state.token = "";
   state.refreshToken = "";
   state.email = "";
+  state.authenticated = false;
+  disconnectWebSocket();
   showGuestView();
   switchTab("login");
 }
@@ -262,7 +285,7 @@ async function pollJobStatus() {
 
 async function handleUpload() {
   const file = els.fileInput.files[0];
-  if (!file || !state.token) return;
+  if (!file || !state.authenticated) return;
 
   const formData = new FormData();
   formData.append("file", file);
@@ -283,6 +306,7 @@ async function handleUpload() {
     state.jobId = result.job_id;
     setProgress(45);
     setAlert("Upload complete. Processing your video...", "info");
+    connectWebSocket();
 
     clearInterval(state.pollTimer);
     state.pollTimer = setInterval(pollJobStatus, 3000);
@@ -296,7 +320,7 @@ async function handleUpload() {
 }
 
 async function handleDownload() {
-  if (!state.jobId || !state.token) return;
+  if (!state.jobId || !state.authenticated) return;
 
   try {
     const query = state.filename ? `?filename=${encodeURIComponent(state.filename)}` : "";
@@ -306,6 +330,38 @@ async function handleDownload() {
     window.location.href = result.download_url;
   } catch (error) {
     setAlert(error.message, "error");
+  }
+}
+
+function connectWebSocket() {
+  if (!WS_URL || state.socket) {
+    return;
+  }
+
+  try {
+    state.socket = new WebSocket(WS_URL);
+    state.socket.onmessage = (event) => {
+      const payload = JSON.parse(event.data);
+      if (
+        payload.type === "notification_sent" &&
+        state.jobId &&
+        payload.correlation_id
+      ) {
+        setAlert("Email notification sent for your conversion.", "success");
+      }
+    };
+    state.socket.onclose = () => {
+      state.socket = null;
+    };
+  } catch (error) {
+    // WebSocket is optional; polling remains the source of truth.
+  }
+}
+
+function disconnectWebSocket() {
+  if (state.socket) {
+    state.socket.close();
+    state.socket = null;
   }
 }
 
@@ -345,7 +401,7 @@ function bindEvents() {
 function init() {
   bindEvents();
   switchTab("login");
-  if (state.token) {
+  if (state.authenticated || state.token) {
     showAuthenticatedView();
     resetConversionUi();
   } else {

@@ -33,12 +33,18 @@ def _get_redis():
     return _redis_client
 
 
+def _require_redis_in_production() -> bool:
+    return os.getenv("APP_ENV", "development") == "production" and _redis_enabled()
+
+
 def revoke_token(jti: str, ttl_seconds: int) -> None:
     if not jti or ttl_seconds <= 0:
         return
 
     client = _get_redis()
     if client is None:
+        if _require_redis_in_production():
+            raise RuntimeError("Redis is required for token revocation in production")
         return
 
     try:
@@ -53,13 +59,16 @@ def is_token_revoked(jti: str) -> bool:
 
     client = _get_redis()
     if client is None:
+        if _require_redis_in_production():
+            logger.error("Redis unavailable for token revocation check jti=%s", jti)
+            return True
         return False
 
     try:
         return bool(client.exists(f"revoked:jti:{jti}"))
     except Exception as error:
         logger.warning("Failed to check token revocation jti=%s: %s", jti, error)
-        return False
+        return _require_redis_in_production()
 
 
 def store_refresh_token(user_id: str, jti: str, ttl_seconds: int) -> None:

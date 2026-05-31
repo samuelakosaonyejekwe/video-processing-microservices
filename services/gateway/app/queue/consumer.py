@@ -10,8 +10,11 @@ from pika.exceptions import AMQPChannelError, AMQPConnectionError
 from app.config import FRONTEND_URL
 from app.database.job_repository import (
     claim_notification_send,
+    get_job,
     mark_job_completed,
     mark_job_failed,
+    mark_notification_sent,
+    release_notification_claim,
 )
 from app.queue.producer import get_gateway_producer
 from shared.email.renderer import render_email_template
@@ -155,16 +158,62 @@ class GatewayEventConsumer:
             job_id=job_id,
         )
 
-        get_gateway_producer().publish_notification_event(
-            recipient=recipient,
-            subject=subject,
-            content=content,
+        try:
+            get_gateway_producer().publish_notification_event(
+                recipient=recipient,
+                subject=subject,
+                content=content,
+                job_id=job_id,
+            )
+            logger.info(
+                "Completion notification queued job_id=%s recipient=%s",
+                job_id,
+                recipient,
+            )
+        except Exception as error:
+            release_notification_claim(job_id)
+            logger.error(
+                "Failed to queue completion notification job_id=%s: %s",
+                job_id,
+                error,
+            )
+
+    def _send_failure_email(self, job_id: str, payload: dict) -> None:
+        job = get_job(job_id)
+        if not job:
+            return
+
+        recipient = job.get("user_email")
+        if not recipient:
+            return
+
+        filename = (
+            payload.get("original_filename") or job.get("filename") or "your video"
         )
-        logger.info(
-            "Completion notification queued job_id=%s recipient=%s",
-            job_id,
-            recipient,
+        error_message = payload.get("error_message") or "Conversion failed"
+        frontend_url = FRONTEND_URL.rstrip("/")
+
+        subject = "Your video conversion failed"
+        content = render_email_template(
+            "failure.html",
+            filename=filename,
+            frontend_url=frontend_url,
+            error_message=error_message,
         )
+
+        try:
+            get_gateway_producer().publish_notification_event(
+                recipient=recipient,
+                subject=subject,
+                content=content,
+                job_id=job_id,
+            )
+        except Exception as error:
+            logger.error(
+                "Failed to queue failure notification job_id=%s: %s",
+                job_id,
+                error,
+            )
 
     def _handle_conversion_failed(self, payload: dict) -> None:
         job_id = payload.get("job_id")
@@ -180,6 +229,7 @@ class GatewayEventConsumer:
             job_id,
             error_message,
         )
+        self._send_failure_email(job_id, payload)
 
     def _handle_conversion_completed(self, payload: dict) -> None:
         job_id = payload.get("job_id")
@@ -217,6 +267,15 @@ class GatewayEventConsumer:
 
             elif event_type == "video_conversion_failed":
                 self._handle_conversion_failed(payload)
+
+            elif event_type == "notification_delivered":
+                delivered_job_id = payload.get("job_id")
+                if delivered_job_id:
+                    mark_notification_sent(delivered_job_id)
+                    logger.info(
+                        "Notification delivery confirmed job_id=%s",
+                        delivered_job_id,
+                    )
 
             elif event_type == "notification_sent":
                 logger.info("Processed notification event")

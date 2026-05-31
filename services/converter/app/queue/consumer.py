@@ -51,6 +51,8 @@ class ConverterEventConsumer:
 
         self.temp_storage_path = os.getenv("TEMP_STORAGE_PATH", "/tmp")
 
+        self.max_retry_attempts = int(os.getenv("MAX_CONVERSION_RETRIES", "3"))
+
         self.connection = None
 
         self.channel = None
@@ -205,6 +207,9 @@ class ConverterEventConsumer:
         user_id = None
         filename = None
         correlation_id = None
+        retry_count = 0
+        message = {}
+        payload = {}
 
         try:
 
@@ -229,6 +234,8 @@ class ConverterEventConsumer:
             if not job_id:
 
                 job_id = str(uuid.uuid4())
+
+            retry_count = int(payload.get("retry_count", 0))
 
             logger.info(
                 "Processing conversion request " "correlation_id=%s job_id=%s",
@@ -270,6 +277,26 @@ class ConverterEventConsumer:
         except Exception as error:
 
             logger.error("Conversion processing failed: %s", str(error))
+
+            if job_id and retry_count < self.max_retry_attempts and self.video_upload_retry_queue:
+                retry_payload = dict(payload)
+                retry_payload["retry_count"] = retry_count + 1
+                retry_message = {
+                    "correlation_id": correlation_id,
+                    "event_type": message.get("event_type", "video_uploaded"),
+                    "payload": retry_payload,
+                }
+                try:
+                    self.channel.basic_publish(
+                        exchange="",
+                        routing_key=self.video_upload_retry_queue,
+                        body=json.dumps(retry_message),
+                        properties=pika.BasicProperties(delivery_mode=2),
+                    )
+                    ch.basic_ack(delivery_tag=method.delivery_tag)
+                    return
+                except Exception as retry_error:
+                    logger.error("Failed to publish retry message: %s", retry_error)
 
             if job_id:
                 try:

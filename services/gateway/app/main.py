@@ -22,14 +22,16 @@ from app.database.job_repository import mongo_available
 from app.database.mongo_client import close_mongo_client
 from app.middleware.auth_middleware import AuthMiddleware
 from app.middleware.rate_limit_middleware import RateLimitMiddleware
-from app.queue.consumer import start_consumer
+from app.queue.consumer import start_consumer, stop_consumer
 from app.queue.producer import get_gateway_producer
 from app.routes.auth_routes import router as auth_router
 from app.routes.converter_routes import router as converter_router
 from app.routes.jobs_routes import router as jobs_router
 from shared.errors.handlers import register_exception_handlers
 from shared.logging.logger import configure_logging
+from shared.middleware.correlation_id import CorrelationIdMiddleware
 from shared.runtime.queue_consumer import queue_consumer_enabled
+from shared.runtime.tracing import configure_tracing
 
 APP_NAME = os.getenv("APP_NAME") or "gateway-service"
 logger = logging.getLogger(__name__)
@@ -38,6 +40,7 @@ logger = logging.getLogger(__name__)
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     configure_logging(APP_NAME)
+    configure_tracing(APP_NAME)
     logger.info("Starting gateway service in %s mode", APP_ENV)
 
     if APP_ENV != "test" and queue_consumer_enabled():
@@ -46,6 +49,7 @@ async def lifespan(app: FastAPI):
     yield
 
     logger.info("Shutting down gateway service...")
+    stop_consumer()
     try:
         get_gateway_producer().close()
     except Exception as error:
@@ -86,6 +90,7 @@ app.add_middleware(
 )
 app.add_middleware(RateLimitMiddleware)
 app.add_middleware(AuthMiddleware)
+app.add_middleware(CorrelationIdMiddleware)
 
 app.include_router(auth_router)
 app.include_router(converter_router)

@@ -1,25 +1,41 @@
+import logging
 import os
 import time
-import uuid
-from datetime import datetime, timezone
 
-import redis
+logger = logging.getLogger(__name__)
+
+_redis_client = None
 
 
-def _redis_client():
-    host = os.getenv("REDIS_HOST", "").strip()
-    if not host:
+def rate_limit_key(client_id: str, path: str) -> str:
+    return f"{client_id}:{path}"
+
+
+def _redis_enabled() -> bool:
+    return bool(os.getenv("REDIS_HOST", "").strip())
+
+
+def _get_redis():
+    global _redis_client
+
+    if _redis_client is not None:
+        return _redis_client
+
+    if not _redis_enabled():
         return None
 
+    import redis
+
     password = os.getenv("REDIS_PASSWORD") or None
-    return redis.Redis(
-        host=host,
+    _redis_client = redis.Redis(
+        host=os.getenv("REDIS_HOST", "localhost"),
         port=int(os.getenv("REDIS_PORT", "6379")),
         password=password,
         decode_responses=True,
         socket_connect_timeout=2,
         socket_timeout=2,
     )
+    return _redis_client
 
 
 def is_rate_limited(
@@ -28,21 +44,22 @@ def is_rate_limited(
     max_requests: int,
     window_seconds: int,
 ) -> bool:
-    client = _redis_client()
+    """Return True when the key exceeds the allowed request count."""
+    client = _get_redis()
     if client is None:
         return False
 
-    now = int(time.time())
-    bucket = f"rate:{key}:{now // window_seconds}"
+    now = time.time()
+    redis_key = f"rate:{key}"
 
     try:
-        current = client.incr(bucket)
-        if current == 1:
-            client.expire(bucket, window_seconds + 1)
-        return current > max_requests
-    except redis.RedisError:
+        pipeline = client.pipeline()
+        pipeline.zremrangebyscore(redis_key, 0, now - window_seconds)
+        pipeline.zadd(redis_key, {str(now): now})
+        pipeline.zcard(redis_key)
+        pipeline.expire(redis_key, window_seconds + 1)
+        _, _, count, _ = pipeline.execute()
+        return int(count) > max_requests
+    except Exception as error:
+        logger.warning("Redis rate limit check failed key=%s: %s", key, error)
         return False
-
-
-def rate_limit_key(client_ip: str, path: str) -> str:
-    return f"{client_ip}:{path}"

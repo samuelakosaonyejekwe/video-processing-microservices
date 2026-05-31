@@ -13,6 +13,7 @@ from shared.security.upload_validation import (
     validate_content_type,
     validate_upload_size,
     validate_video_extension,
+    validate_video_magic_bytes,
 )
 
 logger = logging.getLogger(__name__)
@@ -49,6 +50,12 @@ async def upload_video(
         validate_upload_size(len(content))
     except ValueError as error:
         raise HTTPException(status_code=413, detail=str(error)) from error
+
+    if not validate_video_magic_bytes(content[:16]):
+        raise HTTPException(
+            status_code=400,
+            detail="Uploaded file is not a supported video format",
+        )
 
     job_id = str(uuid.uuid4())
     temp_dir = os.getenv("TEMP_STORAGE_PATH", "/tmp")

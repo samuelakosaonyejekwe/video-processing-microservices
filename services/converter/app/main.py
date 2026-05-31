@@ -6,12 +6,14 @@ from fastapi.middleware.cors import CORSMiddleware
 from prometheus_fastapi_instrumentator import Instrumentator
 
 from app.config import APP_ENV, APP_NAME, CORS_ALLOWED_ORIGINS
-from app.queue.consumer import start_consumer
+from app.queue.consumer import start_consumer, stop_consumer
 from app.routes.convert import router as convert_router
 from app.routes.health import router as health_router
 from shared.errors.handlers import register_exception_handlers
 from shared.logging.logger import configure_logging
+from shared.middleware.correlation_id import CorrelationIdMiddleware
 from shared.runtime.queue_consumer import queue_consumer_enabled
+from shared.runtime.tracing import configure_tracing
 
 _enable_docs = (
     os.getenv("ENABLE_SWAGGER", "false").lower()
@@ -28,11 +30,14 @@ _enable_docs = (
 async def lifespan(app: FastAPI):
 
     configure_logging(APP_NAME)
+    configure_tracing(APP_NAME)
 
     if APP_ENV != "test" and queue_consumer_enabled():
         start_consumer()
 
     yield
+
+    stop_consumer()
 
 
 app = FastAPI(
@@ -53,6 +58,7 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+app.add_middleware(CorrelationIdMiddleware)
 
 app.include_router(convert_router)
 app.include_router(health_router)

@@ -45,3 +45,19 @@ def validate_content_type(content_type: str | None) -> bool:
 
     base_type = content_type.split(";")[0].strip().lower()
     return base_type.startswith("video/") or base_type in ALLOWED_VIDEO_CONTENT_TYPES
+
+
+def validate_video_magic_bytes(header: bytes) -> bool:
+    if not header or len(header) < 12:
+        return False
+
+    if header[:4] == b"RIFF" and header[8:12] == b"AVI ":
+        return True
+
+    if header[:4] == b"\x1a\x45\xdf\xa3":
+        return True
+
+    if len(header) >= 8 and header[4:8] == b"ftyp":
+        return True
+
+    return False

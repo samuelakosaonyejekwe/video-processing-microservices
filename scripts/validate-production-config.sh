@@ -32,7 +32,13 @@ validate_production_config() {
   fi
 
   if [ "${POSTGRES_SSL_MODE:-disable}" = "disable" ]; then
-    echo "Production config warning: POSTGRES_SSL_MODE should not be 'disable' in production" >&2
+    echo "Production config error: POSTGRES_SSL_MODE must not be 'disable' in production" >&2
+    errors=1
+  fi
+
+  if [ -z "${REDIS_HOST:-}" ]; then
+    echo "Production config error: REDIS_HOST is required in production" >&2
+    errors=1
   fi
 
   if [ "${errors}" -ne 0 ]; then

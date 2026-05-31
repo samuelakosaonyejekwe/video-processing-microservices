@@ -228,17 +228,15 @@ class ConverterEventProducer:
 
             correlation_id = str(uuid.uuid4())
 
-            event = {
-                "event_id": str(uuid.uuid4()),
-                "correlation_id": correlation_id,
-                "event_type": "notification_requested",
-                "timestamp": int(time.time()),
-                "payload": {
+            event = build_event(
+                "notification_requested",
+                {
                     "recipient": recipient,
                     "subject": subject,
                     "content": content,
                 },
-            }
+                correlation_id,
+            )
 
             self.channel.basic_publish(
                 exchange="",
@@ -271,13 +269,7 @@ class ConverterEventProducer:
 
             correlation_id = str(uuid.uuid4())
 
-            event = {
-                "event_id": str(uuid.uuid4()),
-                "correlation_id": correlation_id,
-                "event_type": event_type,
-                "timestamp": int(time.time()),
-                "payload": payload,
-            }
+            event = build_event(event_type, payload, correlation_id)
 
             self.channel.basic_publish(
                 exchange="",

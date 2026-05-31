@@ -57,6 +57,7 @@ def create_job(
         "status": "processing",
         "audio_s3_key": None,
         "notification_sent": False,
+        "notification_queued": False,
         "created_at": now,
         "updated_at": now,
         "completed_at": None,
@@ -146,9 +147,10 @@ def claim_notification_send(job_id: str) -> dict | None:
             "job_id": job_id,
             "status": "completed",
             "notification_sent": False,
+            "notification_queued": False,
             "user_email": {"$nin": [None, ""]},
         },
-        {"$set": {"notification_sent": True, "updated_at": now}},
+        {"$set": {"notification_queued": True, "updated_at": now}},
         return_document=ReturnDocument.AFTER,
         projection={"_id": 0},
     )
@@ -162,7 +164,7 @@ def release_notification_claim(job_id: str) -> None:
     now = datetime.now(timezone.utc)
     collection.update_one(
         {"job_id": job_id},
-        {"$set": {"notification_sent": False, "updated_at": now}},
+        {"$set": {"notification_queued": False, "updated_at": now}},
     )
 
 

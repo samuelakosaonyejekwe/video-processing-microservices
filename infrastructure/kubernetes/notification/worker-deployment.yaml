@@ -98,6 +98,11 @@ spec:
                 secretKeyRef:
                   name: notification-secret
                   key: JWT_SECRET
+            - name: VIDEO_COMPLETED_QUEUE
+              valueFrom:
+                configMapKeyRef:
+                  name: notification-config
+                  key: VIDEO_COMPLETED_QUEUE
 
           resources:
             requests:
@@ -122,6 +127,11 @@ spec:
             periodSeconds: 30
             timeoutSeconds: 5
             failureThreshold: 5
+
+          lifecycle:
+            preStop:
+              exec:
+                command: ["/bin/sh", "-c", "sleep 10"]
 
           securityContext:
             allowPrivilegeEscalation: false

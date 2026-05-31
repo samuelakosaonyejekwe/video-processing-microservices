@@ -12,6 +12,8 @@ from app.cache.redis_state import record_notification_delivery
 from app.email.send_email import send_email
 from app.websocket.events import broadcast_event_sync
 
+from shared.events.schema import build_event
+
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
 
 logger = logging.getLogger(__name__)
@@ -33,6 +35,10 @@ class NotificationConsumer:
 
         self.retry_queue = os.getenv(
             "NOTIFICATION_RETRY_QUEUE", "notification-retry-queue"
+        )
+
+        self.video_completed_queue = os.getenv(
+            "VIDEO_COMPLETED_QUEUE", "video-completed-queue"
         )
 
         self.connection = None
@@ -99,6 +105,10 @@ class NotificationConsumer:
 
                 self.channel.queue_declare(queue=self.notification_queue, durable=True)
                 self.channel.queue_declare(queue=self.retry_queue, durable=True)
+                if self.video_completed_queue:
+                    self.channel.queue_declare(
+                        queue=self.video_completed_queue, durable=True
+                    )
 
                 self.channel.basic_qos(prefetch_count=1)
 
@@ -135,6 +145,7 @@ class NotificationConsumer:
             content = message.get("payload", {}).get("content")
 
             correlation_id = message.get("correlation_id")
+            job_id = message.get("payload", {}).get("job_id")
 
             if not recipient:
 
@@ -144,6 +155,23 @@ class NotificationConsumer:
                 raise RuntimeError(f"Email delivery failed for recipient={recipient}")
 
             record_notification_delivery(recipient, correlation_id)
+
+            if job_id and self.video_completed_queue:
+                delivery_event = build_event(
+                    "notification_delivered",
+                    {"job_id": job_id, "recipient": recipient},
+                    correlation_id,
+                )
+                self.channel.basic_publish(
+                    exchange="",
+                    routing_key=self.video_completed_queue,
+                    body=json.dumps(delivery_event),
+                    properties=pika.BasicProperties(
+                        delivery_mode=2,
+                        content_type="application/json",
+                        correlation_id=correlation_id,
+                    ),
+                )
 
             broadcast_event_sync(
                 {

@@ -133,6 +133,18 @@ spec:
 
               mountPath: /var/lib/rabbitmq
 
+            - name: rabbitmq-definitions
+
+              mountPath: /etc/rabbitmq/definitions
+
+              readOnly: true
+
+            - name: rabbitmq-config
+
+              mountPath: /etc/rabbitmq/conf.d
+
+              readOnly: true
+
       volumes:
 
         - name: rabbitmq-data
@@ -140,3 +152,21 @@ spec:
           persistentVolumeClaim:
 
             claimName: rabbitmq-pvc
+
+        - name: rabbitmq-definitions
+
+          configMap:
+
+            name: rabbitmq-definitions
+
+        - name: rabbitmq-config
+
+          configMap:
+
+            name: rabbitmq-definitions
+
+            items:
+
+              - key: rabbitmq.conf
+
+                path: 20-load-definitions.conf

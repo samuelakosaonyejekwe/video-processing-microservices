@@ -13,6 +13,7 @@ from shared.security.upload_validation import (
     validate_content_type,
     validate_upload_size,
     validate_video_extension,
+    validate_video_magic_bytes,
 )
 from shared.storage.s3_client import create_s3_client
 
@@ -61,6 +62,12 @@ async def convert_video(
         validate_upload_size(len(content))
     except ValueError as error:
         raise HTTPException(status_code=413, detail=str(error)) from error
+
+    if not validate_video_magic_bytes(content[:16]):
+        raise HTTPException(
+            status_code=400,
+            detail="Uploaded file is not a supported video format",
+        )
 
     job_id = str(uuid.uuid4())
     temp_path = os.path.join(TEMP_DIR, f"{job_id}-{safe_filename}")

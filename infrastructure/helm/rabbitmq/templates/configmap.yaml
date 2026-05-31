@@ -1,10 +1,29 @@
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: rabbitmq-config
-
+  name: rabbitmq-definitions
+  labels:
+    app: rabbitmq
 data:
-  RABBITMQ_HOST: rabbitmq
-  RABBITMQ_PORT: "5672"
-  RABBITMQ_MANAGEMENT_PORT: "15672"
-  RABBITMQ_VHOST: {{ .Values.rabbitmq.vhost | quote }}
+  definitions.json: |
+    {
+      "vhosts": [{"name": "/"}],
+      "queues": [
+        {"name": "video-upload-queue", "vhost": "/", "durable": true, "arguments": {"x-dead-letter-exchange": "video.dlx"}},
+        {"name": "video-upload-retry-queue", "vhost": "/", "durable": true, "arguments": {"x-message-ttl": 30000, "x-dead-letter-exchange": "", "x-dead-letter-routing-key": "video-upload-queue"}},
+        {"name": "video-upload-dlq", "vhost": "/", "durable": true},
+        {"name": "notification-queue", "vhost": "/", "durable": true},
+        {"name": "notification-retry-queue", "vhost": "/", "durable": true},
+        {"name": "gateway-events-queue", "vhost": "/", "durable": true},
+        {"name": "video-completed-queue", "vhost": "/", "durable": true},
+        {"name": "video-failed-queue", "vhost": "/", "durable": true}
+      ],
+      "exchanges": [
+        {"name": "video.dlx", "vhost": "/", "type": "direct", "durable": true}
+      ],
+      "bindings": [
+        {"source": "video.dlx", "vhost": "/", "destination": "video-upload-dlq", "destination_type": "queue", "routing_key": "failed"}
+      ]
+    }
+  rabbitmq.conf: |
+    management.load_definitions = /etc/rabbitmq/definitions/definitions.json

@@ -142,6 +142,11 @@ spec:
             timeoutSeconds: 5
             failureThreshold: 5
 
+          lifecycle:
+            preStop:
+              exec:
+                command: ["/bin/sh", "-c", "sleep 10"]
+
           volumeMounts:
             - name: tmp-volume
               mountPath: /tmp

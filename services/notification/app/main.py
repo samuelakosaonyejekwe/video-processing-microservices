@@ -3,14 +3,17 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 from prometheus_fastapi_instrumentator import Instrumentator
 
 from app.config import APP_ENV, APP_NAME, APP_PORT, CORS_ALLOWED_ORIGINS
-from app.queue.consumer import start_consumer
+from app.queue.consumer import start_consumer, stop_consumer
 from app.websocket.events import start_websocket_background
 from shared.errors.handlers import register_exception_handlers
 from shared.logging.logger import configure_logging
+from shared.middleware.correlation_id import CorrelationIdMiddleware
 from shared.runtime.queue_consumer import queue_consumer_enabled
+from shared.runtime.tracing import configure_tracing
 
 _enable_docs = (
     os.getenv("ENABLE_SWAGGER", "false").lower()
@@ -23,10 +26,15 @@ _enable_docs = (
 )
 
 
+def _smtp_configured() -> bool:
+    return bool(os.getenv("SMTP_HOST", "").strip())
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
 
     configure_logging(APP_NAME)
+    configure_tracing(APP_NAME)
 
     if APP_ENV != "test":
         if queue_consumer_enabled():
@@ -34,6 +42,8 @@ async def lifespan(app: FastAPI):
         start_websocket_background()
 
     yield
+
+    stop_consumer()
 
 
 app = FastAPI(
@@ -54,6 +64,7 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+app.add_middleware(CorrelationIdMiddleware)
 
 
 register_exception_handlers(app)
@@ -67,6 +78,21 @@ async def health_check():
         "service": APP_NAME,
         "environment": APP_ENV,
     }
+
+
+@app.get("/health/ready")
+async def readiness_check():
+    if not _smtp_configured():
+        return JSONResponse(
+            status_code=503,
+            content={
+                "status": "not_ready",
+                "service": APP_NAME,
+                "smtp": "unconfigured",
+            },
+        )
+
+    return {"status": "ready", "service": APP_NAME, "smtp": "ok"}
 
 
 @app.get("/")

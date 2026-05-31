@@ -32,26 +32,28 @@ class AuthMiddleware(BaseHTTPMiddleware):
         if request.url.path in public_routes:
             return await call_next(request)
 
+        token = request.cookies.get("access_token")
         authorization = request.headers.get("Authorization")
 
-        if not authorization:
+        if authorization:
+            try:
+                parts = authorization.split()
+
+                if len(parts) != 2 or parts[0].lower() != "bearer":
+                    raise ValueError("Invalid authorization header")
+
+                token = parts[1]
+
+            except ValueError:
+                return JSONResponse(
+                    status_code=401,
+                    content={"detail": "Invalid authorization header"},
+                )
+
+        if not token:
             return JSONResponse(
                 status_code=401,
                 content={"detail": "Authorization header missing"},
-            )
-
-        try:
-            parts = authorization.split()
-
-            if len(parts) != 2 or parts[0].lower() != "bearer":
-                raise ValueError("Invalid authorization header")
-
-            token = parts[1]
-
-        except ValueError:
-            return JSONResponse(
-                status_code=401,
-                content={"detail": "Invalid authorization header"},
             )
 
         try:

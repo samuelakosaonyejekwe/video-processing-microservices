@@ -181,7 +181,7 @@ class GatewayEventProducer:
 
             raise error
 
-    def publish_notification_event(self, recipient, subject, content):
+    def publish_notification_event(self, recipient, subject, content, job_id=None):
 
         try:
 
@@ -193,6 +193,7 @@ class GatewayEventProducer:
                     "recipient": recipient,
                     "subject": subject,
                     "content": content,
+                    "job_id": job_id,
                 },
                 correlation_id,
             )

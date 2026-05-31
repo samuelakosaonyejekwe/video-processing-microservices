@@ -16,7 +16,7 @@ def generate_test_user():
         "email": f"testuser_{unique_id}@example.com",
         "password": os.getenv(
             "TEST_USER_PASSWORD",
-            "CHANGE_ME_IN_TEST_ENV"
+            "TestPass123"
         )
     }
 
