@@ -6,10 +6,24 @@ ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 # shellcheck source=scripts/lib/env-aliases.sh
 source "${ROOT_DIR}/scripts/lib/env-aliases.sh"
 
+if ! kubectl get deployment/auth-service -n "${K8S_NAMESPACE}" >/dev/null 2>&1; then
+  echo "Skipping gateway-auth connectivity check (auth deployment missing)."
+  exit 0
+fi
+
+echo "Waiting for auth-service rollout before connectivity checks..."
+kubectl rollout status deployment/auth-service \
+  -n "${K8S_NAMESPACE}" \
+  --timeout="${DEPLOY_ROLLOUT_TIMEOUT:-120s}"
+
 if ! kubectl get deployment/gateway-deployment -n "${K8S_NAMESPACE}" >/dev/null 2>&1; then
   echo "Skipping gateway-auth connectivity check (gateway deployment missing)."
   exit 0
 fi
+
+kubectl rollout status deployment/gateway-deployment \
+  -n "${K8S_NAMESPACE}" \
+  --timeout="${DEPLOY_ROLLOUT_TIMEOUT:-120s}"
 
 gateway_pod="$(kubectl get pods -n "${K8S_NAMESPACE}" -l app=gateway \
   -o jsonpath='{.items[0].metadata.name}' 2>/dev/null || true)"
