@@ -43,18 +43,16 @@ if command -v kubectl >/dev/null 2>&1; then
     total_count="$(kubectl get nodes --no-headers 2>/dev/null | wc -l | tr -d ' ')"
     if [ "${total_count:-0}" -ge "${desired_size}" ] && [ "${ready_count:-0}" -ge "${desired_size}" ]; then
       kubectl get nodes
-      worker_name="${EKS_WORKER_INSTANCE_NAME:-${PROJECT_NAME:-video-processing}-${APP_ENV:-production}-eks-worker}"
-      tag_eks_worker_instances "${EKS_CLUSTER_NAME}" "${AWS_REGION}" "${worker_name}"
       echo "EKS worker nodes are Ready. Re-run Deploy EKS Services to restore workloads."
-      exit 0
+      break
     fi
     sleep 10
   done
 
   echo "WARNING: Timed out waiting for all nodes to become Ready. Check kubectl get nodes."
   kubectl get nodes 2>/dev/null || true
-else
-  worker_name="${EKS_WORKER_INSTANCE_NAME:-${PROJECT_NAME:-video-processing}-${APP_ENV:-production}-eks-worker}"
-  tag_eks_worker_instances "${EKS_CLUSTER_NAME}" "${AWS_REGION}" "${worker_name}"
-  echo "EKS worker nodes scaled up. Re-run Deploy EKS Services after nodes join the cluster."
 fi
+
+worker_name="${EKS_WORKER_INSTANCE_NAME:-${PROJECT_NAME:-video-processing}-${APP_ENV:-production}-eks-worker}"
+tag_eks_worker_instances "${EKS_CLUSTER_NAME}" "${AWS_REGION}" "${worker_name}"
+echo "EKS worker Name tags applied."
