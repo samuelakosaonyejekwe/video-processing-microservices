@@ -161,6 +161,8 @@ resource "aws_s3_bucket_lifecycle_configuration" "this" {
       true
     ) ? "Enabled" : "Disabled"
 
+    filter {}
+
     dynamic "expiration" {
 
       for_each = lookup(
