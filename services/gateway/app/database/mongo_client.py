@@ -41,7 +41,9 @@ def get_database() -> Database | None:
         minPoolSize=1,
     )
     _db = _client[_mongo_database_name()]
-    logger.info("Gateway MongoDB client initialized database=%s", _mongo_database_name())
+    logger.info(
+        "Gateway MongoDB client initialized database=%s", _mongo_database_name()
+    )
     return _db
 
 

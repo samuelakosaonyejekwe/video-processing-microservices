@@ -138,7 +138,9 @@ class GatewayEventConsumer:
         if not recipient:
             return
 
-        filename = payload.get("original_filename") or job.get("filename") or "your video"
+        filename = (
+            payload.get("original_filename") or job.get("filename") or "your video"
+        )
         frontend_url = FRONTEND_URL.rstrip("/")
 
         subject = "Your video conversion is ready"

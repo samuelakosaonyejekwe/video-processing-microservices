@@ -8,6 +8,10 @@ on:
         description: 'Optional stale Terraform state lock ID to force-unlock before plan'
         required: false
         type: string
+      image_tag:
+        description: "ECR image tag to deploy on manual apply (defaults to commit SHA)"
+        required: false
+        default: ""
 
   push:
     branches:
@@ -33,7 +37,7 @@ env:
   K8S_NAMESPACE: ${{ vars.K8S_NAMESPACE }}
   DOCKER_IMAGE_REGISTRY: ${{ vars.DOCKER_IMAGE_REGISTRY }}
   DOCKER_IMAGE_NAMESPACE: ${{ vars.DOCKER_IMAGE_NAMESPACE }}
-  IMAGE_TAG: ${{ vars.IMAGE_TAG }}
+  IMAGE_TAG: ${{ github.event_name == 'workflow_dispatch' && (inputs.image_tag || github.sha) || github.sha }}
   MESSAGING_NAMESPACE: ${{ vars.MESSAGING_NAMESPACE }}
   DATABASE_NAMESPACE: database
   APP_DOMAIN: ${{ vars.APP_DOMAIN }}
@@ -165,7 +169,10 @@ jobs:
           SMTP_PASSWORD: ${{ secrets.SMTP_PASSWORD }}
           REDIS_PASSWORD: ${{ secrets.REDIS_PASSWORD }}
         run: |
-          chmod +x scripts/deploy-eks.sh scripts/deploy-services.sh scripts/create-docker-registry-secret.sh scripts/run-production-validation.sh scripts/discover-production-api-url.sh
+          chmod +x scripts/deploy-eks.sh scripts/deploy-services.sh scripts/create-docker-registry-secret.sh scripts/run-production-validation.sh scripts/discover-production-api-url.sh scripts/verify-ecr-images.sh scripts/lib/env-aliases.sh scripts/resolve-ecr-registry.sh
+          source scripts/lib/env-aliases.sh
+          source scripts/resolve-ecr-registry.sh
+          bash scripts/verify-ecr-images.sh
           bash scripts/create-docker-registry-secret.sh
           bash scripts/deploy-eks.sh
           bash scripts/deploy-services.sh

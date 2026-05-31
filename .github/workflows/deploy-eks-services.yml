@@ -2,6 +2,15 @@ name: Deploy EKS Services
 
 on:
   workflow_dispatch:
+    inputs:
+      image_tag:
+        description: "ECR image tag to deploy (defaults to commit SHA)"
+        required: false
+        default: ""
+
+concurrency:
+  group: deploy-eks-${{ vars.EKS_CLUSTER_NAME }}
+  cancel-in-progress: false
 
 jobs:
   deploy:
@@ -36,7 +45,7 @@ jobs:
       DATABASE_NAMESPACE: database
       DOCKER_IMAGE_REGISTRY: ${{ vars.DOCKER_IMAGE_REGISTRY }}
       DOCKER_IMAGE_NAMESPACE: ${{ vars.DOCKER_IMAGE_NAMESPACE }}
-      IMAGE_TAG: ${{ vars.IMAGE_TAG }}
+      IMAGE_TAG: ${{ inputs.image_tag || github.sha }}
       DOCKER_USERNAME: ${{ vars.DOCKER_IMAGE_NAMESPACE }}
       DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
       JWT_PRIVATE_KEY: ${{ secrets.JWT_PRIVATE_KEY }}
@@ -82,6 +91,13 @@ jobs:
           echo "DOCKER_IMAGE_REGISTRY=${DOCKER_IMAGE_REGISTRY}" >> "$GITHUB_ENV"
           echo "DOCKER_IMAGE_NAMESPACE=${DOCKER_IMAGE_NAMESPACE}" >> "$GITHUB_ENV"
           kubectl get nodes
+
+      - name: Verify ECR Images
+        run: |
+          chmod +x scripts/verify-ecr-images.sh scripts/lib/env-aliases.sh scripts/resolve-ecr-registry.sh
+          source scripts/lib/env-aliases.sh
+          source scripts/resolve-ecr-registry.sh
+          bash scripts/verify-ecr-images.sh
 
       - name: Deploy Stack
         env:

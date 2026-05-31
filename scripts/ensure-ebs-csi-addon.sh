@@ -6,6 +6,8 @@ set -euo pipefail
 : "${AWS_REGION:?Missing AWS_REGION}"
 
 ADDON_NAME="aws-ebs-csi-driver"
+HELM_RELEASE="aws-ebs-csi-driver"
+HELM_NAMESPACE="kube-system"
 ROLE_NAME="${EKS_CLUSTER_NAME}-ebs-csi-driver-role"
 ACCOUNT_ID="$(aws sts get-caller-identity --query Account --output text)"
 OIDC_HOST="$(aws eks describe-cluster \
@@ -78,27 +80,79 @@ EOF
   printf '%s' "${role_arn}"
 }
 
+helm_release_status() {
+  helm status "${HELM_RELEASE}" -n "${HELM_NAMESPACE}" -o json 2>/dev/null \
+    | python3 -c "import json,sys; print(json.load(sys.stdin)['info']['status'])" 2>/dev/null \
+    || echo "missing"
+}
+
+helm_release_is_healthy() {
+  if ! helm status "${HELM_RELEASE}" -n "${HELM_NAMESPACE}" >/dev/null 2>&1; then
+    return 1
+  fi
+  helm history "${HELM_RELEASE}" -n "${HELM_NAMESPACE}" >/dev/null 2>&1
+}
+
+force_remove_helm_release() {
+  echo "Removing Helm release ${HELM_RELEASE} from ${HELM_NAMESPACE}..."
+  helm uninstall "${HELM_RELEASE}" -n "${HELM_NAMESPACE}" --wait --timeout 5m 2>/dev/null || true
+  kubectl delete secrets -n "${HELM_NAMESPACE}" \
+    -l "owner=helm,name=${HELM_RELEASE}" \
+    --ignore-not-found >/dev/null 2>&1 || true
+  kubectl get secrets -n "${HELM_NAMESPACE}" -o name 2>/dev/null \
+    | grep "sh.helm.release.v1.${HELM_RELEASE}\." \
+    | xargs -r kubectl delete -n "${HELM_NAMESPACE}" --ignore-not-found >/dev/null 2>&1 || true
+  sleep 5
+}
+
+recover_helm_release_if_needed() {
+  local status
+  status="$(helm_release_status)"
+  if [ "${status}" = "missing" ]; then
+    return 0
+  fi
+
+  if [ "${status}" = "pending-install" ] \
+    || [ "${status}" = "pending-upgrade" ] \
+    || [ "${status}" = "pending-rollback" ] \
+    || [ "${status}" = "failed" ]; then
+    echo "Clearing stuck Helm release ${HELM_RELEASE} (status=${status})..."
+    force_remove_helm_release
+    return 0
+  fi
+
+  if ! helm_release_is_healthy; then
+    echo "Helm release ${HELM_RELEASE} metadata is corrupted; reinstalling..."
+    force_remove_helm_release
+  fi
+}
+
 install_via_helm() {
   local role_arn="$1"
   helm repo add aws-ebs-csi-driver https://kubernetes-sigs.github.io/aws-ebs-csi-driver 2>/dev/null || true
   helm repo update
 
-  if helm status aws-ebs-csi-driver -n kube-system >/dev/null 2>&1; then
-    status="$(helm status aws-ebs-csi-driver -n kube-system -o json | python3 -c "import json,sys; print(json.load(sys.stdin)['info']['status'])" 2>/dev/null || echo unknown)"
-    if [ "${status}" = "pending-install" ] || [ "${status}" = "pending-upgrade" ] || [ "${status}" = "pending-rollback" ]; then
-      echo "Clearing stuck Helm release aws-ebs-csi-driver (status=${status})..."
-      helm uninstall aws-ebs-csi-driver -n kube-system --wait --timeout 5m || true
-      sleep 5
-    fi
-  fi
+  recover_helm_release_if_needed
 
-  helm upgrade --install aws-ebs-csi-driver aws-ebs-csi-driver/aws-ebs-csi-driver \
-    --namespace kube-system \
+  if ! helm upgrade --install "${HELM_RELEASE}" aws-ebs-csi-driver/aws-ebs-csi-driver \
+    --namespace "${HELM_NAMESPACE}" \
     --create-namespace \
+    --history-max 5 \
     --set controller.serviceAccount.create=true \
     --set controller.serviceAccount.name=ebs-csi-controller-sa \
     --set "controller.serviceAccount.annotations.eks\.amazonaws\.com/role-arn=${role_arn}" \
-    --wait --timeout 10m
+    --wait --timeout 10m; then
+    echo "Helm upgrade failed; force reinstalling ${HELM_RELEASE}..."
+    force_remove_helm_release
+    helm upgrade --install "${HELM_RELEASE}" aws-ebs-csi-driver/aws-ebs-csi-driver \
+      --namespace "${HELM_NAMESPACE}" \
+      --create-namespace \
+      --history-max 5 \
+      --set controller.serviceAccount.create=true \
+      --set controller.serviceAccount.name=ebs-csi-controller-sa \
+      --set "controller.serviceAccount.annotations.eks\.amazonaws\.com/role-arn=${role_arn}" \
+      --wait --timeout 10m
+  fi
 }
 
 remove_eks_addon_if_present
