@@ -100,6 +100,22 @@ app.include_router(jobs_router)
 register_exception_handlers(app)
 
 
+@app.get("/health/jwt")
+async def jwt_health():
+    fingerprint = (
+        hashlib.sha256(JWT_PUBLIC_KEY.encode()).hexdigest()[:16]
+        if JWT_PUBLIC_KEY
+        else ""
+    )
+    return {
+        "algorithm": JWT_ALGORITHM,
+        "issuer": JWT_ISSUER,
+        "audience": JWT_AUDIENCE,
+        "public_key_loaded": bool(JWT_PUBLIC_KEY),
+        "public_key_fingerprint": fingerprint,
+    }
+
+
 if APP_ENV != "production":
 
     @app.post("/health/verify-token")
@@ -137,21 +153,6 @@ if APP_ENV != "production":
             return {"valid": False, "detail": "Token expired"}
         except PyJWTError:
             return {"valid": False, "detail": "Invalid token"}
-
-    @app.get("/health/jwt")
-    async def jwt_health():
-        fingerprint = (
-            hashlib.sha256(JWT_PUBLIC_KEY.encode()).hexdigest()[:16]
-            if JWT_PUBLIC_KEY
-            else ""
-        )
-        return {
-            "algorithm": JWT_ALGORITHM,
-            "issuer": JWT_ISSUER,
-            "audience": JWT_AUDIENCE,
-            "public_key_loaded": bool(JWT_PUBLIC_KEY),
-            "public_key_fingerprint": fingerprint,
-        }
 
 
 @app.get("/health/ready")

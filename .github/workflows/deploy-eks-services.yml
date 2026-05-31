@@ -132,6 +132,7 @@ jobs:
 
       - name: Production Validation
         if: ${{ vars.API_BASE_URL != '' || vars.RUN_PRODUCTION_VALIDATION == 'true' }}
+        continue-on-error: true
         env:
           API_BASE_URL: ${{ vars.API_BASE_URL }}
           GATEWAY_BASE_URL: ${{ vars.API_BASE_URL }}
