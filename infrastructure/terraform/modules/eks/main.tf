@@ -51,6 +51,14 @@ module "eks" {
       }
 
       iam_role_arn = var.node_role_arn
+
+      tags = {
+        Name = "${var.project_name}-${var.environment}-eks-worker"
+      }
+
+      launch_template_tags = {
+        Name = "${var.project_name}-${var.environment}-eks-worker"
+      }
     }
   }
 

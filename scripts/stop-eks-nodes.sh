@@ -7,6 +7,8 @@ ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 source "${ROOT_DIR}/scripts/lib/env-aliases.sh"
 # shellcheck source=scripts/lib/resolve-eks-nodegroup.sh
 source "${ROOT_DIR}/scripts/lib/resolve-eks-nodegroup.sh"
+# shellcheck source=scripts/lib/complete-eks-node-termination.sh
+source "${ROOT_DIR}/scripts/lib/complete-eks-node-termination.sh"
 
 : "${AWS_REGION:?Missing AWS_REGION}"
 : "${EKS_CLUSTER_NAME:?Missing EKS_CLUSTER_NAME}"
@@ -27,5 +29,7 @@ aws eks wait nodegroup-active \
   --cluster-name "${EKS_CLUSTER_NAME}" \
   --nodegroup-name "${nodegroup}" \
   --region "${AWS_REGION}"
+
+complete_eks_node_termination "${EKS_CLUSTER_NAME}" "${nodegroup}" "${AWS_REGION}"
 
 echo "EKS worker nodes scaled to 0. Deploy and validation workflows will fail until nodes are started again."
