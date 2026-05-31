@@ -46,6 +46,9 @@ fi
 
 echo "Syncing RabbitMQ definitions into ${broker_namespace}/${pod}..."
 kubectl cp "${rendered_definitions}" "${broker_namespace}/${pod}:/tmp/rabbitmq-definitions.json"
-kubectl exec -n "${broker_namespace}" "${pod}" -- sh -c \
-  "rabbitmqctl await_startup >/dev/null && rabbitmqctl import_definitions /tmp/rabbitmq-definitions.json"
-echo "RabbitMQ definitions synced."
+if kubectl exec -n "${broker_namespace}" "${pod}" -- sh -c \
+  "rabbitmqctl await_startup >/dev/null && rabbitmqctl import_definitions /tmp/rabbitmq-definitions.json"; then
+  echo "RabbitMQ definitions synced."
+else
+  echo "WARNING: RabbitMQ definition import failed; runtime queue declarations will continue to apply topology." >&2
+fi

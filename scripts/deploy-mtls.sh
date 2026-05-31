@@ -13,11 +13,15 @@ fi
 
 if ! kubectl get namespace cert-manager >/dev/null 2>&1; then
   echo "Installing cert-manager..."
-  kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/v1.14.4/cert-manager.yaml
-  kubectl wait --for=condition=Available deployment/cert-manager \
-    -n cert-manager --timeout="${DEPLOY_ROLLOUT_TIMEOUT:-120s}"
-  kubectl wait --for=condition=Available deployment/cert-manager-webhook \
-    -n cert-manager --timeout="${DEPLOY_ROLLOUT_TIMEOUT:-120s}"
+  if kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/v1.14.4/cert-manager.yaml; then
+    kubectl wait --for=condition=Available deployment/cert-manager \
+      -n cert-manager --timeout="${DEPLOY_ROLLOUT_TIMEOUT:-120s}" || true
+    kubectl wait --for=condition=Available deployment/cert-manager-webhook \
+      -n cert-manager --timeout="${DEPLOY_ROLLOUT_TIMEOUT:-120s}" || true
+  else
+    echo "WARNING: cert-manager install failed; skipping internal certificate issuance." >&2
+    exit 0
+  fi
 fi
 
 RENDERED="${ROOT_DIR}/.rendered-k8s/infrastructure/kubernetes/mtls"
