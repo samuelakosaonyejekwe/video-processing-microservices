@@ -42,4 +42,18 @@ for service in gateway auth converter notification; do
 done
 python -m pytest "${ROOT_DIR}/tests/integration" "${ROOT_DIR}/tests/e2e" -v --tb=short
 
+echo "=== RabbitMQ queue health check ==="
+for queue in video-upload-queue video-upload-retry-queue video-upload-dlq; do
+  count="$(
+    kubectl exec -n "${messaging_ns}" rabbitmq-0 -- \
+      rabbitmqctl list_queues name messages \
+      | awk -v queue="${queue}" '$1 == queue { print $2 }'
+  )"
+  if [ "${count:-0}" != "0" ]; then
+    echo "ERROR: Queue ${queue} has ${count} message(s) after production validation"
+    exit 1
+  fi
+  echo "  ${queue}: ${count:-0}"
+done
+
 echo "=== Production validation completed ==="

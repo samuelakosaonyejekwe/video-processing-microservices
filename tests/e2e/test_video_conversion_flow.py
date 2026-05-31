@@ -18,6 +18,47 @@ def _audio_bucket() -> str:
     return os.getenv("S3_AUDIO_BUCKET") or os.getenv("AWS_S3_AUDIO_BUCKET") or ""
 
 
+def _video_bucket() -> str:
+    return (
+        os.getenv("S3_UPLOAD_BUCKET")
+        or os.getenv("AWS_S3_VIDEO_BUCKET")
+        or os.getenv("AWS_S3_BUCKET")
+        or os.getenv("S3_BUCKET_NAME")
+        or ""
+    )
+
+
+def _require_production_buckets() -> tuple[str, str]:
+    audio_bucket = _audio_bucket()
+    video_bucket = _video_bucket()
+
+    if not audio_bucket:
+        raise AssertionError(
+            "PRODUCTION_VALIDATION requires S3_AUDIO_BUCKET or AWS_S3_AUDIO_BUCKET"
+        )
+    if not video_bucket:
+        raise AssertionError(
+            "PRODUCTION_VALIDATION requires S3_UPLOAD_BUCKET or AWS_S3_VIDEO_BUCKET"
+        )
+
+    return video_bucket, audio_bucket
+
+
+def _assert_s3_object_exists(bucket: str, key: str) -> None:
+    import boto3
+    from botocore.exceptions import ClientError
+
+    region = os.getenv("AWS_REGION", "eu-central-1")
+    client = boto3.client("s3", region_name=region)
+
+    try:
+        client.head_object(Bucket=bucket, Key=key)
+    except ClientError as error:
+        raise AssertionError(
+            f"Expected s3://{bucket}/{key} to exist after upload: {error}"
+        ) from error
+
+
 def _list_mp3_keys(bucket: str) -> set[str]:
     import boto3
 
@@ -87,8 +128,10 @@ def test_video_upload_flow():
     assert token
 
     existing_audio_keys: set[str] = set()
-    audio_bucket = _audio_bucket()
-    if _production_validation_enabled() and audio_bucket:
+    video_bucket = ""
+    audio_bucket = ""
+    if _production_validation_enabled():
+        video_bucket, audio_bucket = _require_production_buckets()
         existing_audio_keys = _list_mp3_keys(audio_bucket)
 
     with FIXTURE_PATH.open("rb") as fixture:
@@ -110,6 +153,7 @@ def test_video_upload_flow():
     assert body.get("correlation_id"), body
     assert body.get("s3_key"), body
 
-    if _production_validation_enabled() and audio_bucket:
+    if _production_validation_enabled():
+        _assert_s3_object_exists(video_bucket, body["s3_key"])
         audio_key = _wait_for_new_audio_object(audio_bucket, existing_audio_keys)
         assert audio_key.endswith(".mp3"), audio_key
