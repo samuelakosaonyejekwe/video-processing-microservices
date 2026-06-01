@@ -123,6 +123,7 @@ jobs:
           RUN_POSTGRES_MIGRATIONS: "true"
         run: |
           chmod +x scripts/*.sh scripts/lib/*.sh
+          bash scripts/validate-jwt-pipeline.sh
           bash scripts/create-docker-registry-secret.sh
           bash scripts/deploy-eks.sh
           bash scripts/deploy-services.sh
