@@ -78,7 +78,7 @@ def _list_mp3_keys(bucket: str) -> set[str]:
 
 
 def _wait_for_new_audio_object(
-    bucket: str, existing_keys: set[str], timeout_seconds: int = 60
+    bucket: str, existing_keys: set[str], timeout_seconds: int = 120
 ) -> str:
     deadline = time.time() + timeout_seconds
 

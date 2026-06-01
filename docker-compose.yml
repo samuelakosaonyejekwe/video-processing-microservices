@@ -160,6 +160,7 @@ services:
       JWT_ISSUER: ${JWT_ISSUER:-${JWT_TOKEN_ISSUER:-video-converter-platform}}
       JWT_AUDIENCE: ${JWT_AUDIENCE:-${JWT_TOKEN_AUDIENCE:-video-converter-users}}
       JWT_ALGORITHM: ${JWT_ALGORITHM:-RS256}
+      ENABLE_QUEUE_CONSUMER: "true"
     ports:
       - "${CONVERTER_APP_PORT:-8002}:8002"
     volumes:
