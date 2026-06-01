@@ -17,8 +17,17 @@ prepare_compose_env() {
     set -u
   fi
 
+  # Unset MONGO_URI before sourcing env-aliases.sh so that the broken template
+  # value built by sourcing .env (where ${MONGO_USERNAME} etc. are all empty)
+  # does not freeze in place and block env-aliases.sh from rebuilding it.
+  unset MONGO_URI
+
   # shellcheck source=scripts/lib/env-aliases.sh
   source "${root_dir}/scripts/lib/env-aliases.sh"
+
+  # Force compose-internal hostname regardless of what env-aliases.sh built.
+  # env-aliases.sh uses the k8s service name; compose uses the service label.
+  export MONGO_URI="mongodb://${MONGO_USERNAME:-mongo}:${MONGO_PASSWORD:-mongo}@mongodb:${MONGO_PORT:-27017}/${MONGO_DATABASE:-video_converter}?authSource=${MONGO_AUTH_SOURCE:-admin}"
 
   write_env() {
     local key="$1"
@@ -35,7 +44,7 @@ prepare_compose_env() {
     JWT_ACTIVE_KID \
     GATEWAY_APP_PORT AUTH_APP_PORT CONVERTER_APP_PORT NOTIFICATION_APP_PORT \
     VIDEO_UPLOAD_QUEUE NOTIFICATION_QUEUE GATEWAY_EVENTS_QUEUE \
-    MONGO_USERNAME MONGO_PASSWORD MONGO_DATABASE MONGO_PORT \
+    MONGO_USERNAME MONGO_PASSWORD MONGO_DATABASE MONGO_PORT MONGO_URI \
     AWS_REGION AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY \
     S3_UPLOAD_BUCKET S3_AUDIO_BUCKET SMTP_HOST SMTP_PORT SMTP_EMAIL SMTP_PASSWORD SMTP_FROM_EMAIL \
     CORS_ALLOWED_ORIGINS; do
