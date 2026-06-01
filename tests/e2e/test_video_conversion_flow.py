@@ -1,7 +1,6 @@
 import os
 import time
 import uuid
-from http.cookiejar import CookieJar
 from pathlib import Path
 
 import httpx
@@ -131,6 +130,8 @@ def test_video_upload_flow():
         )
         assert login.status_code == 200, login.text
         assert "access_token" in login.cookies
+        # httpx doesn't propagate httponly cookies for localhost automatically
+        client.cookies.set("access_token", login.cookies["access_token"])
 
         with FIXTURE_PATH.open("rb") as fixture:
             response = client.post(

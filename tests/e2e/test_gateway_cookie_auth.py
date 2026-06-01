@@ -29,6 +29,8 @@ def test_gateway_session_uses_cookie_not_bearer():
         )
         assert login_response.status_code == 200
         assert "access_token" in login_response.cookies
+        # httpx doesn't propagate httponly cookies for localhost automatically
+        client.cookies.set("access_token", login_response.cookies["access_token"])
 
         session_response = client.get("/auth/session")
         assert session_response.status_code == 200
