@@ -22,11 +22,17 @@ cleanup() {
 }
 trap cleanup EXIT
 
-# Build and start the whole stack, blocking until every service reports healthy.
-# `--wait` honors container healthchecks and depends_on: service_healthy, so this
-# is deterministic — it fails fast rather than racing on fixed sleeps. On failure
+# Spin up only the services needed for API-level integration tests.
+# The frontend UI is excluded — it is not exercised by the test suite and would
+# add an extra healthcheck barrier (wget against nginx) that has no bearing on
+# API correctness.  minio-init is a one-shot init container (restart: no) that
+# exits 0 after creating buckets; docker compose --wait treats exit-0 as done.
+# `--wait` honors healthchecks and depends_on: service_healthy chains, so this
+# is deterministic — fails fast rather than racing on fixed sleeps.  On failure
 # we dump status + logs to make the cause obvious in CI.
-if ! docker compose --env-file "${COMPOSE_ENV_FILE}" up -d --build --wait --wait-timeout 360; then
+API_SERVICES=(postgres mongodb redis rabbitmq minio minio-init auth gateway converter notification)
+if ! docker compose --env-file "${COMPOSE_ENV_FILE}" up -d --build --wait --wait-timeout 360 \
+    "${API_SERVICES[@]}"; then
   echo "=== Stack did not become healthy; status + logs follow ==="
   docker compose --env-file "${COMPOSE_ENV_FILE}" ps || true
   docker compose --env-file "${COMPOSE_ENV_FILE}" logs --tail=80 \
