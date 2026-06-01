@@ -68,29 +68,34 @@ prepare_compose_env() {
     write_env "$key"
   done
 
-  if [ -f "${root_dir}/jwt-private.pem" ]; then
-    echo "JWT_ALGORITHM=RS256" >> "${runtime_env}"
-  else
-    write_env "JWT_ALGORITHM"
-    write_env "JWT_SECRET"
-  fi
-
   export JWT_ISSUER="${JWT_ISSUER:-${JWT_TOKEN_ISSUER:-video-converter-platform}}"
   export JWT_AUDIENCE="${JWT_AUDIENCE:-${JWT_TOKEN_AUDIENCE:-video-converter-users}}"
   export JWT_ALGORITHM="${JWT_ALGORITHM:-RS256}"
   printf 'JWT_ISSUER=%s\n' "${JWT_ISSUER}" >> "${runtime_env}"
   printf 'JWT_AUDIENCE=%s\n' "${JWT_AUDIENCE}" >> "${runtime_env}"
 
-  if [ -f "${root_dir}/jwt-private.pem" ] && [ ! -f "${root_dir}/jwt-public.pem" ]; then
-    openssl rsa -in "${root_dir}/jwt-private.pem" -pubout -out "${root_dir}/jwt-public.pem" 2>/dev/null || true
-  fi
-
+  # Ensure RSA keypair exists in secrets_dir so docker compose bind-mounts
+  # get a real file at /run/secrets/*.pem, not an empty directory (which is
+  # what Docker creates when the host source path does not exist).
+  # Priority: user-supplied keys at root_dir → already-generated keys in
+  # secrets_dir (preserve across re-runs) → generate a throwaway pair.
   mkdir -p "${secrets_dir}"
   if [ -f "${root_dir}/jwt-private.pem" ]; then
-    cp "${root_dir}/jwt-private.pem" "${secrets_dir}/"
-    cp "${root_dir}/jwt-public.pem" "${secrets_dir}/"
-    chmod 644 "${secrets_dir}/jwt-private.pem" "${secrets_dir}/jwt-public.pem"
+    cp "${root_dir}/jwt-private.pem" "${secrets_dir}/jwt-private.pem"
+    if [ -f "${root_dir}/jwt-public.pem" ]; then
+      cp "${root_dir}/jwt-public.pem" "${secrets_dir}/jwt-public.pem"
+    else
+      openssl rsa -in "${secrets_dir}/jwt-private.pem" -pubout \
+        -out "${secrets_dir}/jwt-public.pem" 2>/dev/null || true
+    fi
+  elif [ ! -f "${secrets_dir}/jwt-private.pem" ]; then
+    openssl genrsa -out "${secrets_dir}/jwt-private.pem" 2048 2>/dev/null
+    openssl rsa -in "${secrets_dir}/jwt-private.pem" -pubout \
+      -out "${secrets_dir}/jwt-public.pem" 2>/dev/null || true
   fi
+  chmod 644 "${secrets_dir}/jwt-private.pem" "${secrets_dir}/jwt-public.pem" 2>/dev/null || true
+  # Always RS256 — RSA material is always present in secrets_dir after the block above.
+  echo "JWT_ALGORITHM=RS256" >> "${runtime_env}"
 
   export COMPOSE_ENV_FILE="${runtime_env}"
   export COMPOSE_SECRETS_DIR="${secrets_dir}"
