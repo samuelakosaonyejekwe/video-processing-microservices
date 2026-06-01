@@ -22,10 +22,14 @@ cleanup() {
 }
 trap cleanup EXIT
 
-# Use || true so that a transient RabbitMQ health-check race during compose
-# startup does not abort the script — the explicit wait loop below is the real
-# readiness gate.
+# First pass: build images and start all containers.
 docker compose --env-file "${COMPOSE_ENV_FILE}" up -d --build || true
+
+# RabbitMQ may take >30s to boot from a fresh volume, which can fail dependent
+# services on the first pass (health-check race). A second `up -d` starts any
+# containers that were skipped due to that transient dependency failure.
+sleep 10
+docker compose --env-file "${COMPOSE_ENV_FILE}" up -d || true
 
 echo "=== Waiting for services ==="
 for _ in $(seq 1 60); do
