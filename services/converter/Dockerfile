@@ -31,7 +31,7 @@ COPY scripts/docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
 
 RUN chmod +x /usr/local/bin/docker-entrypoint.sh && \
     mkdir -p /tmp/uploads /tmp/output /tmp/video-converter /tmp/converter && \
-    chown -R appuser:appgroup /app
+    chown -R appuser:appgroup /app /tmp/uploads /tmp/output /tmp/video-converter /tmp/converter
 
 USER appuser
 
