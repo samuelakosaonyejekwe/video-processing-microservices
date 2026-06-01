@@ -37,12 +37,19 @@ def publish_ws_event(payload: dict) -> bool:
 
     try:
         subscribers = client.publish(WS_EVENTS_CHANNEL, json.dumps(payload))
-        logger.debug(
-            "Published ws event type=%s recipient=%s subscribers=%s",
-            payload.get("type"),
-            payload.get("recipient"),
-            subscribers,
-        )
+        if subscribers == 0:
+            logger.warning(
+                "Published ws event type=%s recipient=%s but no subscribers were listening",
+                payload.get("type"),
+                payload.get("recipient"),
+            )
+        else:
+            logger.debug(
+                "Published ws event type=%s recipient=%s subscribers=%s",
+                payload.get("type"),
+                payload.get("recipient"),
+                subscribers,
+            )
         return True
     except Exception as error:
         logger.warning("Redis ws publish failed: %s", error)

@@ -1,9 +1,14 @@
 import asyncio
 import json
 import logging
+import os
 import threading
 
-from app.config import WEBSOCKET_HOST, WEBSOCKET_PORT
+from app.config import (
+    WEBSOCKET_HOST,
+    WEBSOCKET_NOTIFICATIONS_ENABLED,
+    WEBSOCKET_PORT,
+)
 from app.websocket.redis_fanout import publish_ws_event, redis_subscriber_loop
 from app.websocket.socket_server import connected_clients, start_server
 
@@ -35,6 +40,9 @@ async def broadcast_event(message: str, *, recipient: str | None = None) -> None
 
 
 def broadcast_event_sync(payload: dict) -> None:
+    if not WEBSOCKET_NOTIFICATIONS_ENABLED:
+        return
+
     if publish_ws_event(payload):
         return
 
@@ -48,10 +56,10 @@ def broadcast_event_sync(payload: dict) -> None:
 
 
 async def _run_websocket_stack() -> None:
-    await asyncio.gather(
-        start_server(),
-        redis_subscriber_loop(broadcast_event),
-    )
+    tasks = [asyncio.create_task(start_server())]
+    if WEBSOCKET_NOTIFICATIONS_ENABLED and os.getenv("REDIS_HOST", "").strip():
+        tasks.append(asyncio.create_task(redis_subscriber_loop(broadcast_event)))
+    await asyncio.gather(*tasks)
 
 
 def start_websocket_server() -> None:

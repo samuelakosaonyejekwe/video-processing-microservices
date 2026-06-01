@@ -7,6 +7,17 @@ from app.websocket import events
 
 
 @pytest.mark.asyncio
+async def test_broadcast_event_sync_skips_when_disabled():
+    with (
+        patch("app.websocket.events.WEBSOCKET_NOTIFICATIONS_ENABLED", False),
+        patch("app.websocket.events.publish_ws_event") as publish_mock,
+    ):
+        events.broadcast_event_sync({"type": "notification_sent"})
+
+    publish_mock.assert_not_called()
+
+
+@pytest.mark.asyncio
 async def test_broadcast_event_sync_uses_redis_when_available():
     payload = {
         "type": "notification_sent",

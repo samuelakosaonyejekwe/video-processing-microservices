@@ -34,6 +34,19 @@ def test_publish_ws_event_publishes_json_payload(monkeypatch):
     )
 
 
+def test_publish_ws_event_warns_when_no_subscribers(monkeypatch):
+    monkeypatch.setenv("REDIS_HOST", "redis")
+
+    mock_client = MagicMock()
+    mock_client.publish.return_value = 0
+
+    with patch(
+        "app.websocket.redis_fanout._get_sync_redis_client",
+        return_value=mock_client,
+    ):
+        assert publish_ws_event({"type": "notification_sent"}) is True
+
+
 def test_publish_ws_event_returns_false_on_redis_error(monkeypatch):
     monkeypatch.setenv("REDIS_HOST", "redis")
 

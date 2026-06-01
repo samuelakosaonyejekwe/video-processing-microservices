@@ -15,6 +15,7 @@ from app.cache.redis_state import (
     record_notification_delivery,
     release_job_notification_claim,
 )
+from app.config import WEBSOCKET_NOTIFICATIONS_ENABLED
 from app.email.send_email import send_email
 from app.websocket.events import broadcast_event_sync
 
@@ -233,21 +234,22 @@ class NotificationConsumer:
                         publish_error,
                     )
 
-            try:
-                broadcast_event_sync(
-                    {
-                        "type": "notification_sent",
-                        "recipient": recipient,
-                        "correlation_id": correlation_id,
-                        "subject": subject,
-                    }
-                )
-            except Exception as broadcast_error:
-                logger.warning(
-                    "WebSocket broadcast failed correlation_id=%s: %s",
-                    correlation_id,
-                    broadcast_error,
-                )
+            if WEBSOCKET_NOTIFICATIONS_ENABLED:
+                try:
+                    broadcast_event_sync(
+                        {
+                            "type": "notification_sent",
+                            "recipient": recipient,
+                            "correlation_id": correlation_id,
+                            "subject": subject,
+                        }
+                    )
+                except Exception as broadcast_error:
+                    logger.warning(
+                        "WebSocket broadcast failed correlation_id=%s: %s",
+                        correlation_id,
+                        broadcast_error,
+                    )
 
             logger.info(
                 "Notification sent successfully " "to %s " "correlation_id=%s",

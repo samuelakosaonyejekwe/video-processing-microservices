@@ -52,6 +52,10 @@ WEBSOCKET_HOST = os.getenv("WEBSOCKET_HOST", "0.0.0.0").strip()
 
 WEBSOCKET_PORT = int(os.getenv("WEBSOCKET_PORT", "8081").strip())
 
+WEBSOCKET_NOTIFICATIONS_ENABLED = os.getenv(
+    "WEBSOCKET_NOTIFICATIONS_ENABLED", "true"
+).strip().lower() in ("true", "1", "yes")
+
 REDIS_HOST = os.getenv("REDIS_HOST", "redis").strip()
 
 REDIS_PORT = int(os.getenv("REDIS_PORT", "6379").strip())
