@@ -22,28 +22,20 @@ cleanup() {
 }
 trap cleanup EXIT
 
-# First pass: build images and start all containers.
-docker compose --env-file "${COMPOSE_ENV_FILE}" up -d --build || true
+# Build and start the whole stack, blocking until every service reports healthy.
+# `--wait` honors container healthchecks and depends_on: service_healthy, so this
+# is deterministic — it fails fast rather than racing on fixed sleeps. On failure
+# we dump status + logs to make the cause obvious in CI.
+if ! docker compose --env-file "${COMPOSE_ENV_FILE}" up -d --build --wait --wait-timeout 360; then
+  echo "=== Stack did not become healthy; status + logs follow ==="
+  docker compose --env-file "${COMPOSE_ENV_FILE}" ps || true
+  docker compose --env-file "${COMPOSE_ENV_FILE}" logs --tail=80 \
+    auth gateway converter notification 2>&1 || true
+  exit 1
+fi
 
-# RabbitMQ may take >30s to boot from a fresh volume, which can fail dependent
-# services on the first pass (health-check race). A second `up -d` starts any
-# containers that were skipped due to that transient dependency failure.
-sleep 10
-docker compose --env-file "${COMPOSE_ENV_FILE}" up -d || true
-
-echo "=== Waiting for services ==="
-for _ in $(seq 1 60); do
-  if curl -sf http://localhost:8080/health >/dev/null 2>&1 \
-    && curl -sf http://localhost:8000/health >/dev/null 2>&1 \
-    && curl -sf http://localhost:8002/health >/dev/null 2>&1 \
-    && curl -sf http://localhost:9000/minio/health/live >/dev/null 2>&1; then
-    break
-  fi
-  sleep 3
-done
-
-# Also wait for RabbitMQ AMQP port to accept connections (the ping health check
-# passes before AMQP is fully ready, which causes converter consumer to fail).
+# Belt-and-suspenders: confirm RabbitMQ AMQP is actually accepting connections
+# (its health check can pass slightly before the AMQP listener is ready).
 for _ in $(seq 1 40); do
   if docker exec rabbitmq rabbitmq-diagnostics check_running >/dev/null 2>&1; then
     break
