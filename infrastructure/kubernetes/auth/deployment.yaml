@@ -22,7 +22,7 @@ spec:
     type: RollingUpdate
 
     rollingUpdate:
-      maxUnavailable: 1
+      maxUnavailable: 0
       maxSurge: 1
 
   template:
@@ -105,24 +105,6 @@ spec:
                 configMapKeyRef:
                   name: auth-config
                   key: JWT_ALGORITHM
-
-            - name: ACCESS_TOKEN_EXPIRE_MINUTES
-              valueFrom:
-                configMapKeyRef:
-                  name: auth-config
-                  key: ACCESS_TOKEN_EXPIRE_MINUTES
-
-            - name: REFRESH_TOKEN_EXPIRE_DAYS
-              valueFrom:
-                configMapKeyRef:
-                  name: auth-config
-                  key: REFRESH_TOKEN_EXPIRE_DAYS
-
-            - name: PASSWORD_HASH_SCHEME
-              valueFrom:
-                configMapKeyRef:
-                  name: auth-config
-                  key: PASSWORD_HASH_SCHEME
 
             - name: JWT_SECRET
               valueFrom:
@@ -357,6 +339,8 @@ spec:
               value: /etc/internal-tls/tls.key
 
           volumeMounts:
+            - name: auth-tmp
+              mountPath: /tmp
             - name: auth-internal-tls
               mountPath: /etc/internal-tls
               readOnly: true
@@ -375,7 +359,7 @@ spec:
 
             allowPrivilegeEscalation: false
 
-            readOnlyRootFilesystem: false
+            readOnlyRootFilesystem: true
 
             capabilities:
               drop:
@@ -422,6 +406,9 @@ spec:
       restartPolicy: Always
 
       volumes:
+        - name: auth-tmp
+          emptyDir:
+            sizeLimit: 256Mi
         - name: auth-internal-tls
           secret:
             secretName: auth-internal-tls

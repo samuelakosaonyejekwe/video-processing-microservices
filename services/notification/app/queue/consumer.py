@@ -152,13 +152,16 @@ class NotificationConsumer:
 
         job_id = None
         correlation_id = None
+        message = {}
+        payload = {}
+        retry_count = 0
 
         try:
 
             message = json.loads(body)
 
             payload = message.get("payload", {}) or {}
-            retry_count = int(payload.get("retry_count", 0))
+            retry_count = int(payload.get("retry_count", 0) or 0)
 
             recipient = payload.get("recipient")
 
@@ -168,6 +171,7 @@ class NotificationConsumer:
 
             correlation_id = message.get("correlation_id")
             job_id = payload.get("job_id")
+            user_id = payload.get("user_id")
 
             if not recipient:
 
@@ -234,12 +238,14 @@ class NotificationConsumer:
                         publish_error,
                     )
 
-            if WEBSOCKET_NOTIFICATIONS_ENABLED:
+            if WEBSOCKET_NOTIFICATIONS_ENABLED and user_id:
                 try:
+                    # WebSocket clients register under their user id (JWT "sub"),
+                    # so target delivery by user id rather than email.
                     broadcast_event_sync(
                         {
                             "type": "notification_sent",
-                            "recipient": recipient,
+                            "recipient": str(user_id),
                             "correlation_id": correlation_id,
                             "subject": subject,
                         }
@@ -262,6 +268,21 @@ class NotificationConsumer:
         except Exception as error:
 
             logger.error("Notification processing failed: %s", str(error))
+
+            # Unparseable messages can never succeed — route straight to the DLQ.
+            if not isinstance(message, dict) or not message:
+                try:
+                    self.channel.basic_publish(
+                        exchange="",
+                        routing_key=self.notification_dlq,
+                        body=body,
+                        properties=pika.BasicProperties(delivery_mode=2),
+                    )
+                    ch.basic_ack(delivery_tag=method.delivery_tag)
+                except Exception as dlq_error:
+                    logger.error("Notification DLQ publish failed: %s", dlq_error)
+                    ch.basic_nack(delivery_tag=method.delivery_tag, requeue=False)
+                return
 
             if job_id and notification_already_sent(job_id):
                 ch.basic_ack(delivery_tag=method.delivery_tag)
@@ -312,10 +333,10 @@ class NotificationConsumer:
                     on_message_callback=self.process_message,
                 )
 
-                self.channel.basic_consume(
-                    queue=self.retry_queue,
-                    on_message_callback=self.process_message,
-                )
+                # Do NOT consume the retry queue directly: it has an x-message-ttl
+                # and dead-letters back to the main queue, giving delayed retry
+                # backoff. Consuming it here would pull messages immediately and
+                # defeat the delay.
 
                 self._ready_event.set()
 

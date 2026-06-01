@@ -11,7 +11,6 @@ from app.config import FRONTEND_URL
 from app.database.job_repository import (
     claim_notification_send,
     claim_failure_notification_send,
-    get_job,
     mark_job_completed,
     mark_job_failed,
     mark_notification_sent,
@@ -21,7 +20,7 @@ from app.database.job_repository import (
 )
 from app.queue.producer import get_gateway_producer
 from shared.email.renderer import render_email_template
-from shared.idempotency.redis_store import claim_once
+from shared.idempotency.redis_store import claim_once, release_claim
 
 logger = logging.getLogger(__name__)
 
@@ -47,6 +46,8 @@ class GatewayEventConsumer:
         self.video_completed_retry_queue = os.getenv(
             "VIDEO_COMPLETED_RETRY_QUEUE", "video-completed-retry-queue"
         )
+
+        self.max_retry_attempts = int(os.getenv("MAX_GATEWAY_EVENT_RETRIES", "5"))
 
         self.connection = None
 
@@ -173,6 +174,7 @@ class GatewayEventConsumer:
                 subject=subject,
                 content=content,
                 job_id=job_id,
+                user_id=job.get("user_id"),
             )
             logger.info(
                 "Completion notification queued job_id=%s recipient=%s",
@@ -216,6 +218,7 @@ class GatewayEventConsumer:
                 subject=subject,
                 content=content,
                 job_id=job_id,
+                user_id=job.get("user_id"),
             )
             mark_failure_notification_sent(job_id)
         except Exception as error:
@@ -257,6 +260,10 @@ class GatewayEventConsumer:
 
     def process_message(self, ch, method, properties, body):
 
+        message = {}
+        correlation_id = None
+        event_type = None
+
         try:
 
             message = json.loads(body)
@@ -265,8 +272,10 @@ class GatewayEventConsumer:
 
             event_type = message.get("event_type")
 
+            # Scope the dedup key by event_type so distinct event types that
+            # legitimately share a correlation id don't suppress one another.
             if correlation_id and not claim_once(
-                f"gateway-event:{correlation_id}", ttl_seconds=86400
+                f"gateway-event:{event_type}:{correlation_id}", ttl_seconds=86400
             ):
                 logger.info(
                     "Skipping duplicate gateway event correlation_id=%s",
@@ -311,11 +320,35 @@ class GatewayEventConsumer:
 
             logger.error("Gateway consumer processing failed: %s", str(error))
 
+            # Release the idempotency claim so the retried delivery is allowed to
+            # reprocess instead of being skipped as a duplicate.
+            if correlation_id:
+                release_claim(f"gateway-event:{event_type}:{correlation_id}")
+
+            # Unparseable messages can never succeed — drop them (don't requeue).
+            if not isinstance(message, dict) or not message:
+                ch.basic_ack(delivery_tag=method.delivery_tag)
+                return
+
+            retry_count = int(message.get("retry_count", 0) or 0)
+            if retry_count >= self.max_retry_attempts:
+                logger.error(
+                    "Gateway event exceeded max retries (%s); dropping "
+                    "correlation_id=%s",
+                    self.max_retry_attempts,
+                    correlation_id,
+                )
+                ch.basic_ack(delivery_tag=method.delivery_tag)
+                return
+
+            message["retry_count"] = retry_count + 1
             try:
+                # Publish to the retry queue, which holds the message for its TTL
+                # and dead-letters it back to the main queue (delayed backoff).
                 self.channel.basic_publish(
                     exchange="",
                     routing_key=self.video_completed_retry_queue,
-                    body=body,
+                    body=json.dumps(message),
                     properties=pika.BasicProperties(delivery_mode=2),
                 )
                 ch.basic_ack(delivery_tag=method.delivery_tag)
@@ -342,10 +375,10 @@ class GatewayEventConsumer:
                     on_message_callback=self.process_message,
                 )
 
-                self.channel.basic_consume(
-                    queue=self.video_completed_retry_queue,
-                    on_message_callback=self.process_message,
-                )
+                # NOTE: we intentionally do NOT consume video_completed_retry_queue
+                # directly. It has an x-message-ttl and dead-letters back to the
+                # main queue, providing the delayed-retry backoff. Consuming it
+                # here would pull messages immediately and defeat the delay.
 
                 if self.gateway_events_queue:
                     self.channel.basic_consume(

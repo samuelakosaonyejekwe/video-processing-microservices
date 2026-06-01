@@ -4,7 +4,13 @@ import time
 
 import shutil
 
-TEMP_PROCESSING_DIR = os.getenv("TEMP_PROCESSING_DIR", "/tmp/video-converter")
+# Clean the same directory the consumer writes to. Fall back through the
+# consumer's TEMP_STORAGE_PATH so the two never silently diverge.
+TEMP_PROCESSING_DIR = (
+    os.getenv("TEMP_PROCESSING_DIR")
+    or os.getenv("TEMP_STORAGE_PATH")
+    or "/tmp/video-converter"
+)
 
 
 MAX_FILE_AGE_SECONDS = int(os.getenv("TEMP_FILE_MAX_AGE_SECONDS", "3600"))

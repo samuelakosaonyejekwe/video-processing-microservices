@@ -1,6 +1,7 @@
 import json
 import logging
 import os
+import re
 import subprocess
 import tempfile
 import threading
@@ -12,12 +13,28 @@ import pika
 from pika.exceptions import AMQPConnectionError, AMQPChannelError
 
 from app.queue.producer import get_converter_producer
-from shared.idempotency.redis_store import claim_once
+from shared.idempotency.redis_store import claim_once, release_claim
 from shared.storage.s3_client import create_s3_client
 
-logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
-
 logger = logging.getLogger(__name__)
+
+# Queue messages come from another service (a trust boundary). job_id is used in
+# local filesystem paths and S3 keys, so constrain it to a safe charset; s3_key
+# must stay within the expected upload prefix and contain no traversal.
+_SAFE_JOB_ID = re.compile(r"^[A-Za-z0-9_-]{1,128}$")
+_ALLOWED_S3_PREFIX = "uploads/videos/"
+
+
+def _validate_conversion_inputs(job_id: str, s3_key: str) -> None:
+    if not _SAFE_JOB_ID.match(job_id):
+        raise ValueError(f"Invalid job_id in conversion payload: {job_id!r}")
+    if (
+        not s3_key
+        or ".." in s3_key
+        or s3_key.startswith("/")
+        or not s3_key.startswith(_ALLOWED_S3_PREFIX)
+    ):
+        raise ValueError(f"Invalid s3_key in conversion payload: {s3_key!r}")
 
 
 class ConverterEventConsumer:
@@ -189,14 +206,18 @@ class ConverterEventConsumer:
 
         logger.info("Starting FFmpeg conversion...")
 
+        # Use the explicit LAME MP3 encoder. "-acodec mp3" names a codec id, not
+        # an encoder, and fails with "Unknown encoder 'mp3'" on many ffmpeg builds.
         ffmpeg_command = [
             "ffmpeg",
             "-y",
             "-i",
             input_video_path,
             "-vn",
-            "-acodec",
-            "mp3",
+            "-c:a",
+            "libmp3lame",
+            "-b:a",
+            "192k",
             output_audio_path,
         ]
 
@@ -238,6 +259,8 @@ class ConverterEventConsumer:
             if not job_id:
 
                 job_id = str(uuid.uuid4())
+
+            _validate_conversion_inputs(job_id, s3_key)
 
             retry_count = int(payload.get("retry_count", 0))
 
@@ -296,6 +319,10 @@ class ConverterEventConsumer:
                 and retry_count < self.max_retry_attempts
                 and self.video_upload_retry_queue
             ):
+                # Release the idempotency claim so the retried delivery is not
+                # skipped as a duplicate — otherwise the very first failure would
+                # permanently drop the job.
+                release_claim(f"conversion:{job_id}")
                 retry_payload = dict(payload)
                 retry_payload["retry_count"] = retry_count + 1
                 retry_message = {

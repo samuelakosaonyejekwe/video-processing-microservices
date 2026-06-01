@@ -18,6 +18,7 @@ class User(BaseModel):
     def validate_password_strength(cls, value: str) -> str:
         if not PASSWORD_PATTERN.match(value):
             raise ValueError(
-                "Password must be 8-128 characters and include upper, lower, and a digit"
+                "Password must be 8-128 characters and include "
+                "upper, lower, and a digit"
             )
         return value

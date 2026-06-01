@@ -1,4 +1,5 @@
 import logging
+import os
 
 from fastapi import APIRouter, HTTPException, status
 from fastapi.responses import JSONResponse
@@ -8,7 +9,11 @@ from pydantic import BaseModel, EmailStr
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 
-from app.config import JWT_PRIVATE_KEY, JWT_PUBLIC_KEY
+from app.config import (
+    JWT_ACCESS_TOKEN_EXPIRES_MINUTES,
+    JWT_PRIVATE_KEY,
+    JWT_PUBLIC_KEY,
+)
 from app.database.connection import SessionLocal
 from app.jwt.revocation import refresh_token_ttl_seconds
 from app.jwt.token import (
@@ -24,22 +29,21 @@ logger = logging.getLogger(__name__)
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
+# Pre-computed hash used to perform a constant-time-ish bcrypt verification even
+# when the email does not exist, so response latency does not reveal whether an
+# account is registered (user-enumeration timing oracle).
+_DUMMY_PASSWORD_HASH = pwd_context.hash("dummy-password-for-timing-equalization")
+
+_APP_ENV = os.getenv("APP_ENV", "production")
+_COOKIE_SECURE = _APP_ENV == "production"
+_ACCESS_COOKIE_MAX_AGE = JWT_ACCESS_TOKEN_EXPIRES_MINUTES * 60
+
 
 class LoginRequest(BaseModel):
 
     email: EmailStr
 
     password: str
-
-
-def get_db():
-
-    db = SessionLocal()
-
-    try:
-        yield db
-    finally:
-        db.close()
 
 
 @router.post("/login")
@@ -56,7 +60,12 @@ def login(data: LoginRequest):
     try:
         user = db.query(UserEntity).filter(UserEntity.email == data.email).first()
 
-        if not user or not pwd_context.verify(data.password, user.password):
+        # Always run a bcrypt verification (against a dummy hash when the user is
+        # unknown) so timing does not leak whether the email is registered.
+        password_hash = user.password if user else _DUMMY_PASSWORD_HASH
+        password_ok = pwd_context.verify(data.password, password_hash)
+
+        if not user or not password_ok:
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid credentials"
             )
@@ -64,13 +73,11 @@ def login(data: LoginRequest):
         access_token = create_access_token(
             user_id=str(user.id),
             role=user.role,
-            email=user.email,
         )
 
         refresh_token = create_refresh_token(
             user_id=str(user.id),
             role=user.role,
-            email=user.email,
         )
 
         refresh_payload = verify_refresh_token(refresh_token)
@@ -92,9 +99,9 @@ def login(data: LoginRequest):
             key="access_token",
             value=access_token,
             httponly=True,
-            secure=False,
-            samesite="lax",
-            max_age=3600,
+            secure=_COOKIE_SECURE,
+            samesite="strict",
+            max_age=_ACCESS_COOKIE_MAX_AGE,
         )
         return response
 

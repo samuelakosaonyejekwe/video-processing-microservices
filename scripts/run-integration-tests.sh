@@ -22,28 +22,36 @@ cleanup() {
 }
 trap cleanup EXIT
 
-# First pass: build images and start all containers.
-docker compose --env-file "${COMPOSE_ENV_FILE}" up -d --build || true
+# Spin up only the long-running services needed for API-level integration tests.
+# frontend is excluded — not exercised by the test suite.
+# minio-init is excluded from --wait: it is a one-shot init container that exits
+# with code 0 after creating buckets, and docker compose --wait treats any exited
+# container (even exit-0) as a startup failure.  It is started separately below.
+# `--wait` honors healthchecks and depends_on:service_healthy chains, making
+# startup deterministic — fails fast rather than racing on fixed sleeps.
+LONG_RUNNING_SERVICES=(postgres mongodb redis rabbitmq minio auth gateway converter notification)
+if ! docker compose --env-file "${COMPOSE_ENV_FILE}" up -d --build --wait --wait-timeout 360 \
+    "${LONG_RUNNING_SERVICES[@]}"; then
+  echo "=== Stack did not become healthy; status + logs follow ==="
+  docker compose --env-file "${COMPOSE_ENV_FILE}" ps || true
+  docker compose --env-file "${COMPOSE_ENV_FILE}" logs --tail=80 \
+    auth gateway converter notification 2>&1 || true
+  exit 1
+fi
 
-# RabbitMQ may take >30s to boot from a fresh volume, which can fail dependent
-# services on the first pass (health-check race). A second `up -d` starts any
-# containers that were skipped due to that transient dependency failure.
-sleep 10
-docker compose --env-file "${COMPOSE_ENV_FILE}" up -d || true
+# Run the minio-init one-shot container to create S3 buckets (minio is now healthy).
+# docker compose up -d starts it; docker wait blocks until it exits; exit code is checked.
+docker compose --env-file "${COMPOSE_ENV_FILE}" up -d minio-init
+MINIO_INIT_CONTAINER="${MINIO_INIT_CONTAINER_NAME:-minio-init}"
+minio_rc=$(docker wait "${MINIO_INIT_CONTAINER}" 2>/dev/null || echo "1")
+if [ "${minio_rc}" != "0" ]; then
+  echo "=== minio-init failed (exit ${minio_rc}) ==="
+  docker logs "${MINIO_INIT_CONTAINER}" 2>&1 || true
+  exit 1
+fi
 
-echo "=== Waiting for services ==="
-for _ in $(seq 1 60); do
-  if curl -sf http://localhost:8080/health >/dev/null 2>&1 \
-    && curl -sf http://localhost:8000/health >/dev/null 2>&1 \
-    && curl -sf http://localhost:8002/health >/dev/null 2>&1 \
-    && curl -sf http://localhost:9000/minio/health/live >/dev/null 2>&1; then
-    break
-  fi
-  sleep 3
-done
-
-# Also wait for RabbitMQ AMQP port to accept connections (the ping health check
-# passes before AMQP is fully ready, which causes converter consumer to fail).
+# Belt-and-suspenders: confirm RabbitMQ AMQP is actually accepting connections
+# (its health check can pass slightly before the AMQP listener is ready).
 for _ in $(seq 1 40); do
   if docker exec rabbitmq rabbitmq-diagnostics check_running >/dev/null 2>&1; then
     break

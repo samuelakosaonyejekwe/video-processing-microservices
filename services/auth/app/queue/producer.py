@@ -1,14 +1,13 @@
 import json
 import logging
 import os
+import time
 import uuid
 
 import pika
 
 from pika.exceptions import AMQPConnectionError, AMQPChannelError
 from shared.events.schema import build_event
-
-logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
 
 logger = logging.getLogger(__name__)
 

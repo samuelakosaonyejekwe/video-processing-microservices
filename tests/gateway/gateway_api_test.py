@@ -2,7 +2,7 @@ import os
 import requests
 
 BASE_URL = os.getenv("GATEWAY_SERVICE_URL") or (
-    f"http://{os.getenv('GATEWAY_HOST', 'localhost')}:{os.getenv('GATEWAY_PORT', '8080')}"
+    f"http://{os.getenv('GATEWAY_HOST', 'localhost')}:{os.getenv('GATEWAY_PORT', '8080')}"  # noqa: E501
 )
 
 

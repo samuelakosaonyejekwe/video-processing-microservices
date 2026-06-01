@@ -1,0 +1,82 @@
+name: Start Platform
+
+on:
+  workflow_dispatch:
+
+jobs:
+  start:
+    name: Restore Full Platform
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    permissions:
+      contents: read
+
+    env:
+      AWS_REGION: ${{ vars.AWS_REGION }}
+      EKS_CLUSTER_NAME: ${{ vars.EKS_CLUSTER_NAME }}
+      EKS_NODE_GROUP_NAME: ${{ vars.EKS_NODE_GROUP_NAME }}
+      EKS_DESIRED_SIZE: ${{ vars.EKS_DESIRED_SIZE }}
+      EKS_MIN_SIZE: ${{ vars.EKS_MIN_SIZE }}
+      EKS_MAX_SIZE: ${{ vars.EKS_MAX_SIZE }}
+      PROJECT_NAME: ${{ vars.PROJECT_NAME }}
+      APP_ENV: ${{ vars.APP_ENV }}
+      K8S_NAMESPACE: ${{ vars.K8S_NAMESPACE }}
+      TF_STATE_BUCKET: ${{ vars.TF_STATE_BUCKET }}
+      TF_LOCK_TABLE: ${{ vars.TF_LOCK_TABLE }}
+      APP_DOMAIN: ${{ vars.APP_DOMAIN }}
+      HOSTED_ZONE_NAME: ${{ vars.HOSTED_ZONE_NAME }}
+      API_BASE_URL: ${{ vars.API_BASE_URL }}
+      GATEWAY_BASE_URL: ${{ vars.API_BASE_URL }}
+      DOCKER_IMAGE_REGISTRY: ${{ vars.DOCKER_IMAGE_REGISTRY }}
+      DOCKER_IMAGE_NAMESPACE: ${{ vars.DOCKER_IMAGE_NAMESPACE }}
+      IMAGE_TAG: ${{ github.sha }}
+      MESSAGING_NAMESPACE: ${{ vars.MESSAGING_NAMESPACE }}
+      DATABASE_NAMESPACE: database
+      STORAGE_CLASS: ${{ vars.STORAGE_CLASS }}
+      CORS_ALLOWED_ORIGINS: ${{ vars.CORS_ALLOWED_ORIGINS }}
+      REDIS_HOST: ${{ vars.REDIS_HOST }}
+      JWT_PRIVATE_KEY: ${{ secrets.JWT_PRIVATE_KEY }}
+      JWT_PUBLIC_KEY: ${{ secrets.JWT_PUBLIC_KEY }}
+      POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
+      MONGO_PASSWORD: ${{ secrets.MONGO_PASSWORD }}
+      RABBITMQ_PASSWORD: ${{ secrets.RABBITMQ_PASSWORD }}
+      RABBITMQ_USERNAME: ${{ secrets.RABBITMQ_USERNAME }}
+      REDIS_PASSWORD: ${{ secrets.REDIS_PASSWORD }}
+      GRAFANA_ADMIN_PASSWORD: ${{ secrets.GRAFANA_ADMIN_PASSWORD }}
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Export Environment Aliases
+        run: |
+          chmod +x scripts/lib/env-aliases.sh scripts/export-github-env.sh
+          source scripts/lib/env-aliases.sh
+          bash scripts/export-github-env.sh
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ vars.AWS_REGION }}
+
+      - name: Install kubectl
+        uses: azure/setup-kubectl@v4
+
+      - name: Install Helm
+        uses: azure/setup-helm@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.8.5
+
+      - name: Run Start Platform
+        run: |
+          chmod +x scripts/start-platform.sh scripts/lib/*.sh scripts/*.sh
+          bash scripts/start-platform.sh
+
+      - name: Cleanup Sensitive Files
+        if: always()
+        run: rm -f infrastructure/terraform/terraform.tfvars .rendered-k8s -rf

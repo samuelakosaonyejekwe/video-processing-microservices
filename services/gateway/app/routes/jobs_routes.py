@@ -1,3 +1,6 @@
+import asyncio
+import re
+
 from fastapi import APIRouter, HTTPException, Request
 
 from app.database.job_repository import get_job
@@ -9,6 +12,16 @@ from app.storage.s3_storage import (
 )
 
 router = APIRouter(tags=["Jobs"])
+
+# Strip anything that isn't a safe filename character before it is reflected
+# into the Content-Disposition header of the presigned URL.
+_SAFE_FILENAME = re.compile(r"[^A-Za-z0-9._-]+")
+
+
+def _safe_download_name(raw: str, job_id: str) -> str:
+    base = (raw or "").rsplit(".", 1)[0]
+    base = _SAFE_FILENAME.sub("_", base).strip("._") or job_id
+    return f"{base}.mp3"
 
 
 def _get_authenticated_user_id(request: Request) -> str:
@@ -69,13 +82,13 @@ def _status_from_s3(job_id: str) -> dict:
 
 @router.get("/jobs/{job_id}/status")
 async def get_job_status(job_id: str, request: Request):
-    job = _authorize_job_access(job_id, request)
+    job = await asyncio.to_thread(_authorize_job_access, job_id, request)
     mongo_status = _status_from_mongo(job, job_id)
 
     if mongo_status["status"] in ("completed", "failed"):
         return mongo_status
 
-    s3_status = _status_from_s3(job_id)
+    s3_status = await asyncio.to_thread(_status_from_s3, job_id)
     if s3_status["status"] == "completed":
         return s3_status
 
@@ -88,13 +101,13 @@ async def download_job_audio(job_id: str, request: Request):
     if not bucket:
         raise HTTPException(status_code=503, detail="Audio storage is not configured")
 
-    job = _authorize_job_access(job_id, request)
+    job = await asyncio.to_thread(_authorize_job_access, job_id, request)
     if job.get("status") == "failed":
         raise HTTPException(status_code=404, detail="Conversion failed for this job")
 
     audio_key = job.get("audio_s3_key") or audio_object_key(job_id)
 
-    if not object_exists(bucket, audio_key):
+    if not await asyncio.to_thread(object_exists, bucket, audio_key):
         raise HTTPException(
             status_code=404,
             detail="Audio not ready yet. Conversion may still be in progress.",
@@ -103,11 +116,12 @@ async def download_job_audio(job_id: str, request: Request):
     original_name = (
         request.query_params.get("filename") or job.get("filename") or f"{job_id}.mp3"
     )
-    base_name = original_name.rsplit(".", 1)[0]
-    download_name = f"{base_name}.mp3"
+    download_name = _safe_download_name(original_name, job_id)
 
     try:
-        download_url = generate_presigned_download_url(bucket, audio_key, download_name)
+        download_url = await asyncio.to_thread(
+            generate_presigned_download_url, bucket, audio_key, download_name
+        )
     except RuntimeError as error:
         raise HTTPException(status_code=503, detail="Download unavailable") from error
 

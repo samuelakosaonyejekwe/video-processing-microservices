@@ -1,0 +1,72 @@
+name: Shutdown Platform (Low Cost Mode)
+
+on:
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: "soft = stop nodes + Jenkins only (~$116/month remaining). full = destroy EKS + Jenkins + NAT (~$10/month remaining, DB data lost)."
+        required: true
+        default: "soft"
+        type: choice
+        options:
+          - soft
+          - full
+
+jobs:
+  shutdown:
+    name: Shutdown (${{ github.event.inputs.mode }} mode)
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    env:
+      AWS_REGION: ${{ vars.AWS_REGION }}
+      EKS_CLUSTER_NAME: ${{ vars.EKS_CLUSTER_NAME }}
+      EKS_NODE_GROUP_NAME: ${{ vars.EKS_NODE_GROUP_NAME }}
+      EKS_MAX_SIZE: ${{ vars.EKS_MAX_SIZE }}
+      PROJECT_NAME: ${{ vars.PROJECT_NAME }}
+      APP_ENV: ${{ vars.APP_ENV }}
+      TF_STATE_BUCKET: ${{ vars.TF_STATE_BUCKET }}
+      TF_LOCK_TABLE: ${{ vars.TF_LOCK_TABLE }}
+      HOSTED_ZONE_NAME: ${{ vars.HOSTED_ZONE_NAME }}
+      APP_DOMAIN: ${{ vars.APP_DOMAIN }}
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Export Environment Aliases
+        run: |
+          chmod +x scripts/lib/env-aliases.sh scripts/export-github-env.sh
+          source scripts/lib/env-aliases.sh
+          bash scripts/export-github-env.sh
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ vars.AWS_REGION }}
+
+      - name: Install kubectl
+        if: ${{ github.event.inputs.mode == 'full' }}
+        uses: azure/setup-kubectl@v4
+
+      - name: Install Helm
+        if: ${{ github.event.inputs.mode == 'full' }}
+        uses: azure/setup-helm@v4
+
+      - name: Setup Terraform
+        if: ${{ github.event.inputs.mode == 'full' }}
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.8.5
+
+      - name: Run Shutdown
+        run: |
+          chmod +x scripts/shutdown-platform.sh scripts/lib/*.sh
+          if [ "${{ github.event.inputs.mode }}" = "full" ]; then
+            bash scripts/shutdown-platform.sh --full
+          else
+            bash scripts/shutdown-platform.sh
+          fi

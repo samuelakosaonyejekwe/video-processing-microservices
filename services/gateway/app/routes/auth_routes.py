@@ -146,7 +146,6 @@ async def session(request: Request):
 
     return {
         "authenticated": True,
-        "email": payload.get("email"),
         "user_id": payload.get("sub"),
     }
 

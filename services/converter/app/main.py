@@ -13,8 +13,10 @@ from shared.errors.handlers import register_exception_handlers
 from shared.logging.logger import configure_logging
 from shared.middleware.correlation_id import CorrelationIdMiddleware
 from shared.middleware.metrics_guard import MetricsGuardMiddleware
+from shared.middleware.security_headers import SecurityHeadersMiddleware
 from shared.runtime.queue_consumer import queue_consumer_enabled
 from shared.runtime.tracing import configure_tracing
+from shared.security.cors import ALLOWED_CORS_HEADERS
 
 _enable_docs = (
     os.getenv("ENABLE_SWAGGER", "false").lower()
@@ -57,9 +59,10 @@ app.add_middleware(
     allow_origins=CORS_ALLOWED_ORIGINS,
     allow_credentials=True,
     allow_methods=["*"],
-    allow_headers=["*"],
+    allow_headers=ALLOWED_CORS_HEADERS,
 )
 app.add_middleware(CorrelationIdMiddleware)
+app.add_middleware(SecurityHeadersMiddleware)
 app.add_middleware(MetricsGuardMiddleware)
 
 app.include_router(convert_router)

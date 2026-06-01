@@ -22,6 +22,8 @@ spec:
     spec:
       securityContext:
         runAsNonRoot: true
+        runAsUser: 472
+        fsGroup: 472
         seccompProfile:
           type: RuntimeDefault
       containers:
@@ -32,10 +34,12 @@ spec:
             runAsNonRoot: true
             runAsUser: 472
             allowPrivilegeEscalation: false
-            readOnlyRootFilesystem: false
+            readOnlyRootFilesystem: true
             capabilities:
               drop:
                 - ALL
+            seccompProfile:
+              type: RuntimeDefault
           ports:
             - name: http
               containerPort: 3000
@@ -77,8 +81,12 @@ spec:
           volumeMounts:
             - name: grafana-storage
               mountPath: /var/lib/grafana
+            - name: tmp
+              mountPath: /tmp
       volumes:
         - name: grafana-storage
+          emptyDir: {}
+        - name: tmp
           emptyDir: {}
       restartPolicy: Always
       terminationGracePeriodSeconds: 30

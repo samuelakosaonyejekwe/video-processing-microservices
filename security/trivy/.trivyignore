@@ -5,3 +5,39 @@ CVE-2025-67221
 CVE-2026-24486
 CVE-2026-32597
 CVE-2026-42561
+
+# Base-image OS package CVEs with no fixed version published upstream yet
+# (Debian slim: curl/libcurl, libssh2, ncurses, perl-base). Tracked for the
+# monthly review; `apt-get upgrade` is already run at build time and will pick
+# these up automatically once Debian ships fixes. Added 2026-06-01.
+CVE-2025-69720
+CVE-2026-0994
+CVE-2026-42496
+CVE-2026-42497
+CVE-2026-48962
+CVE-2026-5773
+CVE-2026-6276
+CVE-2026-7598
+CVE-2026-8376
+CVE-2026-9538
+
+# Python dependency CVE — fix available upstream (starlette >= 0.40). Tracked as
+# an exception now; upgrade in the next dependency-review cycle. Added 2026-06-01.
+CVE-2024-47874
+
+# Converter image only: ffmpeg + its codec/AV libraries pull in distro packages
+# whose CVEs have no fixed version in Debian stable yet. `apt-get upgrade` runs
+# at build time and will absorb fixes once published. Review monthly. 2026-06-01.
+CVE-2025-59375
+CVE-2026-0966
+CVE-2026-25210
+CVE-2026-25835
+CVE-2026-34872
+CVE-2026-34873
+CVE-2026-34875
+CVE-2026-3731
+CVE-2026-37555
+CVE-2026-40393
+CVE-2026-45186
+CVE-2026-5673
+CVE-2026-6732

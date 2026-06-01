@@ -9,9 +9,9 @@ from app.config import MAX_CONVERSION_TIMEOUT_SECONDS
 from app.dependencies.auth import require_access_token
 from app.queue.producer import publish_conversion_job
 from shared.security.upload_validation import (
+    get_max_upload_size_bytes,
     sanitize_filename,
     validate_content_type,
-    validate_upload_size,
     validate_video_extension,
     validate_video_magic_bytes,
 )
@@ -53,34 +53,52 @@ async def convert_video(
             detail="Unsupported video format. Allowed: mp4, mov, avi, mkv, webm",
         )
 
-    content_type = file.content_type or "application/octet-stream"
-    if not validate_content_type(content_type):
+    # Validate the declared content type (missing header tolerated; magic-byte
+    # check below is the real gate; explicit non-video types rejected).
+    if not validate_content_type(file.content_type):
         raise HTTPException(status_code=400, detail="Invalid content type for upload")
+    content_type = file.content_type or "application/octet-stream"
 
-    content = await file.read()
-    try:
-        validate_upload_size(len(content))
-    except ValueError as error:
-        raise HTTPException(status_code=413, detail=str(error)) from error
-
-    if not validate_video_magic_bytes(content[:16]):
-        raise HTTPException(
-            status_code=400,
-            detail="Uploaded file is not a supported video format",
-        )
-
-    job_id = str(uuid.uuid4())
-    temp_path = os.path.join(TEMP_DIR, f"{job_id}-{safe_filename}")
     bucket = _upload_bucket()
     if not bucket:
         raise HTTPException(status_code=503, detail="Upload storage is not configured")
 
+    job_id = str(uuid.uuid4())
+    temp_path = os.path.join(TEMP_DIR, f"{job_id}-{safe_filename}")
     s3_key = f"uploads/videos/{job_id}/{safe_filename}"
     user_id = user.get("sub", "anonymous")
 
+    max_upload_bytes = get_max_upload_size_bytes()
+    chunk_size = 1024 * 1024
+    total_bytes = 0
+    header_sample = b""
+
+    # Stream to a temp file in bounded chunks instead of buffering the whole
+    # upload in memory (a few large/oversized uploads would otherwise OOM).
     try:
         with open(temp_path, "wb") as temp_file:
-            temp_file.write(content)
+            while True:
+                chunk = await file.read(chunk_size)
+                if not chunk:
+                    break
+                total_bytes += len(chunk)
+                if total_bytes > max_upload_bytes:
+                    raise HTTPException(
+                        status_code=413,
+                        detail=(
+                            "Upload exceeds maximum size of "
+                            f"{max_upload_bytes // (1024 * 1024)} MB"
+                        ),
+                    )
+                if len(header_sample) < 16:
+                    header_sample += chunk[: 16 - len(header_sample)]
+                temp_file.write(chunk)
+
+        if not validate_video_magic_bytes(header_sample[:16]):
+            raise HTTPException(
+                status_code=400,
+                detail="Uploaded file is not a supported video format",
+            )
 
         client = create_s3_client()
         await asyncio.to_thread(

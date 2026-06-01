@@ -1,5 +1,3 @@
-import os
-
 import jwt
 import pytest
 from fastapi import FastAPI

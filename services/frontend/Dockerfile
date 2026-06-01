@@ -1,6 +1,6 @@
 FROM nginx:1.27-alpine
 
-RUN apk add --no-cache gettext
+RUN apk upgrade --no-cache && apk add --no-cache gettext
 
 COPY services/frontend/nginx.conf.template /etc/nginx/templates/default.conf.template
 COPY services/frontend/docker-entrypoint.sh /docker-entrypoint.sh

@@ -17,6 +17,22 @@
         "arn:aws:s3:::video-converter-thumbnails-sam",
         "arn:aws:s3:::video-converter-thumbnails-sam/*"
       ]
+    },
+    {
+      "Sid": "AllowKmsForS3CmkEncryption",
+      "Effect": "Allow",
+      "Action": [
+        "kms:Decrypt",
+        "kms:Encrypt",
+        "kms:GenerateDataKey",
+        "kms:DescribeKey"
+      ],
+      "Resource": "*",
+      "Condition": {
+        "StringLike": {
+          "kms:ViaService": "s3.*.amazonaws.com"
+        }
+      }
     }
   ]
 }

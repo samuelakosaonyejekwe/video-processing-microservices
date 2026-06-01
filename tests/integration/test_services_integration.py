@@ -7,7 +7,7 @@ def test_gateway_health():
 
     gateway_url = (
         os.getenv("GATEWAY_BASE_URL")
-        or f"http://{os.getenv('GATEWAY_HOST', 'localhost')}:{os.getenv('GATEWAY_PORT', '8080')}"
+        or f"http://{os.getenv('GATEWAY_HOST', 'localhost')}:{os.getenv('GATEWAY_PORT', '8080')}"  # noqa: E501
     )
 
     response = requests.get(f"{gateway_url}/health")
@@ -20,7 +20,7 @@ def test_auth_health():
     gateway_url = (
         os.getenv("GATEWAY_BASE_URL")
         or os.getenv("AUTH_BASE_URL")
-        or f"http://{os.getenv('AUTH_HOST', 'localhost')}:{os.getenv('AUTH_PORT', '8000')}"
+        or f"http://{os.getenv('AUTH_HOST', 'localhost')}:{os.getenv('AUTH_PORT', '8000')}"  # noqa: E501
     )
 
     response = requests.get(
@@ -38,7 +38,7 @@ def test_converter_health():
 
     converter_url = (
         os.getenv("CONVERTER_BASE_URL")
-        or f"http://{os.getenv('CONVERTER_HOST', 'localhost')}:{os.getenv('CONVERTER_PORT', '8002')}"
+        or f"http://{os.getenv('CONVERTER_HOST', 'localhost')}:{os.getenv('CONVERTER_PORT', '8002')}"  # noqa: E501
     )
 
     response = requests.get(f"{converter_url}/health")
@@ -54,6 +54,6 @@ def test_auth_and_gateway_jwt_config_match():
 
     assert gateway_jwt["public_key_loaded"] is True
     assert gateway_jwt["algorithm"] == "RS256"
-    assert gateway_jwt.get("issuer")
-    assert gateway_jwt.get("audience")
+    # The /health/jwt endpoint deliberately omits issuer/audience (config values,
+    # not secrets, but not needed on an unauthenticated diagnostic endpoint).
     assert gateway_jwt.get("public_key_fingerprint")

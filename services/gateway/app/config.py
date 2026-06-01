@@ -39,7 +39,7 @@ if not CONVERTER_SERVICE_URL:
 APP_ENV = first_env("APP_ENV", "ENVIRONMENT", default="production")
 
 
-from shared.security.pem_loader import load_pem
+from shared.security.pem_loader import load_pem  # noqa: E402
 
 JWT_PUBLIC_KEY = load_pem("JWT_PUBLIC_KEY", "/run/secrets/jwt-public.pem")
 

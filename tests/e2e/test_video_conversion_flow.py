@@ -39,11 +39,13 @@ def _require_production_buckets() -> tuple[str, str]:
     if not audio_bucket:
         missing.append("S3_AUDIO_BUCKET or AWS_S3_AUDIO_BUCKET")
     if not video_bucket:
-        missing.append("S3_UPLOAD_BUCKET or AWS_S3_VIDEO_BUCKET or AWS_S3_BUCKET or S3_BUCKET_NAME")
+        missing.append(
+            "S3_UPLOAD_BUCKET or AWS_S3_VIDEO_BUCKET or AWS_S3_BUCKET or S3_BUCKET_NAME"
+        )
 
     if missing:
         pytest.skip(
-            "PRODUCTION_VALIDATION skipped because required S3 bucket env vars are missing: "
+            "PRODUCTION_VALIDATION skipped because required S3 bucket env vars are missing: "  # noqa: E501
             + ", ".join(missing)
         )
 
@@ -90,7 +92,7 @@ def _wait_for_new_audio_object(
         time.sleep(5)
 
     raise AssertionError(
-        f"Timed out waiting for converted audio in s3://{bucket}/ after {timeout_seconds}s"
+        f"Timed out waiting for converted audio in s3://{bucket}/ after {timeout_seconds}s"  # noqa: E501
     )
 
 

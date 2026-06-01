@@ -36,4 +36,6 @@ def test_gateway_session_uses_cookie_not_bearer():
         assert session_response.status_code == 200
         body = session_response.json()
         assert body.get("authenticated") is True
-        assert body.get("email") == email
+        # The JWT access token carries sub=user_id (UUID), not email.
+        # The session endpoint returns user_id extracted from the token.
+        assert body.get("user_id") is not None
