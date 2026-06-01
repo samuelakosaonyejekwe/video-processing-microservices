@@ -39,6 +39,28 @@ _create_secret() {
 }
 
 sanitize_secret_env
+finalize_jwt_keys
+
+_validate_jwt_keypair() {
+  if [ -z "${JWT_PRIVATE_KEY:-}" ] || [ -z "${JWT_PUBLIC_KEY:-}" ]; then
+    echo "ERROR: JWT_PRIVATE_KEY and JWT_PUBLIC_KEY are required for deploy."
+    exit 1
+  fi
+
+  if ! printf '%s' "${JWT_PRIVATE_KEY}" | openssl pkey -check -noout >/dev/null 2>&1 \
+    && ! printf '%s' "${JWT_PRIVATE_KEY}" | openssl rsa -check -noout >/dev/null 2>&1; then
+    echo "ERROR: JWT_PRIVATE_KEY is not a valid RSA private key PEM."
+    exit 1
+  fi
+
+  if ! JWT_PUBLIC_KEY="$(_derive_jwt_public_key "${JWT_PRIVATE_KEY}")"; then
+    echo "ERROR: Failed to derive JWT public key from JWT_PRIVATE_KEY."
+    exit 1
+  fi
+  export JWT_PUBLIC_KEY
+}
+
+_validate_jwt_keypair
 
 _rabbitmq_component_urlencoded() {
   python3 -c "import urllib.parse, os, sys; print(urllib.parse.quote_plus(os.environ[sys.argv[1]]))" "$1"
@@ -154,39 +176,6 @@ _create_secret notification-secret "${SECRETS_DIR}/notification-secret.yaml" \
 _create_secret redis-secret "${SECRETS_DIR}/redis-secret.yaml" \
   REDIS_PASSWORD REDIS_PASSWORD
 
-_validate_jwt_keypair() {
-  if [ -z "${JWT_PRIVATE_KEY:-}" ] || [ -z "${JWT_PUBLIC_KEY:-}" ]; then
-    echo "ERROR: JWT_PRIVATE_KEY and JWT_PUBLIC_KEY are required for deploy."
-    exit 1
-  fi
-
-  local tmpdir private_file public_file derived_file
-  tmpdir="$(mktemp -d)"
-  private_file="${tmpdir}/private.pem"
-  public_file="${tmpdir}/public.pem"
-  derived_file="${tmpdir}/derived-public.pem"
-  trap 'rm -rf "${tmpdir}"' RETURN
-
-  printf '%s' "${JWT_PRIVATE_KEY}" > "${private_file}"
-  printf '%s' "${JWT_PUBLIC_KEY}" > "${public_file}"
-
-  if ! openssl rsa -in "${private_file}" -check -noout >/dev/null 2>&1; then
-    echo "ERROR: JWT_PRIVATE_KEY is not a valid RSA private key PEM."
-    exit 1
-  fi
-
-  if ! openssl rsa -in "${private_file}" -pubout > "${derived_file}" 2>/dev/null; then
-    echo "ERROR: Failed to derive JWT public key from JWT_PRIVATE_KEY."
-    exit 1
-  fi
-
-  if ! cmp -s "${public_file}" "${derived_file}"; then
-    echo "ERROR: JWT_PUBLIC_KEY does not match JWT_PRIVATE_KEY."
-    exit 1
-  fi
-}
-
-_validate_jwt_keypair
 export AUTH_SECRET_CHECKSUM="$(
   sha256sum "${SECRETS_DIR}/auth-secret.yaml" | awk '{print $1}' | cut -c1-16
 )"

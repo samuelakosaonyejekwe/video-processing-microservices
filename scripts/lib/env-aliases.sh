@@ -41,21 +41,45 @@ _normalize_pem() {
   printf '%s' "${value}"
 }
 
+_derive_jwt_public_key() {
+  local private_key="$1"
+  if derived="$(
+    printf '%s' "${private_key}" | openssl pkey -pubout 2>/dev/null
+  )" && [ -n "${derived}" ]; then
+    printf '%s' "${derived}"
+    return 0
+  fi
+  if derived="$(
+    printf '%s' "${private_key}" | openssl rsa -pubout 2>/dev/null
+  )" && [ -n "${derived}" ]; then
+    printf '%s' "${derived}"
+    return 0
+  fi
+  return 1
+}
+
+finalize_jwt_keys() {
+  if [ -n "${JWT_PRIVATE_KEY:-}" ]; then
+    JWT_PRIVATE_KEY="$(_normalize_pem "${JWT_PRIVATE_KEY}")"
+    export JWT_PRIVATE_KEY
+    JWT_PUBLIC_KEY="$(_derive_jwt_public_key "${JWT_PRIVATE_KEY}" || true)"
+    export JWT_PUBLIC_KEY
+  elif [ -n "${JWT_PUBLIC_KEY:-}" ]; then
+    JWT_PUBLIC_KEY="$(_normalize_pem "${JWT_PUBLIC_KEY}")"
+    export JWT_PUBLIC_KEY
+  elif [ -f "${ROOT_DIR}/jwt-private.pem" ]; then
+    JWT_PUBLIC_KEY="$(
+      openssl pkey -in "${ROOT_DIR}/jwt-private.pem" -pubout 2>/dev/null \
+        || openssl rsa -in "${ROOT_DIR}/jwt-private.pem" -pubout 2>/dev/null \
+        || true
+    )"
+    export JWT_PUBLIC_KEY
+  fi
+}
+
 # Normalize PEM secrets and always derive the public key from the private key
 # so GitHub/K8s cannot deploy a mismatched key pair.
-if [ -n "${JWT_PRIVATE_KEY:-}" ]; then
-  JWT_PRIVATE_KEY="$(_normalize_pem "${JWT_PRIVATE_KEY}")"
-  export JWT_PRIVATE_KEY
-  JWT_PUBLIC_KEY="$(printf '%s' "${JWT_PRIVATE_KEY}" | openssl rsa -pubout 2>/dev/null || true)"
-  export JWT_PUBLIC_KEY
-elif [ -n "${JWT_PUBLIC_KEY:-}" ]; then
-  JWT_PUBLIC_KEY="$(_normalize_pem "${JWT_PUBLIC_KEY}")"
-  export JWT_PUBLIC_KEY
-fi
-if [ -z "${JWT_PUBLIC_KEY:-}" ] && [ -f "${ROOT_DIR}/jwt-private.pem" ]; then
-  JWT_PUBLIC_KEY="$(openssl rsa -in "${ROOT_DIR}/jwt-private.pem" -pubout 2>/dev/null || true)"
-  export JWT_PUBLIC_KEY
-fi
+finalize_jwt_keys
 
 # JWT — accept both legacy TOKEN_* and current names
 _export_alias JWT_ISSUER JWT_ISSUER JWT_TOKEN_ISSUER
