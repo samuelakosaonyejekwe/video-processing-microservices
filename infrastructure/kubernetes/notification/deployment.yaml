@@ -217,6 +217,8 @@ spec:
                   key: JWT_ALGORITHM
             - name: ENABLE_QUEUE_CONSUMER
               value: "false"
+            - name: GUNICORN_WORKERS
+              value: "1"
             - name: REDIS_PASSWORD
               valueFrom:
                 secretKeyRef:

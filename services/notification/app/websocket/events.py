@@ -4,6 +4,7 @@ import logging
 import threading
 
 from app.config import WEBSOCKET_HOST, WEBSOCKET_PORT
+from app.websocket.redis_fanout import publish_ws_event, redis_subscriber_loop
 from app.websocket.socket_server import connected_clients, start_server
 
 logger = logging.getLogger(__name__)
@@ -34,6 +35,9 @@ async def broadcast_event(message: str, *, recipient: str | None = None) -> None
 
 
 def broadcast_event_sync(payload: dict) -> None:
+    if publish_ws_event(payload):
+        return
+
     message = json.dumps(payload)
     recipient = payload.get("recipient")
     try:
@@ -43,8 +47,15 @@ def broadcast_event_sync(payload: dict) -> None:
         asyncio.run(broadcast_event(message, recipient=recipient))
 
 
+async def _run_websocket_stack() -> None:
+    await asyncio.gather(
+        start_server(),
+        redis_subscriber_loop(broadcast_event),
+    )
+
+
 def start_websocket_server() -> None:
-    asyncio.run(start_server())
+    asyncio.run(_run_websocket_stack())
 
 
 def start_websocket_background() -> None:
