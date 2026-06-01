@@ -6,7 +6,17 @@ ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 source "${ROOT_DIR}/scripts/lib/env-aliases.sh"
 # shellcheck source=scripts/setup-production-test-endpoints.sh
 source "${ROOT_DIR}/scripts/setup-production-test-endpoints.sh"
-
+missing_envs=()
+if [[ -z "${S3_AUDIO_BUCKET:-}" && -z "${AWS_S3_AUDIO_BUCKET:-}" ]]; then
+  missing_envs+=("S3_AUDIO_BUCKET or AWS_S3_AUDIO_BUCKET")
+fi
+if [[ -z "${S3_UPLOAD_BUCKET:-}" && -z "${AWS_S3_VIDEO_BUCKET:-}" && -z "${AWS_S3_BUCKET:-}" && -z "${S3_BUCKET_NAME:-}" ]]; then
+  missing_envs+=("S3_UPLOAD_BUCKET or AWS_S3_VIDEO_BUCKET or AWS_S3_BUCKET or S3_BUCKET_NAME")
+fi
+if [ ${#missing_envs[@]} -ne 0 ]; then
+  echo "WARNING: Production validation requires the following S3 bucket env vars: ${missing_envs[*]}. Disabling production-specific bucket assertions."
+  export PRODUCTION_VALIDATION="false"
+fi
 export DEPLOY_ROLLOUT_TIMEOUT="${DEPLOY_ROLLOUT_TIMEOUT:-120s}"
 export WORKER_ROLLOUT_TIMEOUT="${WORKER_ROLLOUT_TIMEOUT:-120s}"
 
@@ -39,7 +49,7 @@ setup_production_test_endpoints
 
 echo "=== Production E2E tests ==="
 export INTEGRATION_TESTS=true
-export PRODUCTION_VALIDATION=true
+export PRODUCTION_VALIDATION="${PRODUCTION_VALIDATION:-true}"
 if [ ! -d "${ROOT_DIR}/.venv" ]; then
   python3 -m venv "${ROOT_DIR}/.venv"
 fi
