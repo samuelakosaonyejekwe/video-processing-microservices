@@ -10,6 +10,10 @@ cd "${ROOT_DIR}"
 source "${ROOT_DIR}/scripts/lib/prepare-compose-env.sh"
 prepare_compose_env "${ROOT_DIR}"
 
+# env-aliases.sh may export a stale or k8s-targeted MONGO_URI; override here
+# with the compose-internal service hostname before docker compose reads it.
+export MONGO_URI="mongodb://${MONGO_USERNAME:-mongo}:${MONGO_PASSWORD:-mongo}@mongodb:${MONGO_PORT:-27017}/${MONGO_DATABASE:-video_converter}?authSource=${MONGO_AUTH_SOURCE:-admin}"
+
 cleanup() {
   if [ "${NO_CLEANUP:-}" = "1" ]; then
     return
