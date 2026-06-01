@@ -11,7 +11,7 @@ ENV INTERNAL_TLS_PORT=8443
 
 WORKDIR /app
 
-RUN apt-get update && apt-get install -y --no-install-recommends \
+RUN apt-get update && apt-get upgrade -y && apt-get install -y --no-install-recommends \
     ffmpeg \
     curl \
     tini \
