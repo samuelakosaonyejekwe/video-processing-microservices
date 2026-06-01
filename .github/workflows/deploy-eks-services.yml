@@ -8,6 +8,14 @@ on:
         required: false
         default: ""
 
+  workflow_run:
+    workflows:
+      - Docker Build and Push
+    types:
+      - completed
+    branches:
+      - main
+
 concurrency:
   group: deploy-eks-${{ vars.EKS_CLUSTER_NAME }}
   cancel-in-progress: true
@@ -15,6 +23,9 @@ concurrency:
 jobs:
   deploy:
     name: Deploy Microservices to EKS
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      github.event.workflow_run.conclusion == 'success'
     runs-on: ubuntu-latest
     timeout-minutes: 20
     permissions:
@@ -46,7 +57,7 @@ jobs:
       DATABASE_NAMESPACE: database
       DOCKER_IMAGE_REGISTRY: ${{ vars.DOCKER_IMAGE_REGISTRY }}
       DOCKER_IMAGE_NAMESPACE: ${{ vars.DOCKER_IMAGE_NAMESPACE }}
-      IMAGE_TAG: ${{ inputs.image_tag || github.sha }}
+      IMAGE_TAG: ${{ inputs.image_tag || github.event.workflow_run.head_sha || github.sha }}
       DOCKER_USERNAME: ${{ vars.DOCKER_IMAGE_NAMESPACE }}
       DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
       JWT_PRIVATE_KEY: ${{ secrets.JWT_PRIVATE_KEY }}
@@ -72,6 +83,8 @@ jobs:
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha || github.ref }}
 
       - name: Export Environment Aliases
         run: |

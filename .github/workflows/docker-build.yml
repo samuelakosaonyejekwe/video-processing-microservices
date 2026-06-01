@@ -65,4 +65,5 @@ jobs:
         run: |
           echo "Docker images built and pushed to ECR."
           echo "Images tagged with latest and ${IMAGE_TAG}"
-          echo "Deploy with the same tag: gh workflow run \"Deploy EKS Services\" --ref main -f image_tag=${IMAGE_TAG}"
+          echo "Deploy EKS Services starts automatically after this workflow completes on main."
+          echo "Manual deploy: gh workflow run \"Deploy EKS Services\" --ref main -f image_tag=${IMAGE_TAG}"
