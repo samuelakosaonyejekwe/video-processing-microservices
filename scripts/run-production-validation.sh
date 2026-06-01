@@ -14,8 +14,9 @@ if [[ -z "${S3_UPLOAD_BUCKET:-}" && -z "${AWS_S3_VIDEO_BUCKET:-}" && -z "${AWS_S
   missing_envs+=("S3_UPLOAD_BUCKET or AWS_S3_VIDEO_BUCKET or AWS_S3_BUCKET or S3_BUCKET_NAME")
 fi
 if [ ${#missing_envs[@]} -ne 0 ]; then
-  echo "WARNING: Production validation requires the following S3 bucket env vars: ${missing_envs[*]}. Disabling production-specific bucket assertions."
-  export PRODUCTION_VALIDATION="false"
+  echo "ERROR: Production validation requires the following S3 bucket env vars: ${missing_envs[*]}."
+  echo "Set the required environment variables and re-run the script."
+  exit 1
 fi
 export DEPLOY_ROLLOUT_TIMEOUT="${DEPLOY_ROLLOUT_TIMEOUT:-120s}"
 export WORKER_ROLLOUT_TIMEOUT="${WORKER_ROLLOUT_TIMEOUT:-120s}"

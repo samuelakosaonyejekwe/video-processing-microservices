@@ -2,7 +2,9 @@ import asyncio
 import logging
 import os
 import uuid
+from typing import Optional
 
+from pydantic import BaseModel
 from fastapi import APIRouter, File, HTTPException, Request, UploadFile
 
 from app.database.mongo_client import get_database
@@ -23,7 +25,14 @@ logger = logging.getLogger(__name__)
 router = APIRouter(tags=["Converter"])
 
 
-@router.post("/upload")
+class UploadResponse(BaseModel):
+    job_id: str
+    status: str
+    correlation_id: Optional[str] = None
+    s3_key: str
+
+
+@router.post("/upload", response_model=UploadResponse)
 async def upload_video(
     request: Request,
     file: UploadFile = File(...),

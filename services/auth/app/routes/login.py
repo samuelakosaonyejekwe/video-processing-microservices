@@ -1,6 +1,7 @@
 import logging
 
 from fastapi import APIRouter, HTTPException, status
+from fastapi.responses import JSONResponse
 from jwt.exceptions import PyJWTError
 from passlib.context import CryptContext
 from pydantic import BaseModel, EmailStr
@@ -80,11 +81,22 @@ def login(data: LoginRequest):
                 refresh_token_ttl_seconds(),
             )
 
-        return {
-            "access_token": access_token,
-            "refresh_token": refresh_token,
-            "token_type": "bearer",
-        }
+        response = JSONResponse(
+            {
+                "access_token": access_token,
+                "refresh_token": refresh_token,
+                "token_type": "bearer",
+            }
+        )
+        response.set_cookie(
+            key="access_token",
+            value=access_token,
+            httponly=True,
+            secure=False,
+            samesite="lax",
+            max_age=3600,
+        )
+        return response
 
     except HTTPException:
         raise

@@ -1,6 +1,7 @@
 import os
 import time
 import uuid
+from http.cookiejar import CookieJar
 from pathlib import Path
 
 import httpx
@@ -92,12 +93,6 @@ def _wait_for_new_audio_object(
     raise AssertionError(
         f"Timed out waiting for converted audio in s3://{bucket}/ after {timeout_seconds}s"
     )
-
-
-def _video_s3_key_for_upload(
-    job_id: str, filename: str = "sample-with-audio.mp4"
-) -> str:
-    return f"uploads/videos/{job_id}/{filename}"
 
 
 def test_video_upload_flow():
