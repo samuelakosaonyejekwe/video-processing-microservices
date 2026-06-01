@@ -22,21 +22,31 @@ cleanup() {
 }
 trap cleanup EXIT
 
-# Spin up only the services needed for API-level integration tests.
-# The frontend UI is excluded — it is not exercised by the test suite and would
-# add an extra healthcheck barrier (wget against nginx) that has no bearing on
-# API correctness.  minio-init is a one-shot init container (restart: no) that
-# exits 0 after creating buckets; docker compose --wait treats exit-0 as done.
-# `--wait` honors healthchecks and depends_on: service_healthy chains, so this
-# is deterministic — fails fast rather than racing on fixed sleeps.  On failure
-# we dump status + logs to make the cause obvious in CI.
-API_SERVICES=(postgres mongodb redis rabbitmq minio minio-init auth gateway converter notification)
+# Spin up only the long-running services needed for API-level integration tests.
+# frontend is excluded — not exercised by the test suite.
+# minio-init is excluded from --wait: it is a one-shot init container that exits
+# with code 0 after creating buckets, and docker compose --wait treats any exited
+# container (even exit-0) as a startup failure.  It is started separately below.
+# `--wait` honors healthchecks and depends_on:service_healthy chains, making
+# startup deterministic — fails fast rather than racing on fixed sleeps.
+LONG_RUNNING_SERVICES=(postgres mongodb redis rabbitmq minio auth gateway converter notification)
 if ! docker compose --env-file "${COMPOSE_ENV_FILE}" up -d --build --wait --wait-timeout 360 \
-    "${API_SERVICES[@]}"; then
+    "${LONG_RUNNING_SERVICES[@]}"; then
   echo "=== Stack did not become healthy; status + logs follow ==="
   docker compose --env-file "${COMPOSE_ENV_FILE}" ps || true
   docker compose --env-file "${COMPOSE_ENV_FILE}" logs --tail=80 \
     auth gateway converter notification 2>&1 || true
+  exit 1
+fi
+
+# Run the minio-init one-shot container to create S3 buckets (minio is now healthy).
+# docker compose up -d starts it; docker wait blocks until it exits; exit code is checked.
+docker compose --env-file "${COMPOSE_ENV_FILE}" up -d minio-init
+MINIO_INIT_CONTAINER="${MINIO_INIT_CONTAINER_NAME:-minio-init}"
+minio_rc=$(docker wait "${MINIO_INIT_CONTAINER}" 2>/dev/null || echo "1")
+if [ "${minio_rc}" != "0" ]; then
+  echo "=== minio-init failed (exit ${minio_rc}) ==="
+  docker logs "${MINIO_INIT_CONTAINER}" 2>&1 || true
   exit 1
 fi
 
