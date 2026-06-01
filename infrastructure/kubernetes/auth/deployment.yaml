@@ -22,7 +22,7 @@ spec:
     type: RollingUpdate
 
     rollingUpdate:
-      maxUnavailable: 1
+      maxUnavailable: 0
       maxSurge: 1
 
   template:
@@ -357,6 +357,8 @@ spec:
               value: /etc/internal-tls/tls.key
 
           volumeMounts:
+            - name: auth-tmp
+              mountPath: /tmp
             - name: auth-internal-tls
               mountPath: /etc/internal-tls
               readOnly: true
@@ -375,7 +377,7 @@ spec:
 
             allowPrivilegeEscalation: false
 
-            readOnlyRootFilesystem: false
+            readOnlyRootFilesystem: true
 
             capabilities:
               drop:
@@ -422,6 +424,9 @@ spec:
       restartPolicy: Always
 
       volumes:
+        - name: auth-tmp
+          emptyDir:
+            sizeLimit: 256Mi
         - name: auth-internal-tls
           secret:
             secretName: auth-internal-tls

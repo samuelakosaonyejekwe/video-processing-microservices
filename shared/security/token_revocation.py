@@ -38,6 +38,10 @@ def _require_redis_in_production() -> bool:
 
 
 def revoke_token(jti: str, ttl_seconds: int) -> None:
+    # Coerce to int: Redis SETEX rejects float TTLs, and callers sometimes
+    # derive the TTL from time.time() (a float). A non-int here would raise and
+    # silently leave the token un-revoked.
+    ttl_seconds = int(ttl_seconds)
     if not jti or ttl_seconds <= 0:
         return
 
@@ -51,6 +55,32 @@ def revoke_token(jti: str, ttl_seconds: int) -> None:
         client.setex(f"revoked:jti:{jti}", ttl_seconds, "1")
     except Exception as error:
         logger.warning("Failed to revoke token jti=%s: %s", jti, error)
+
+
+def claim_refresh_token_use(jti: str, ttl_seconds: int) -> bool:
+    """Atomically mark a refresh-token jti as used; True only for the first use.
+
+    Closes the refresh-rotation replay race: two concurrent requests presenting
+    the same refresh token can both pass verification, but only the one that
+    wins this SET NX is allowed to rotate. Fails open (returns True) when Redis
+    is not configured outside production.
+    """
+    ttl_seconds = int(ttl_seconds)
+    if not jti or ttl_seconds <= 0:
+        return True
+
+    client = _get_redis()
+    if client is None:
+        if _require_redis_in_production():
+            # Without the dedup store we cannot guarantee single-use; reject.
+            return False
+        return True
+
+    try:
+        return bool(client.set(f"refresh:used:{jti}", "1", nx=True, ex=ttl_seconds))
+    except Exception as error:
+        logger.warning("Failed to claim refresh token use jti=%s: %s", jti, error)
+        return not _require_redis_in_production()
 
 
 def is_token_revoked(jti: str) -> bool:

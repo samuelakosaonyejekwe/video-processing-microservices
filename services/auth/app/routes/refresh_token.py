@@ -1,4 +1,5 @@
 import os
+import time
 
 from fastapi import APIRouter, HTTPException, status
 from pydantic import BaseModel
@@ -11,6 +12,7 @@ from app.jwt.token import (
     verify_refresh_token,
 )
 from shared.security.token_revocation import (
+    claim_refresh_token_use,
     get_stored_refresh_jti,
     is_token_revoked,
     revoke_token,
@@ -37,7 +39,6 @@ async def refresh_token(body: RefreshRequest):
 
     user_id = payload.get("sub")
     role = payload.get("role", "user")
-    email = payload.get("email", "")
     refresh_jti = payload.get("jti")
     expires_at = payload.get("exp")
 
@@ -69,19 +70,26 @@ async def refresh_token(body: RefreshRequest):
         )
 
     if refresh_jti and expires_at:
-        ttl_seconds = max(int(expires_at) - __import__("time").time(), 1)
+        # Integer TTL: Redis SETEX rejects floats (time.time() is a float), and
+        # the resulting error would silently skip revocation.
+        ttl_seconds = max(int(expires_at) - int(time.time()), 1)
+        # Single-use rotation: the first request to present this jti wins; a
+        # concurrent replay of the same refresh token is rejected.
+        if not claim_refresh_token_use(refresh_jti, ttl_seconds):
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Refresh token has already been used",
+            )
         revoke_token(refresh_jti, ttl_seconds)
 
     new_access_token = create_access_token(
         user_id=user_id,
         role=role,
-        email=email,
     )
 
     new_refresh_token = create_refresh_token(
         user_id=user_id,
         role=role,
-        email=email,
     )
 
     new_payload = verify_refresh_token(new_refresh_token)

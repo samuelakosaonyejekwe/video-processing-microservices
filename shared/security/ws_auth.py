@@ -4,6 +4,8 @@ from typing import Any
 import jwt
 from jwt.exceptions import PyJWTError
 
+from shared.security.token_revocation import is_token_revoked
+
 
 def decode_access_token(token: str) -> dict[str, Any] | None:
     public_key = os.getenv("JWT_PUBLIC_KEY", "").strip()
@@ -25,9 +27,18 @@ def decode_access_token(token: str) -> dict[str, Any] | None:
         options["verify_aud"] = False
 
     try:
-        return jwt.decode(token, decode_key, options=options, **decode_kwargs)
+        payload = jwt.decode(token, decode_key, options=options, **decode_kwargs)
     except PyJWTError:
         return None
+
+    # Enforce token revocation on WebSocket connections too — otherwise a
+    # logged-out/revoked access token could hold a live notification socket.
+    if payload.get("type") not in (None, "access"):
+        return None
+    if is_token_revoked(payload.get("jti")):
+        return None
+
+    return payload
 
 
 def access_token_from_cookie_header(cookie_header: str | None) -> str | None:

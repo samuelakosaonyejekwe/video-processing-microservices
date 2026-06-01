@@ -1,11 +1,24 @@
+import logging
+import re
 import smtplib
 
 from email.mime.text import MIMEText
 
 from app.config import SMTP_HOST, SMTP_PORT, SMTP_EMAIL, SMTP_PASSWORD, SMTP_SECURE
 
+logger = logging.getLogger(__name__)
+
+_EMAIL_RE = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
+
 
 def send_email(recipient: str, subject: str, body: str) -> bool:
+
+    # Reject anything that isn't a clean single email address. A CR/LF in the
+    # recipient would otherwise enable SMTP header injection.
+    if not recipient or not _EMAIL_RE.match(recipient.strip()):
+        logger.error("Refusing to send email to invalid recipient")
+        return False
+    recipient = recipient.strip()
 
     msg = MIMEText(body, "html")
 
@@ -51,7 +64,7 @@ def send_email(recipient: str, subject: str, body: str) -> bool:
 
     except Exception as e:
 
-        print(f"Email sending failed: {e}")
+        logger.error("Email sending failed: %s", e)
 
         return False
 

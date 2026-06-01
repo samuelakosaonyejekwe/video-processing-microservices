@@ -14,13 +14,12 @@ from app.config import (
     APP_ENV,
     CORS_ALLOWED_ORIGINS,
     JWT_ALGORITHM,
-    JWT_AUDIENCE,
-    JWT_ISSUER,
     JWT_PUBLIC_KEY,
 )
 from app.database.job_repository import mongo_available
 from app.database.mongo_client import close_mongo_client
 from app.middleware.auth_middleware import AuthMiddleware
+from app.middleware.logging_middleware import LoggingMiddleware
 from app.middleware.rate_limit_middleware import RateLimitMiddleware
 from app.queue.consumer import start_consumer, stop_consumer
 from app.queue.producer import get_gateway_producer
@@ -31,8 +30,10 @@ from shared.errors.handlers import register_exception_handlers
 from shared.logging.logger import configure_logging
 from shared.middleware.correlation_id import CorrelationIdMiddleware
 from shared.middleware.metrics_guard import MetricsGuardMiddleware
+from shared.middleware.security_headers import SecurityHeadersMiddleware
 from shared.runtime.queue_consumer import queue_consumer_enabled
 from shared.runtime.tracing import configure_tracing
+from shared.security.cors import ALLOWED_CORS_HEADERS
 
 APP_NAME = os.getenv("APP_NAME") or "gateway-service"
 logger = logging.getLogger(__name__)
@@ -87,11 +88,13 @@ app.add_middleware(
     allow_origins=_cors_origins,
     allow_credentials=_cors_origins != ["*"],
     allow_methods=["*"],
-    allow_headers=["*"],
+    allow_headers=ALLOWED_CORS_HEADERS,
 )
+app.add_middleware(LoggingMiddleware)
 app.add_middleware(RateLimitMiddleware)
 app.add_middleware(AuthMiddleware)
 app.add_middleware(CorrelationIdMiddleware)
+app.add_middleware(SecurityHeadersMiddleware)
 app.add_middleware(MetricsGuardMiddleware)
 
 app.include_router(auth_router)
@@ -107,10 +110,9 @@ async def jwt_health():
         if JWT_PUBLIC_KEY
         else ""
     )
+    # Avoid exposing issuer/audience on an unauthenticated endpoint.
     return {
         "algorithm": JWT_ALGORITHM,
-        "issuer": JWT_ISSUER,
-        "audience": JWT_AUDIENCE,
         "public_key_loaded": bool(JWT_PUBLIC_KEY),
         "public_key_fingerprint": fingerprint,
     }

@@ -28,15 +28,40 @@ spec:
       imagePullSecrets:
         - name: ${DOCKER_REGISTRY_SECRET_NAME}
 
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 101
+        runAsGroup: 101
+        fsGroup: 101
+        seccompProfile:
+          type: RuntimeDefault
+
       containers:
         - name: frontend
           image: ${FRONTEND_IMAGE}
           imagePullPolicy: Always
 
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop:
+                - ALL
+
           ports:
             - name: http
               containerPort: 3000
               protocol: TCP
+
+          volumeMounts:
+            - name: nginx-cache
+              mountPath: /var/cache/nginx
+            - name: nginx-run
+              mountPath: /var/run
+            - name: nginx-conf
+              mountPath: /etc/nginx/conf.d
+            - name: tmp
+              mountPath: /tmp
 
           env:
             - name: GATEWAY_UPSTREAM
@@ -69,6 +94,16 @@ spec:
             periodSeconds: 20
             timeoutSeconds: 3
             failureThreshold: 3
+
+      volumes:
+        - name: nginx-cache
+          emptyDir: {}
+        - name: nginx-run
+          emptyDir: {}
+        - name: nginx-conf
+          emptyDir: {}
+        - name: tmp
+          emptyDir: {}
 
       restartPolicy: Always
       terminationGracePeriodSeconds: 30

@@ -8,7 +8,6 @@ ALLOWED_VIDEO_CONTENT_TYPES = (
     "video/x-msvideo",
     "video/x-matroska",
     "video/webm",
-    "application/octet-stream",
 )
 
 
@@ -40,11 +39,15 @@ def validate_upload_size(size: int) -> None:
 
 
 def validate_content_type(content_type: str | None) -> bool:
+    # A missing header is tolerated — the magic-byte check is the real gate.
+    # When a header IS present it must match the curated allow-list; we do not
+    # accept arbitrary "video/*" (that would make the allow-list meaningless and
+    # let a client declare e.g. video/x-anything).
     if not content_type:
         return True
 
     base_type = content_type.split(";")[0].strip().lower()
-    return base_type.startswith("video/") or base_type in ALLOWED_VIDEO_CONTENT_TYPES
+    return base_type in ALLOWED_VIDEO_CONTENT_TYPES
 
 
 def validate_video_magic_bytes(header: bytes) -> bool:

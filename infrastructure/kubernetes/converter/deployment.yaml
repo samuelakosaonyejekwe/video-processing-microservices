@@ -90,9 +90,13 @@ spec:
 
           securityContext:
             allowPrivilegeEscalation: false
-            readOnlyRootFilesystem: false
+            readOnlyRootFilesystem: true
             runAsNonRoot: true
             runAsUser: 1000
+
+            capabilities:
+              drop:
+                - ALL
 
             seccompProfile:
               type: RuntimeDefault
@@ -107,6 +111,8 @@ spec:
               cpu: "${CONVERTER_CPU_LIMIT}"
 
           volumeMounts:
+            - name: converter-tmp-root
+              mountPath: /tmp
             - name: converter-tmp
               mountPath: /tmp/converter
 
@@ -116,6 +122,9 @@ spec:
                 command: ["/bin/sh", "-c", "sleep 10"]
 
       volumes:
+        - name: converter-tmp-root
+          emptyDir:
+            sizeLimit: 1Gi
         - name: converter-tmp
           emptyDir:
             sizeLimit: 5Gi

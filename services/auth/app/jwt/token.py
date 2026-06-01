@@ -1,5 +1,4 @@
 import uuid
-import hashlib
 
 from datetime import datetime
 from datetime import timedelta
@@ -34,21 +33,11 @@ def generate_refresh_token_id() -> str:
 
 
 # =========================================================
-# TOKEN HASHING
-# =========================================================
-
-
-def hash_refresh_token(token: str) -> str:
-
-    return hashlib.sha256(token.encode()).hexdigest()
-
-
-# =========================================================
 # ACCESS TOKEN CREATION
 # =========================================================
 
 
-def create_access_token(user_id: str, role: str, email: str = "") -> str:
+def create_access_token(user_id: str, role: str) -> str:
 
     now = datetime.now(timezone.utc)
 
@@ -58,7 +47,6 @@ def create_access_token(user_id: str, role: str, email: str = "") -> str:
         "sub": str(user_id),
         "type": "access",
         "role": role,
-        "email": email,
         "iss": JWT_ISSUER,
         "aud": JWT_AUDIENCE,
         "iat": int(now.timestamp()),
@@ -79,7 +67,7 @@ def create_access_token(user_id: str, role: str, email: str = "") -> str:
 # =========================================================
 
 
-def create_refresh_token(user_id: str, role: str, email: str = "") -> str:
+def create_refresh_token(user_id: str, role: str) -> str:
 
     now = datetime.now(timezone.utc)
 
@@ -89,7 +77,6 @@ def create_refresh_token(user_id: str, role: str, email: str = "") -> str:
         "sub": str(user_id),
         "type": "refresh",
         "role": role,
-        "email": email,
         "iss": JWT_ISSUER,
         "aud": JWT_AUDIENCE,
         "iat": int(now.timestamp()),
@@ -103,38 +90,6 @@ def create_refresh_token(user_id: str, role: str, email: str = "") -> str:
         algorithm=JWT_ALGORITHM,
         headers={"kid": JWT_ACTIVE_KID},
     )
-
-
-# =========================================================
-# ACCESS TOKEN VERIFICATION
-# =========================================================
-
-
-def verify_access_token(token: str) -> Optional[Dict[str, Any]]:
-
-    try:
-
-        payload = jwt.decode(
-            token,
-            JWT_PUBLIC_KEY,
-            algorithms=[JWT_ALGORITHM],
-            issuer=JWT_ISSUER,
-            audience=JWT_AUDIENCE,
-        )
-
-        if payload.get("type") != "access":
-
-            return None
-
-        return payload
-
-    except ExpiredSignatureError:
-
-        return None
-
-    except PyJWTError:
-
-        return None
 
 
 # =========================================================

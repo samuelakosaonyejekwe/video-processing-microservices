@@ -1,0 +1,13 @@
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+
+metadata:
+  name: gateway-pdb
+  namespace: ${K8S_NAMESPACE}
+
+spec:
+  maxUnavailable: 1
+
+  selector:
+    matchLabels:
+      app: gateway

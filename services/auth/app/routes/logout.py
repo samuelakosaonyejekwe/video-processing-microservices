@@ -69,8 +69,6 @@ async def logout(
         return {
             "success": True,
             "message": "Logout successful",
-            "user_id": user_id,
-            "revoked_token_id": jti,
         }
 
     except HTTPException:

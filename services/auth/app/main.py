@@ -1,3 +1,4 @@
+import logging
 import os
 from contextlib import asynccontextmanager
 import hashlib
@@ -10,8 +11,6 @@ from prometheus_fastapi_instrumentator import Instrumentator
 from app.config import APP_ENV, APP_NAME, APP_PORT, CORS_ALLOWED_ORIGINS
 from app.config import (
     JWT_ALGORITHM,
-    JWT_AUDIENCE,
-    JWT_ISSUER,
     JWT_PRIVATE_KEY,
     JWT_PUBLIC_KEY,
 )
@@ -21,13 +20,18 @@ from app.middleware.rate_limit_middleware import AuthRateLimitMiddleware
 from app.routes.db_health import router as db_health_router
 from app.routes.login import router as login_router
 from app.routes.logout import router as logout_router
+from app.routes.me import router as me_router
 from app.routes.refresh_token import router as refresh_token_router
 from app.routes.register import router as register_router
 from shared.errors.handlers import register_exception_handlers
 from shared.logging.logger import configure_logging
 from shared.middleware.correlation_id import CorrelationIdMiddleware
 from shared.middleware.metrics_guard import MetricsGuardMiddleware
+from shared.middleware.security_headers import SecurityHeadersMiddleware
 from shared.runtime.tracing import configure_tracing
+from shared.security.cors import ALLOWED_CORS_HEADERS
+
+logger = logging.getLogger(__name__)
 
 
 @asynccontextmanager
@@ -39,11 +43,11 @@ async def lifespan(app: FastAPI):
     if APP_ENV not in ("test", "production"):
         Base.metadata.create_all(bind=engine)
 
-    print(f"{APP_NAME} starting in {APP_ENV} mode")
+    logger.info("%s starting in %s mode", APP_NAME, APP_ENV)
 
     yield
 
-    print(f"{APP_NAME} shutting down")
+    logger.info("%s shutting down", APP_NAME)
 
 
 _enable_docs = (
@@ -62,6 +66,7 @@ app = FastAPI(
 Instrumentator().instrument(app).expose(app, endpoint="/metrics")
 
 app.add_middleware(MetricsGuardMiddleware)
+app.add_middleware(SecurityHeadersMiddleware)
 app.add_middleware(CorrelationIdMiddleware)
 app.add_middleware(AuthRateLimitMiddleware)
 
@@ -70,13 +75,14 @@ app.add_middleware(
     allow_origins=CORS_ALLOWED_ORIGINS,
     allow_credentials=True,
     allow_methods=["*"],
-    allow_headers=["*"],
+    allow_headers=ALLOWED_CORS_HEADERS,
 )
 
 app.include_router(login_router)
 app.include_router(register_router)
 app.include_router(refresh_token_router)
 app.include_router(logout_router)
+app.include_router(me_router)
 app.include_router(db_health_router)
 register_exception_handlers(app)
 
@@ -108,15 +114,16 @@ async def jwt_health():
         except (ValueError, TypeError) as error:
             signing_error = str(error)
 
+    # Do not expose issuer/audience or raw signing-error text on an
+    # unauthenticated endpoint (recon / information disclosure). The boolean
+    # health signals are sufficient for probes.
     return {
         "algorithm": JWT_ALGORITHM,
-        "issuer": JWT_ISSUER,
-        "audience": JWT_AUDIENCE,
         "private_key_loaded": bool(JWT_PRIVATE_KEY),
         "public_key_loaded": bool(JWT_PUBLIC_KEY),
         "public_key_fingerprint": fingerprint,
         "signing_ok": signing_ok,
-        "signing_error": signing_error or None,
+        "signing_configured": bool(signing_error) is False,
     }
 
 

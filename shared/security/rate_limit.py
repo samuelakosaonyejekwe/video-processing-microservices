@@ -1,6 +1,7 @@
 import logging
 import os
 import time
+import uuid
 
 logger = logging.getLogger(__name__)
 
@@ -70,7 +71,11 @@ def is_rate_limited(
     try:
         pipeline = client.pipeline()
         pipeline.zremrangebyscore(redis_key, 0, now - window_seconds)
-        pipeline.zadd(redis_key, {str(now): now})
+        # Unique member per request (score = timestamp). Using str(now) as the
+        # member collapses requests that share a timestamp into one ZSET entry,
+        # which undercounts bursts and lets the limit be bypassed.
+        member = f"{now}:{uuid.uuid4().hex}"
+        pipeline.zadd(redis_key, {member: now})
         pipeline.zcard(redis_key)
         pipeline.expire(redis_key, window_seconds + 1)
         _, _, count, _ = pipeline.execute()
