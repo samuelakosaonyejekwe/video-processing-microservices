@@ -46,19 +46,12 @@ spec:
                 name: mongodb-secret
             - secretRef:
                 name: rabbitmq-secret
-            - secretRef:
-                name: jwt-secret
 
           env:
             - name: ENABLE_QUEUE_CONSUMER
               value: "true"
             - name: APP_PORT
               value: "${CONVERTER_APP_PORT}"
-            - name: JWT_PUBLIC_KEY
-              valueFrom:
-                secretKeyRef:
-                  name: jwt-secret
-                  key: JWT_PUBLIC_KEY
             - name: MONGO_URI
               valueFrom:
                 secretKeyRef:
@@ -107,6 +100,9 @@ spec:
               mountPath: /tmp/converter
             - name: worker-tmp
               mountPath: /tmp
+            - name: jwt-public-key
+              mountPath: /run/secrets
+              readOnly: true
 
           lifecycle:
             preStop:
@@ -120,5 +116,11 @@ spec:
         - name: worker-tmp
           emptyDir:
             sizeLimit: 2Gi
+        - name: jwt-public-key
+          secret:
+            secretName: jwt-secret
+            items:
+              - key: jwt-public.pem
+                path: jwt-public.pem
 
       restartPolicy: Always

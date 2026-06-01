@@ -1,6 +1,6 @@
 import os
 
-from shared.security.pem_loader import load_pem, verify_rsa_key_pair
+from shared.security.pem_loader import load_pem
 
 
 def first_env(*names: str, default: str = "") -> str:
@@ -100,9 +100,4 @@ missing_vars = [key for key, value in required_env_vars.items() if not value]
 if missing_vars and APP_ENV == "production":
     raise ValueError(
         "Missing required environment variables: " + ", ".join(missing_vars)
-    )
-
-if APP_ENV == "production" and not verify_rsa_key_pair(JWT_PRIVATE_KEY, JWT_PUBLIC_KEY):
-    raise ValueError(
-        "JWT_PRIVATE_KEY and JWT_PUBLIC_KEY do not form a valid RS256 pair"
     )

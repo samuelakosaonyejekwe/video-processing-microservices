@@ -79,11 +79,6 @@ spec:
                 configMapKeyRef:
                   name: gateway-config
                   key: APP_PORT
-            - name: JWT_PUBLIC_KEY
-              valueFrom:
-                secretKeyRef:
-                  name: jwt-secret
-                  key: JWT_PUBLIC_KEY
             - name: JWT_ISSUER
               valueFrom:
                 secretKeyRef:
@@ -165,6 +160,9 @@ spec:
           volumeMounts:
             - name: tmp-volume
               mountPath: /tmp
+            - name: jwt-public-key
+              mountPath: /run/secrets
+              readOnly: true
             - name: internal-ca-bundle
               mountPath: /etc/internal-tls
               readOnly: true
@@ -173,6 +171,12 @@ spec:
         - name: tmp-volume
           emptyDir:
             sizeLimit: 2Gi
+        - name: jwt-public-key
+          secret:
+            secretName: jwt-secret
+            items:
+              - key: jwt-public.pem
+                path: jwt-public.pem
         - name: internal-ca-bundle
           configMap:
             name: internal-ca-bundle

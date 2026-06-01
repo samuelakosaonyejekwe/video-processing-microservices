@@ -195,11 +195,6 @@ spec:
                 secretKeyRef:
                   name: notification-secret
                   key: JWT_SECRET
-            - name: JWT_PUBLIC_KEY
-              valueFrom:
-                secretKeyRef:
-                  name: jwt-secret
-                  key: JWT_PUBLIC_KEY
             - name: JWT_ISSUER
               valueFrom:
                 secretKeyRef:
@@ -265,6 +260,11 @@ spec:
             timeoutSeconds: 5
             failureThreshold: 30
 
+          volumeMounts:
+            - name: jwt-public-key
+              mountPath: /run/secrets
+              readOnly: true
+
           securityContext:
             allowPrivilegeEscalation: false
             readOnlyRootFilesystem: false
@@ -273,3 +273,11 @@ spec:
             capabilities:
               drop:
                 - ALL
+
+      volumes:
+        - name: jwt-public-key
+          secret:
+            secretName: jwt-secret
+            items:
+              - key: jwt-public.pem
+                path: jwt-public.pem

@@ -5,7 +5,7 @@ from jwt.exceptions import PyJWTError
 
 
 def normalize_pem(value: str) -> str:
-    normalized = value.strip()
+    normalized = value.strip().replace("\r\n", "\n").replace("\r", "\n")
     if "\\n" in normalized:
         normalized = normalized.replace("\\n", "\n")
     return normalized
