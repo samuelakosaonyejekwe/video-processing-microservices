@@ -7,7 +7,9 @@ from app.websocket.redis_fanout import WS_EVENTS_CHANNEL, publish_ws_event
 def test_publish_ws_event_returns_false_without_redis_host(monkeypatch):
     monkeypatch.delenv("REDIS_HOST", raising=False)
 
-    assert publish_ws_event({"type": "notification_sent", "recipient": "a@b.com"}) is False
+    assert (
+        publish_ws_event({"type": "notification_sent", "recipient": "a@b.com"}) is False
+    )
 
 
 def test_publish_ws_event_publishes_json_payload(monkeypatch):

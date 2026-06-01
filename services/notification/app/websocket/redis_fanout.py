@@ -66,7 +66,9 @@ async def redis_subscriber_loop(broadcast_fn) -> None:
     try:
         import redis.asyncio as aioredis
     except ImportError:
-        logger.warning("redis package unavailable; WebSocket fanout subscriber disabled")
+        logger.warning(
+            "redis package unavailable; WebSocket fanout subscriber disabled"
+        )
         return
 
     password = os.getenv("REDIS_PASSWORD") or None
