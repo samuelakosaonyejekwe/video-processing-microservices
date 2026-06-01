@@ -110,7 +110,7 @@ def test_video_upload_flow():
         video_bucket, audio_bucket = _require_production_buckets()
         existing_audio_keys = _list_mp3_keys(audio_bucket)
 
-    with httpx.Client(base_url=gateway_url, timeout=30.0) as client:
+    with httpx.Client(base_url=gateway_url, timeout=90.0) as client:
         register = client.post(
             "/auth/register",
             json={
