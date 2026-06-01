@@ -36,8 +36,16 @@ for _ in $(seq 1 60); do
   if curl -sf http://localhost:8080/health >/dev/null 2>&1 \
     && curl -sf http://localhost:8000/health >/dev/null 2>&1 \
     && curl -sf http://localhost:8002/health >/dev/null 2>&1 \
-    && curl -sf http://localhost:8003/health >/dev/null 2>&1 \
     && curl -sf http://localhost:9000/minio/health/live >/dev/null 2>&1; then
+    break
+  fi
+  sleep 3
+done
+
+# Also wait for RabbitMQ AMQP port to accept connections (the ping health check
+# passes before AMQP is fully ready, which causes converter consumer to fail).
+for _ in $(seq 1 40); do
+  if docker exec rabbitmq rabbitmq-diagnostics check_running >/dev/null 2>&1; then
     break
   fi
   sleep 3
