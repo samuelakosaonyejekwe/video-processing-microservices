@@ -218,7 +218,7 @@ spec:
             - name: ENABLE_QUEUE_CONSUMER
               value: "false"
             - name: GUNICORN_WORKERS
-              value: "${NOTIFICATION_GUNICORN_WORKERS:-1}"
+              value: "${NOTIFICATION_GUNICORN_WORKERS}"
             - name: REDIS_PASSWORD
               valueFrom:
                 secretKeyRef:
