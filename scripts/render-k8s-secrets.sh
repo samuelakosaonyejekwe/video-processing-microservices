@@ -17,40 +17,15 @@ _create_secret() {
   shift 2
 
   local args=()
-  local include_jwt_private=false
-  local include_jwt_public=false
-
   while [ "$#" -gt 0 ]; do
     local literal_key="$1"
     local env_var="$2"
     shift 2
-
-    if [ "${literal_key}" = "JWT_PRIVATE_KEY" ]; then
-      include_jwt_private=true
-      continue
-    fi
-    if [ "${literal_key}" = "JWT_PUBLIC_KEY" ]; then
-      include_jwt_public=true
-      continue
-    fi
-
     local value="${!env_var:-}"
     if [ -n "$value" ]; then
       args+=(--from-literal="${literal_key}=${value}")
     fi
   done
-
-  if [ "${include_jwt_private}" = "true" ] && [ -n "${JWT_PRIVATE_KEY:-}" ]; then
-    local private_file="${_pem_tmpdir}/${name}-jwt-private.pem"
-    printf '%s\n' "${JWT_PRIVATE_KEY}" > "${private_file}"
-    args+=(--from-file="jwt-private.pem=${private_file}")
-  fi
-
-  if [ "${include_jwt_public}" = "true" ] && [ -n "${JWT_PUBLIC_KEY:-}" ]; then
-    local public_file="${_pem_tmpdir}/${name}-jwt-public.pem"
-    printf '%s\n' "${JWT_PUBLIC_KEY}" > "${public_file}"
-    args+=(--from-file="jwt-public.pem=${public_file}")
-  fi
 
   if [ "${#args[@]}" -eq 0 ]; then
     echo "ERROR: No values provided for secret ${name}"
@@ -62,9 +37,6 @@ _create_secret() {
     "${args[@]}" \
     --dry-run=client -o yaml > "${dest}"
 }
-
-_pem_tmpdir="$(mktemp -d)"
-trap 'rm -rf "${_pem_tmpdir}"' EXIT
 
 sanitize_secret_env
 finalize_jwt_keys
@@ -88,7 +60,23 @@ _validate_jwt_keypair() {
   export JWT_PUBLIC_KEY
 }
 
+_encode_jwt_secrets_for_k8s() {
+  if [ -n "${JWT_PRIVATE_KEY:-}" ]; then
+    JWT_PRIVATE_KEY="$(
+      printf '%s' "${JWT_PRIVATE_KEY}" | base64 -w0 2>/dev/null || printf '%s' "${JWT_PRIVATE_KEY}" | base64
+    )"
+    export JWT_PRIVATE_KEY
+  fi
+  if [ -n "${JWT_PUBLIC_KEY:-}" ]; then
+    JWT_PUBLIC_KEY="$(
+      printf '%s' "${JWT_PUBLIC_KEY}" | base64 -w0 2>/dev/null || printf '%s' "${JWT_PUBLIC_KEY}" | base64
+    )"
+    export JWT_PUBLIC_KEY
+  fi
+}
+
 _validate_jwt_keypair
+_encode_jwt_secrets_for_k8s
 
 _rabbitmq_component_urlencoded() {
   python3 -c "import urllib.parse, os, sys; print(urllib.parse.quote_plus(os.environ[sys.argv[1]]))" "$1"

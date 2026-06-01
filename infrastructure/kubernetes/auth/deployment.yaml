@@ -136,6 +136,18 @@ spec:
                   name: auth-secret
                   key: JWT_REFRESH_TOKEN_SECRET
 
+            - name: JWT_PRIVATE_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: auth-secret
+                  key: JWT_PRIVATE_KEY
+
+            - name: JWT_PUBLIC_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: auth-secret
+                  key: JWT_PUBLIC_KEY
+
             - name: JWT_ISSUER
               valueFrom:
                 secretKeyRef:
@@ -345,9 +357,6 @@ spec:
               value: /etc/internal-tls/tls.key
 
           volumeMounts:
-            - name: jwt-keys
-              mountPath: /run/secrets
-              readOnly: true
             - name: auth-internal-tls
               mountPath: /etc/internal-tls
               readOnly: true
@@ -413,14 +422,6 @@ spec:
       restartPolicy: Always
 
       volumes:
-        - name: jwt-keys
-          secret:
-            secretName: auth-secret
-            items:
-              - key: jwt-private.pem
-                path: jwt-private.pem
-              - key: jwt-public.pem
-                path: jwt-public.pem
         - name: auth-internal-tls
           secret:
             secretName: auth-internal-tls

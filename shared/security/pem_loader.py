@@ -1,3 +1,4 @@
+import base64
 import os
 
 import jwt
@@ -11,16 +12,29 @@ def normalize_pem(value: str) -> str:
     return normalized
 
 
+def _decode_pem_value(value: str) -> str:
+    normalized = normalize_pem(value)
+    if "BEGIN" in normalized:
+        return normalized
+
+    try:
+        decoded = base64.b64decode(normalized, validate=True).decode("utf-8")
+    except (ValueError, UnicodeDecodeError):
+        return normalized
+
+    return normalize_pem(decoded)
+
+
 def load_pem(env_name: str, file_path: str = "") -> str:
     if file_path and os.path.exists(file_path):
         with open(file_path, encoding="utf-8") as pem_file:
             file_value = pem_file.read().strip()
             if file_value:
-                return normalize_pem(file_value)
+                return _decode_pem_value(file_value)
 
     value = os.getenv(env_name, "")
     if value and value.strip():
-        return normalize_pem(value)
+        return _decode_pem_value(value)
 
     return ""
 

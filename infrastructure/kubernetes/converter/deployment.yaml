@@ -43,10 +43,18 @@ spec:
 
             - secretRef:
                 name: rabbitmq-secret
+            - secretRef:
+                name: jwt-secret
 
           env:
             - name: APP_PORT
               value: "${CONVERTER_APP_PORT}"
+
+            - name: JWT_PUBLIC_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: jwt-secret
+                  key: JWT_PUBLIC_KEY
 
             - name: MONGO_URI
               valueFrom:
@@ -101,9 +109,6 @@ spec:
           volumeMounts:
             - name: converter-tmp
               mountPath: /tmp/converter
-            - name: jwt-public-key
-              mountPath: /run/secrets
-              readOnly: true
 
           lifecycle:
             preStop:
@@ -114,11 +119,5 @@ spec:
         - name: converter-tmp
           emptyDir:
             sizeLimit: 5Gi
-        - name: jwt-public-key
-          secret:
-            secretName: jwt-secret
-            items:
-              - key: jwt-public.pem
-                path: jwt-public.pem
 
       restartPolicy: Always

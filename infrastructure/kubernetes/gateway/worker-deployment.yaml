@@ -69,6 +69,11 @@ spec:
                 configMapKeyRef:
                   name: gateway-config
                   key: APP_ENV
+            - name: JWT_PUBLIC_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: jwt-secret
+                  key: JWT_PUBLIC_KEY
             - name: JWT_ISSUER
               valueFrom:
                 secretKeyRef:
@@ -122,9 +127,6 @@ spec:
           volumeMounts:
             - name: tmp-volume
               mountPath: /tmp
-            - name: jwt-public-key
-              mountPath: /run/secrets
-              readOnly: true
 
           lifecycle:
             preStop:
@@ -135,11 +137,5 @@ spec:
         - name: tmp-volume
           emptyDir:
             sizeLimit: 2Gi
-        - name: jwt-public-key
-          secret:
-            secretName: jwt-secret
-            items:
-              - key: jwt-public.pem
-                path: jwt-public.pem
 
       restartPolicy: Always
