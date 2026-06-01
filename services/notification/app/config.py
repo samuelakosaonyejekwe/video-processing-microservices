@@ -56,6 +56,10 @@ WEBSOCKET_NOTIFICATIONS_ENABLED = os.getenv(
     "WEBSOCKET_NOTIFICATIONS_ENABLED", "true"
 ).strip().lower() in ("true", "1", "yes")
 
+WS_PUBLISH_MAX_WAIT_SECONDS = max(
+    0, int(os.getenv("WS_PUBLISH_MAX_WAIT_SECONDS", "120").strip())
+)
+
 REDIS_HOST = os.getenv("REDIS_HOST", "redis").strip()
 
 REDIS_PORT = int(os.getenv("REDIS_PORT", "6379").strip())

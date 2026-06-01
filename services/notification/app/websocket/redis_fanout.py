@@ -2,10 +2,25 @@ import asyncio
 import json
 import logging
 import os
+import time
+
+from app.config import WS_PUBLISH_MAX_WAIT_SECONDS
 
 logger = logging.getLogger(__name__)
 
 WS_EVENTS_CHANNEL = "ws:events"
+WS_PUBLISH_POLL_INTERVAL_SECONDS = 0.5
+
+_fanout_subscriber_ready = False
+
+
+def is_fanout_subscriber_ready() -> bool:
+    return _fanout_subscriber_ready
+
+
+def _set_fanout_subscriber_ready(ready: bool) -> None:
+    global _fanout_subscriber_ready
+    _fanout_subscriber_ready = ready
 
 
 def _get_sync_redis_client():
@@ -35,25 +50,40 @@ def publish_ws_event(payload: dict) -> bool:
     if client is None:
         return False
 
-    try:
-        subscribers = client.publish(WS_EVENTS_CHANNEL, json.dumps(payload))
-        if subscribers == 0:
-            logger.warning(
-                "Published ws event type=%s recipient=%s but no subscribers were listening",
-                payload.get("type"),
-                payload.get("recipient"),
-            )
-        else:
+    message = json.dumps(payload)
+    deadline = time.monotonic() + WS_PUBLISH_MAX_WAIT_SECONDS
+
+    while True:
+        try:
+            subscribers = client.publish(WS_EVENTS_CHANNEL, message)
+            if subscribers > 0:
+                logger.debug(
+                    "Published ws event type=%s recipient=%s subscribers=%s",
+                    payload.get("type"),
+                    payload.get("recipient"),
+                    subscribers,
+                )
+                return True
+
+            if time.monotonic() >= deadline:
+                logger.warning(
+                    "Published ws event type=%s recipient=%s but no subscribers "
+                    "were listening after %ss",
+                    payload.get("type"),
+                    payload.get("recipient"),
+                    WS_PUBLISH_MAX_WAIT_SECONDS,
+                )
+                return False
+
             logger.debug(
-                "Published ws event type=%s recipient=%s subscribers=%s",
+                "No ws fanout subscribers yet for type=%s recipient=%s; retrying",
                 payload.get("type"),
                 payload.get("recipient"),
-                subscribers,
             )
-        return True
-    except Exception as error:
-        logger.warning("Redis ws publish failed: %s", error)
-        return False
+            time.sleep(WS_PUBLISH_POLL_INTERVAL_SECONDS)
+        except Exception as error:
+            logger.warning("Redis ws publish failed: %s", error)
+            return False
 
 
 async def redis_subscriber_loop(broadcast_fn) -> None:
@@ -87,6 +117,7 @@ async def redis_subscriber_loop(broadcast_fn) -> None:
             )
             pubsub = client.pubsub()
             await pubsub.subscribe(WS_EVENTS_CHANNEL)
+            _set_fanout_subscriber_ready(True)
             logger.info(
                 "WebSocket Redis fanout subscriber connected channel=%s",
                 WS_EVENTS_CHANNEL,
@@ -110,6 +141,7 @@ async def redis_subscriber_loop(broadcast_fn) -> None:
         except asyncio.CancelledError:
             raise
         except Exception as error:
+            _set_fanout_subscriber_ready(False)
             logger.warning(
                 "WebSocket Redis fanout subscriber error: %s; retrying in %.1fs",
                 error,
@@ -118,6 +150,7 @@ async def redis_subscriber_loop(broadcast_fn) -> None:
             await asyncio.sleep(retry_delay)
             retry_delay = min(retry_delay * 2, max_retry_delay)
         finally:
+            _set_fanout_subscriber_ready(False)
             if pubsub is not None:
                 try:
                     await pubsub.unsubscribe(WS_EVENTS_CHANNEL)

@@ -7,8 +7,10 @@ from fastapi.responses import JSONResponse
 from prometheus_fastapi_instrumentator import Instrumentator
 
 from app.config import APP_ENV, APP_NAME, APP_PORT, CORS_ALLOWED_ORIGINS
+from app.config import WEBSOCKET_NOTIFICATIONS_ENABLED
 from app.queue.consumer import start_consumer, stop_consumer
 from app.websocket.events import start_websocket_background
+from app.websocket.redis_fanout import is_fanout_subscriber_ready
 from shared.errors.handlers import register_exception_handlers
 from shared.logging.logger import configure_logging
 from shared.middleware.correlation_id import CorrelationIdMiddleware
@@ -91,6 +93,20 @@ async def readiness_check():
                 "status": "not_ready",
                 "service": APP_NAME,
                 "smtp": "unconfigured",
+            },
+        )
+
+    if (
+        WEBSOCKET_NOTIFICATIONS_ENABLED
+        and os.getenv("REDIS_HOST", "").strip()
+        and not is_fanout_subscriber_ready()
+    ):
+        return JSONResponse(
+            status_code=503,
+            content={
+                "status": "not_ready",
+                "service": APP_NAME,
+                "websocket_fanout": "subscriber_not_connected",
             },
         )
 

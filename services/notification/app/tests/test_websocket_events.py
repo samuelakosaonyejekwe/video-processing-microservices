@@ -51,3 +51,22 @@ def test_broadcast_event_sync_falls_back_to_local_delivery():
         events.broadcast_event_sync(payload)
 
     broadcast_mock.assert_awaited_once_with(message, recipient="user@example.com")
+
+
+def test_broadcast_event_sync_skips_local_fallback_on_worker():
+    payload = {
+        "type": "notification_sent",
+        "recipient": "user@example.com",
+    }
+
+    with (
+        patch.dict("os.environ", {"ENABLE_QUEUE_CONSUMER": "true"}),
+        patch("app.websocket.events.publish_ws_event", return_value=False),
+        patch(
+            "app.websocket.events.broadcast_event",
+            new_callable=AsyncMock,
+        ) as broadcast_mock,
+    ):
+        events.broadcast_event_sync(payload)
+
+    broadcast_mock.assert_not_called()

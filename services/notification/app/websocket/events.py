@@ -46,6 +46,14 @@ def broadcast_event_sync(payload: dict) -> None:
     if publish_ws_event(payload):
         return
 
+    # Dedicated queue workers never host WebSocket clients in production.
+    if os.getenv("ENABLE_QUEUE_CONSUMER", "").strip().lower() in (
+        "true",
+        "1",
+        "yes",
+    ):
+        return
+
     message = json.dumps(payload)
     recipient = payload.get("recipient")
     try:

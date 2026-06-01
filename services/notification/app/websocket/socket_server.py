@@ -1,3 +1,10 @@
+"""WebSocket connection registry for this process.
+
+Each notification API pod keeps its own in-memory registry. Cross-pod delivery
+is handled by Redis pub/sub fanout (see redis_fanout.py): workers publish to
+the ws:events channel and every API pod delivers to its local clients.
+"""
+
 import asyncio
 import logging
 
