@@ -202,7 +202,7 @@ services:
       REDIS_PORT: ${REDIS_PORT:-6379}
       REDIS_PASSWORD: ${REDIS_PASSWORD:-redis}
       WEBSOCKET_HOST: 0.0.0.0
-      WEBSOCKET_PORT: ${WEBSOCKET_PORT:-8004}
+      WEBSOCKET_PORT: ${WEBSOCKET_PORT:-8081}
     ports:
       - "${NOTIFICATION_APP_PORT:-8003}:8003"
     depends_on:
@@ -217,7 +217,9 @@ services:
       retries: 3
       start_period: 20s
     networks:
-      - video-converter-network
+      video-converter-network:
+        aliases:
+          - notification-service
 
   postgres:
     image: postgres:16-alpine
@@ -350,6 +352,7 @@ services:
     restart: unless-stopped
     environment:
       GATEWAY_UPSTREAM: ${GATEWAY_UPSTREAM:-gateway-service:8080}
+      NOTIFICATION_UPSTREAM: ${NOTIFICATION_UPSTREAM:-notification-service:8081}
     ports:
       - "${FRONTEND_PORT:-3000}:3000"
     depends_on:

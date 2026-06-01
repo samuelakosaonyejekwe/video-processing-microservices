@@ -40,7 +40,9 @@ spec:
 
           env:
             - name: GATEWAY_UPSTREAM
-              value: "gateway-service:80"
+              value: "${GATEWAY_UPSTREAM}"
+            - name: NOTIFICATION_UPSTREAM
+              value: "${NOTIFICATION_UPSTREAM}"
 
           resources:
             requests:
