@@ -160,4 +160,5 @@ async def upload_video(
         "job_id": job_id,
         "status": "uploaded",
         "correlation_id": correlation_id,
+        "s3_key": s3_key,
     }

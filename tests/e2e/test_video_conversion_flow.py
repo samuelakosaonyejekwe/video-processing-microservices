@@ -148,9 +148,10 @@ def test_video_upload_flow():
     assert job_id, body
     assert body.get("status") == "uploaded", body
     assert body.get("correlation_id"), body
+    assert body.get("s3_key"), body
 
     if _production_validation_enabled():
-        video_s3_key = _video_s3_key_for_upload(job_id)
+        video_s3_key = body["s3_key"]
         _assert_s3_object_exists(video_bucket, video_s3_key)
         audio_key = _wait_for_new_audio_object(audio_bucket, existing_audio_keys)
         assert audio_key.endswith(".mp3"), audio_key
