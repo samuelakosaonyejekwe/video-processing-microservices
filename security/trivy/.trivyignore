@@ -24,3 +24,20 @@ CVE-2026-9538
 # Python dependency CVE — fix available upstream (starlette >= 0.40). Tracked as
 # an exception now; upgrade in the next dependency-review cycle. Added 2026-06-01.
 CVE-2024-47874
+
+# Converter image only: ffmpeg + its codec/AV libraries pull in distro packages
+# whose CVEs have no fixed version in Debian stable yet. `apt-get upgrade` runs
+# at build time and will absorb fixes once published. Review monthly. 2026-06-01.
+CVE-2025-59375
+CVE-2026-0966
+CVE-2026-25210
+CVE-2026-25835
+CVE-2026-34872
+CVE-2026-34873
+CVE-2026-34875
+CVE-2026-3731
+CVE-2026-37555
+CVE-2026-40393
+CVE-2026-45186
+CVE-2026-5673
+CVE-2026-6732
