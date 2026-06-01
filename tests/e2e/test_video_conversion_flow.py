@@ -39,7 +39,9 @@ def _require_production_buckets() -> tuple[str, str]:
     if not audio_bucket:
         missing.append("S3_AUDIO_BUCKET or AWS_S3_AUDIO_BUCKET")
     if not video_bucket:
-        missing.append("S3_UPLOAD_BUCKET or AWS_S3_VIDEO_BUCKET or AWS_S3_BUCKET or S3_BUCKET_NAME")
+        missing.append(
+            "S3_UPLOAD_BUCKET or AWS_S3_VIDEO_BUCKET or AWS_S3_BUCKET or S3_BUCKET_NAME"
+        )
 
     if missing:
         pytest.skip(

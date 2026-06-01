@@ -11,7 +11,6 @@ from app.config import FRONTEND_URL
 from app.database.job_repository import (
     claim_notification_send,
     claim_failure_notification_send,
-    get_job,
     mark_job_completed,
     mark_job_failed,
     mark_notification_sent,

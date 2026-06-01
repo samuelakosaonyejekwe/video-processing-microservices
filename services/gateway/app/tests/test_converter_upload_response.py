@@ -1,9 +1,7 @@
 import io
-import os
 import uuid
 
 import jwt
-import pytest
 from fastapi.testclient import TestClient
 
 import app.config as jwt_config

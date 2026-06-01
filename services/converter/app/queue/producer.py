@@ -354,7 +354,6 @@ def publish_conversion_job(
 ) -> str:
 
     import json
-    import time
 
     producer = get_converter_producer()
 

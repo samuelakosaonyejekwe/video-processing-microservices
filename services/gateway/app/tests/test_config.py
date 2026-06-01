@@ -1,6 +1,3 @@
-import os
-
-
 def test_jwt_public_key_loaded_from_env(monkeypatch):
     monkeypatch.setenv("APP_ENV", "production")
     monkeypatch.setenv("FRONTEND_URL", "https://example.com")
