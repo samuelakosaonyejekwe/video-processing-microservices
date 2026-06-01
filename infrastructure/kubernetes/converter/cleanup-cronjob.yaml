@@ -20,6 +20,12 @@ spec:
         spec:
           restartPolicy: OnFailure
           serviceAccountName: converter-service-account
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 1000
+            fsGroup: 1000
+            seccompProfile:
+              type: RuntimeDefault
           containers:
             - name: cleanup
               image: ${DOCKER_IMAGE_REGISTRY}/${DOCKER_IMAGE_NAMESPACE}/converter-service:${IMAGE_TAG}
@@ -41,3 +47,17 @@ spec:
                 limits:
                   cpu: 200m
                   memory: 128Mi
+              securityContext:
+                allowPrivilegeEscalation: false
+                readOnlyRootFilesystem: true
+                capabilities:
+                  drop:
+                    - ALL
+                seccompProfile:
+                  type: RuntimeDefault
+              volumeMounts:
+                - name: tmp
+                  mountPath: /tmp
+          volumes:
+            - name: tmp
+              emptyDir: {}

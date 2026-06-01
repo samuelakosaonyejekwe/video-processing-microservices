@@ -65,7 +65,11 @@ jobs:
 
       - name: Run Trivy IaC Scan
         run: |
+          # Scan first-party IaC only. Pinned third-party registry modules
+          # (e.g. terraform-aws-modules/eks) are vendored code we don't edit;
+          # their inputs are hardened via our tfvars/module calls instead.
           trivy config infrastructure/ \
+            --tf-exclude-downloaded-modules \
             --format table \
             --severity CRITICAL,HIGH \
             --exit-code 1

@@ -106,24 +106,6 @@ spec:
                   name: auth-config
                   key: JWT_ALGORITHM
 
-            - name: ACCESS_TOKEN_EXPIRE_MINUTES
-              valueFrom:
-                configMapKeyRef:
-                  name: auth-config
-                  key: ACCESS_TOKEN_EXPIRE_MINUTES
-
-            - name: REFRESH_TOKEN_EXPIRE_DAYS
-              valueFrom:
-                configMapKeyRef:
-                  name: auth-config
-                  key: REFRESH_TOKEN_EXPIRE_DAYS
-
-            - name: PASSWORD_HASH_SCHEME
-              valueFrom:
-                configMapKeyRef:
-                  name: auth-config
-                  key: PASSWORD_HASH_SCHEME
-
             - name: JWT_SECRET
               valueFrom:
                 secretKeyRef:

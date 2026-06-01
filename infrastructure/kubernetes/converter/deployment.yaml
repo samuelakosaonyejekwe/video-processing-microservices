@@ -23,6 +23,13 @@ spec:
       imagePullSecrets:
         - name: ${DOCKER_REGISTRY_SECRET_NAME}
 
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        fsGroup: 1000
+        seccompProfile:
+          type: RuntimeDefault
+
       terminationGracePeriodSeconds: 120
 
       containers:

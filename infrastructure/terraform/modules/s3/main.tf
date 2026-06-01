@@ -1,3 +1,25 @@
+# ==========================================================
+# CUSTOMER-MANAGED KMS KEY FOR BUCKET ENCRYPTION
+# ==========================================================
+
+resource "aws_kms_key" "s3" {
+  description             = "CMK for ${var.project_name}-${var.environment} S3 bucket encryption"
+  deletion_window_in_days = 7
+  enable_key_rotation     = true
+
+  tags = merge(
+    var.tags,
+    {
+      Name = "${var.project_name}-${var.environment}-s3-cmk"
+    }
+  )
+}
+
+resource "aws_kms_alias" "s3" {
+  name          = "alias/${var.project_name}-${var.environment}-s3"
+  target_key_id = aws_kms_key.s3.key_id
+}
+
 resource "aws_s3_bucket" "this" {
 
   for_each = var.s3_buckets
@@ -79,12 +101,11 @@ resource "aws_s3_bucket_server_side_encryption_configuration" "this" {
 
     apply_server_side_encryption_by_default {
 
-      sse_algorithm = lookup(
-        var.s3_buckets[each.key],
-        "sse_algorithm",
-        "AES256"
-      )
+      sse_algorithm     = "aws:kms"
+      kms_master_key_id = aws_kms_key.s3.arn
     }
+
+    bucket_key_enabled = true
   }
 }
 

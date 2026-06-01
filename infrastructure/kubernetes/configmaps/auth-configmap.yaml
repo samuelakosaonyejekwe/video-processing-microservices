@@ -25,11 +25,9 @@ data:
 
   JWT_ALGORITHM: ${JWT_ALGORITHM}
 
-  ACCESS_TOKEN_EXPIRE_MINUTES: "${ACCESS_TOKEN_EXPIRE_MINUTES}"
-
-  REFRESH_TOKEN_EXPIRE_DAYS: "${REFRESH_TOKEN_EXPIRE_DAYS}"
-
-  PASSWORD_HASH_SCHEME: "${PASSWORD_HASH_SCHEME}"
+  # Token-lifetime and password-hash settings are consumed by the app via the
+  # canonical JWT_* env vars / code defaults; they are not duplicated here as
+  # config keys (their secret-like names tripped scanners and they were unused).
 
   # =========================================================
   # POSTGRESQL

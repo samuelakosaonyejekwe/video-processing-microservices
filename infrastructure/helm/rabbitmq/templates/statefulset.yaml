@@ -33,6 +33,17 @@ spec:
 
     spec:
 
+      securityContext:
+
+        runAsNonRoot: true
+
+        runAsUser: 999
+
+        fsGroup: 999
+
+        seccompProfile:
+          type: RuntimeDefault
+
       affinity:
 
         podAntiAffinity:
@@ -62,6 +73,14 @@ spec:
         - name: rabbitmq
 
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+            seccompProfile:
+              type: RuntimeDefault
 
           ports:
 

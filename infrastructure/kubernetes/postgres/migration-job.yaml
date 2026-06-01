@@ -14,6 +14,12 @@ spec:
         app: postgres-migrations
     spec:
       restartPolicy: OnFailure
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 70
+        fsGroup: 70
+        seccompProfile:
+          type: RuntimeDefault
       containers:
         - name: migrate
           image: postgres:16-alpine
@@ -58,10 +64,24 @@ spec:
                   key: POSTGRES_DB
             - name: POSTGRES_SSL_MODE
               value: prefer
+            - name: HOME
+              value: /tmp
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop:
+                - ALL
+            seccompProfile:
+              type: RuntimeDefault
           volumeMounts:
             - name: schema
               mountPath: /schema
+            - name: tmp
+              mountPath: /tmp
       volumes:
         - name: schema
           configMap:
             name: postgres-schema
+        - name: tmp
+          emptyDir: {}

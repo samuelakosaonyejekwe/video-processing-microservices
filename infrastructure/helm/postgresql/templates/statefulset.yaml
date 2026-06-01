@@ -36,9 +36,16 @@ spec:
 
       securityContext:
 
+        runAsNonRoot: true
+
+        runAsUser: 70
+
         fsGroup: 70
 
         fsGroupChangePolicy: OnRootMismatch
+
+        seccompProfile:
+          type: RuntimeDefault
 
       containers:
 
@@ -47,6 +54,17 @@ spec:
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
 
           imagePullPolicy: {{ .Values.image.pullPolicy }}
+
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 70
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop:
+                - ALL
+            seccompProfile:
+              type: RuntimeDefault
 
           ports:
 
@@ -137,6 +155,24 @@ spec:
             - name: postgresql-data
 
               mountPath: /var/lib/postgresql/data
+
+            - name: postgresql-run
+
+              mountPath: /var/run/postgresql
+
+            - name: tmp
+
+              mountPath: /tmp
+
+      volumes:
+
+        - name: postgresql-run
+
+          emptyDir: {}
+
+        - name: tmp
+
+          emptyDir: {}
 
   volumeClaimTemplates:
 
