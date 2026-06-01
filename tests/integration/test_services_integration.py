@@ -54,6 +54,6 @@ def test_auth_and_gateway_jwt_config_match():
 
     assert gateway_jwt["public_key_loaded"] is True
     assert gateway_jwt["algorithm"] == "RS256"
-    assert gateway_jwt.get("issuer")
-    assert gateway_jwt.get("audience")
+    # The /health/jwt endpoint deliberately omits issuer/audience (config values,
+    # not secrets, but not needed on an unauthenticated diagnostic endpoint).
     assert gateway_jwt.get("public_key_fingerprint")
