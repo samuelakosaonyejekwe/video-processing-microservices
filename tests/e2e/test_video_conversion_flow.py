@@ -90,6 +90,12 @@ def _wait_for_new_audio_object(
     )
 
 
+def _video_s3_key_for_upload(
+    job_id: str, filename: str = "sample-with-audio.mp4"
+) -> str:
+    return f"uploads/videos/{job_id}/{filename}"
+
+
 def test_video_upload_flow():
     gateway_url = os.getenv("GATEWAY_BASE_URL", "http://localhost:8080").rstrip("/")
 
@@ -138,12 +144,13 @@ def test_video_upload_flow():
     assert response.status_code in [200, 201, 202], response.text
 
     body = response.json()
-    assert body.get("job_id"), body
+    job_id = body.get("job_id")
+    assert job_id, body
     assert body.get("status") == "uploaded", body
     assert body.get("correlation_id"), body
-    assert body.get("s3_key"), body
 
     if _production_validation_enabled():
-        _assert_s3_object_exists(video_bucket, body["s3_key"])
+        video_s3_key = _video_s3_key_for_upload(job_id)
+        _assert_s3_object_exists(video_bucket, video_s3_key)
         audio_key = _wait_for_new_audio_object(audio_bucket, existing_audio_keys)
         assert audio_key.endswith(".mp3"), audio_key
