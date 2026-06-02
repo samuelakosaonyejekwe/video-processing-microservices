@@ -6,6 +6,21 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "${ROOT_DIR}"
 
+# Integration tests run against a local docker-compose stack, not production.
+# All services in the stack MUST share the same credentials; use explicit CI
+# dev values so containers and service configs are guaranteed to match.
+# These are NOT production secrets — they exist only within the ephemeral CI
+# runner network.
+export POSTGRES_PASSWORD="${POSTGRES_PASSWORD:-ci-pg-pass}"
+export MONGO_PASSWORD="${MONGO_PASSWORD:-ci-mongo-pass}"
+export MONGO_USERNAME="${MONGO_USERNAME:-mongo}"
+export RABBITMQ_PASSWORD="${RABBITMQ_PASSWORD:-ci-rabbit-pass}"
+export RABBITMQ_USERNAME="${RABBITMQ_USERNAME:-ci-rabbit-user}"
+export RABBITMQ_DEFAULT_USER="${RABBITMQ_USERNAME}"
+export RABBITMQ_DEFAULT_PASS="${RABBITMQ_PASSWORD}"
+export REDIS_PASSWORD="${REDIS_PASSWORD:-ci-redis-pass}"
+export GRAFANA_ADMIN_PASSWORD="${GRAFANA_ADMIN_PASSWORD:-ci-grafana-pass}"
+
 # shellcheck source=scripts/lib/prepare-compose-env.sh
 source "${ROOT_DIR}/scripts/lib/prepare-compose-env.sh"
 prepare_compose_env "${ROOT_DIR}"
