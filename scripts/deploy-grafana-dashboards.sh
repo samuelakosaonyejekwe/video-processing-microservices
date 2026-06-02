@@ -11,7 +11,8 @@ cd "${ROOT_DIR}"
 # shellcheck source=scripts/lib/env-aliases.sh
 source "${ROOT_DIR}/scripts/lib/env-aliases.sh"
 
-NS="${MONITORING_NAMESPACE:-${K8S_NAMESPACE:-video-processing}}"
+# Grafana is deployed in the application namespace, not the monitoring namespace
+NS="${K8S_NAMESPACE:-video-processing}"
 PROM_URL="${PROMETHEUS_DATASOURCE_URL:-http://prometheus-service:9090}"
 PROM_NAME="${PROMETHEUS_DATASOURCE_NAME:-Prometheus}"
 
