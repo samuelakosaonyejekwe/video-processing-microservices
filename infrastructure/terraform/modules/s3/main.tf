@@ -324,7 +324,7 @@ resource "aws_s3_bucket_cors_configuration" "this" {
     expose_headers = lookup(
       each.value,
       "cors_expose_headers",
-      []
+      ["ETag"]
     )
 
     max_age_seconds = lookup(

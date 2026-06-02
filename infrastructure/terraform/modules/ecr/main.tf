@@ -39,12 +39,11 @@ resource "aws_ecr_lifecycle_policy" "repos" {
       },
       {
         rulePriority = 2
-        description  = "Keep only the last 10 tagged images per repository"
+        description  = "Keep only the last 10 images (any tag status)"
         selection = {
-          tagStatus     = "tagged"
-          tagPrefixList = [""]
-          countType     = "imageCountMoreThan"
-          countNumber   = 10
+          tagStatus   = "any"
+          countType   = "imageCountMoreThan"
+          countNumber = 10
         }
         action = { type = "expire" }
       }
