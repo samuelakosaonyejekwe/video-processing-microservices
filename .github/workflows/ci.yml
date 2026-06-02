@@ -121,6 +121,9 @@ jobs:
   integration-tests:
     runs-on: ubuntu-latest
 
+    env:
+      E2E_TEST_EMAIL: ${{ vars.E2E_TEST_EMAIL }}
+
     steps:
       - uses: actions/checkout@v4
 

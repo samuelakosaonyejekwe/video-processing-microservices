@@ -9,7 +9,13 @@ GATEWAY_BASE_URL = os.getenv("GATEWAY_BASE_URL", "http://localhost:8080").rstrip
 @pytest.mark.e2e
 def test_gateway_session_uses_cookie_not_bearer():
     username = f"cookie_user_{os.getpid()}"
-    email = f"{username}@example.com"
+    # Use E2E_TEST_EMAIL if set so notification emails reach a real inbox.
+    _base_email = os.getenv("E2E_TEST_EMAIL", "")
+    if _base_email and "@" in _base_email:
+        _local, _domain = _base_email.split("@", 1)
+        email = f"{_local}+cookie-{os.getpid()}@{_domain}"
+    else:
+        email = f"{username}@example.com"
     password = "SecurePass1"
 
     with httpx.Client(base_url=GATEWAY_BASE_URL, timeout=30.0) as client:

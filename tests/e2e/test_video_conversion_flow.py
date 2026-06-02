@@ -101,9 +101,18 @@ def test_video_upload_flow():
 
     assert FIXTURE_PATH.is_file(), f"Missing test fixture: {FIXTURE_PATH}"
 
-    email = f"e2e-{uuid.uuid4().hex[:8]}@example.com"
-    password = "TestPassword123!"
+    _uid = uuid.uuid4().hex[:8]
     username = f"e2euser-{uuid.uuid4().hex[:6]}"
+    # Use E2E_TEST_EMAIL if set so notification emails reach a real inbox.
+    # Fall back to a unique @example.com address for CI where email delivery
+    # is not required for the test to pass.
+    _base_email = os.getenv("E2E_TEST_EMAIL", "")
+    if _base_email and "@" in _base_email:
+        _local, _domain = _base_email.split("@", 1)
+        email = f"{_local}+e2e-{_uid}@{_domain}"
+    else:
+        email = f"e2e-{_uid}@example.com"
+    password = "TestPassword123!"
 
     existing_audio_keys: set[str] = set()
     video_bucket = ""

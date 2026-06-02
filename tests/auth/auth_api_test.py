@@ -10,10 +10,16 @@ BASE_URL = os.getenv("AUTH_SERVICE_URL") or (
 def generate_test_user():
 
     unique_id = uuid.uuid4().hex[:8]
+    _base_email = os.getenv("E2E_TEST_EMAIL", "")
+    if _base_email and "@" in _base_email:
+        _local, _domain = _base_email.split("@", 1)
+        email = f"{_local}+test-{unique_id}@{_domain}"
+    else:
+        email = f"testuser_{unique_id}@example.com"
 
     return {
         "username": f"testuser_{unique_id}",
-        "email": f"testuser_{unique_id}@example.com",
+        "email": email,
         "password": os.getenv("TEST_USER_PASSWORD", "TestPass123"),
     }
 
