@@ -63,7 +63,9 @@ WEBSOCKET_NOTIFICATIONS_ENABLED = os.getenv(
 # integration tests) to prevent the service from opening real SMTP connections to
 # addresses such as @example.com, which bounce back to the SMTP sender's inbox.
 EMAIL_ENABLED = os.getenv("EMAIL_ENABLED", "true").strip().lower() in (
-    "true", "1", "yes"
+    "true",
+    "1",
+    "yes",
 )
 
 WS_PUBLISH_MAX_WAIT_SECONDS = max(
