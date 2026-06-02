@@ -7,6 +7,8 @@ module "eks" {
 
   cluster_version = var.kubernetes_version
 
+  bootstrap_self_managed_addons = false
+
   vpc_id = var.vpc_id
 
   subnet_ids = var.subnet_ids
@@ -61,6 +63,8 @@ module "eks" {
       }
     }
   }
+
+  create_iam_role = false
 
   iam_role_arn = var.cluster_role_arn
 
