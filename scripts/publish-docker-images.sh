@@ -40,14 +40,10 @@ for entry in "${services[@]}"; do
   dockerfile="${entry#*:}"
 
   ecr_image="${ECR_REGISTRY}/${ECR_NAMESPACE}/${service}:${IMAGE_TAG}"
-  ecr_latest="${ECR_REGISTRY}/${ECR_NAMESPACE}/${service}:latest"
 
-  build_tags=(-t "${ecr_image}" -t "${ecr_latest}")
+  build_tags=(-t "${ecr_image}")
   if [ "${PUSH_DOCKER_HUB}" = "true" ]; then
-    build_tags+=(
-      -t "${DOCKER_USERNAME}/${service}:${IMAGE_TAG}"
-      -t "${DOCKER_USERNAME}/${service}:latest"
-    )
+    build_tags+=(-t "${DOCKER_USERNAME}/${service}:${IMAGE_TAG}")
   fi
 
   docker build \
@@ -57,14 +53,12 @@ for entry in "${services[@]}"; do
     -f "${dockerfile}" "${ROOT_DIR}"
 
   docker push "${ecr_image}"
-  docker push "${ecr_latest}"
 
   if [ "${PUSH_DOCKER_HUB}" = "true" ]; then
     docker push "${DOCKER_USERNAME}/${service}:${IMAGE_TAG}"
-    docker push "${DOCKER_USERNAME}/${service}:latest"
-    echo "Published ${service} to ${ecr_latest} and Docker Hub"
+    echo "Published ${service} to ${ecr_image} and Docker Hub"
   else
-    echo "Published ${service} to ${ecr_latest}"
+    echo "Published ${service} to ${ecr_image}"
   fi
 done
 

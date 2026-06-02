@@ -127,6 +127,12 @@ jobs:
 
     env:
       E2E_TEST_EMAIL: ${{ vars.E2E_TEST_EMAIL }}
+      POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
+      MONGO_PASSWORD: ${{ secrets.MONGO_PASSWORD }}
+      RABBITMQ_PASSWORD: ${{ secrets.RABBITMQ_PASSWORD }}
+      RABBITMQ_USERNAME: ${{ secrets.RABBITMQ_USERNAME }}
+      REDIS_PASSWORD: ${{ secrets.REDIS_PASSWORD }}
+      GRAFANA_ADMIN_PASSWORD: ${{ secrets.GRAFANA_ADMIN_PASSWORD }}
 
     steps:
       - uses: actions/checkout@v4

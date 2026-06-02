@@ -145,8 +145,8 @@ _export_alias GATEWAY_PORT GATEWAY_PORT GATEWAY_SERVICE_PORT
 export GATEWAY_PORT="${GATEWAY_PORT:-8080}"
 
 # Terraform defaults (safe fallbacks when GH vars not set)
-export VPC_CIDR="${VPC_CIDR:-10.0.0.0/16}"
-export PUBLIC_SUBNET_CIDRS="${PUBLIC_SUBNET_CIDRS:-[\"10.0.1.0/24\",\"10.0.2.0/24\"]}"
+export VPC_CIDR="${VPC_CIDR:-}"
+export PUBLIC_SUBNET_CIDRS="${PUBLIC_SUBNET_CIDRS:-}"
 export AVAILABILITY_ZONES="${AVAILABILITY_ZONES:-}"
 # GitHub Actions runners use dynamic IPs, so allow public access from anywhere for CI/CD.
 # Override with your VPN/office CIDR in production for stricter control.

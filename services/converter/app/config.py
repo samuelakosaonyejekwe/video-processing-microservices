@@ -25,7 +25,7 @@ APP_PORT = int(
     first_env("APP_PORT", "CONVERTER_SERVICE_PORT", "CONVERTER_PORT", default="8002")
 )
 
-AWS_REGION = first_env("AWS_REGION", default="eu-central-1")
+AWS_REGION = first_env("AWS_REGION", default="")
 
 S3_UPLOAD_BUCKET = first_env(
     "S3_UPLOAD_BUCKET",

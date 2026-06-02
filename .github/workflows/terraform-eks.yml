@@ -52,6 +52,10 @@ env:
   AWS_S3_BUCKET: ${{ vars.AWS_S3_BUCKET }}
   S3_UPLOAD_BUCKET: ${{ vars.S3_UPLOAD_BUCKET }}
   S3_AUDIO_BUCKET: ${{ vars.S3_AUDIO_BUCKET }}
+  VPC_CIDR: ${{ vars.VPC_CIDR }}
+  PUBLIC_SUBNET_CIDRS: ${{ vars.PUBLIC_SUBNET_CIDRS }}
+  PRIVATE_SUBNET_CIDRS: ${{ vars.PRIVATE_SUBNET_CIDRS }}
+  AVAILABILITY_ZONES: ${{ vars.AVAILABILITY_ZONES }}
 
 jobs:
 
@@ -143,6 +147,17 @@ jobs:
             pip install -r services/$service/requirements.txt
             (cd services/$service && pytest -q)
           done
+
+      - name: Validate Production Config
+        if: github.event_name == 'workflow_dispatch'
+        env:
+          POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
+          MONGO_PASSWORD: ${{ secrets.MONGO_PASSWORD }}
+          RABBITMQ_PASSWORD: ${{ secrets.RABBITMQ_PASSWORD }}
+          REDIS_PASSWORD: ${{ secrets.REDIS_PASSWORD }}
+          GRAFANA_ADMIN_PASSWORD: ${{ secrets.GRAFANA_ADMIN_PASSWORD }}
+          POSTGRES_SSL_MODE: require
+        run: bash scripts/validate-production-config.sh
 
       - name: Terraform Apply
         if: github.event_name == 'workflow_dispatch'

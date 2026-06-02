@@ -23,7 +23,7 @@ def create_s3_client():
 
 
 def _build_s3_client():
-    region = os.getenv("AWS_REGION", "eu-central-1")
+    region = os.getenv("AWS_REGION", "")
     app_env = os.getenv("APP_ENV", "production").lower()
     kwargs = {"region_name": region}
 
