@@ -72,7 +72,7 @@ export AWS_S3_AUDIO_BUCKET="${AWS_S3_AUDIO_BUCKET:-${S3_AUDIO_BUCKET}}"
 export AWS_S3_ENDPOINT_URL="${AWS_S3_ENDPOINT_URL:-http://127.0.0.1:9000}"
 export AWS_ACCESS_KEY_ID="${AWS_ACCESS_KEY_ID:-minioadmin}"
 export AWS_SECRET_ACCESS_KEY="${AWS_SECRET_ACCESS_KEY:-minioadmin}"
-export AWS_REGION="${AWS_REGION:-us-east-1}"
+export AWS_REGION="${AWS_REGION:-eu-central-1}"
 
 if [ ! -d "${ROOT_DIR}/.venv" ]; then
   python3 -m venv "${ROOT_DIR}/.venv"

@@ -147,7 +147,7 @@ export GATEWAY_PORT="${GATEWAY_PORT:-8080}"
 # Terraform defaults (safe fallbacks when GH vars not set)
 export VPC_CIDR="${VPC_CIDR:-10.0.0.0/16}"
 export PUBLIC_SUBNET_CIDRS="${PUBLIC_SUBNET_CIDRS:-[\"10.0.1.0/24\",\"10.0.2.0/24\"]}"
-export AVAILABILITY_ZONES="${AVAILABILITY_ZONES:-[\"eu-central-1a\",\"eu-central-1b\"]}"
+export AVAILABILITY_ZONES="${AVAILABILITY_ZONES:-}"
 # GitHub Actions runners use dynamic IPs, so allow public access from anywhere for CI/CD.
 # Override with your VPN/office CIDR in production for stricter control.
 export PUBLIC_ACCESS_CIDRS="${PUBLIC_ACCESS_CIDRS:-[\"0.0.0.0/0\"]}"
@@ -156,7 +156,7 @@ export JENKINS_INSTANCE_TYPE="${JENKINS_INSTANCE_TYPE:-t3.medium}"
 export JENKINS_ASG_NAME="${JENKINS_ASG_NAME:-${PROJECT_NAME:-video-processing}-jenkins-asg}"
 
 # EKS node group scaling defaults (used by start/stop EKS scripts)
-export EKS_NODE_GROUP_NAME="${EKS_NODE_GROUP_NAME:-default}"
+export EKS_NODE_GROUP_NAME="${EKS_NODE_GROUP_NAME:-}"
 export EKS_DESIRED_SIZE="${EKS_DESIRED_SIZE:-2}"
 export EKS_MIN_SIZE="${EKS_MIN_SIZE:-1}"
 export EKS_MAX_SIZE="${EKS_MAX_SIZE:-2}"

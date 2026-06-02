@@ -217,6 +217,7 @@ jobs:
         env:
           RABBITMQ_PASSWORD: ${{ secrets.RABBITMQ_PASSWORD }}
           RABBITMQ_USERNAME: ${{ secrets.RABBITMQ_USERNAME }}
+          STORAGE_CLASS: ${{ vars.STORAGE_CLASS }}
         run: |
           find infrastructure/helm -name Chart.yaml -exec dirname {} \; | while read chart
           do
@@ -225,8 +226,8 @@ jobs:
               --set RABBITMQ_USERNAME="${RABBITMQ_USERNAME:-ci-lint-placeholder}" \
               --set RABBITMQ_ERLANG_COOKIE="$(openssl rand -hex 16)" \
               --set persistence.size=1Gi \
-              --set persistence.storageClass=gp2 \
-              --set global.storage.className=gp2
+              --set persistence.storageClass="${STORAGE_CLASS:-ebs-gp3}" \
+              --set global.storage.className="${STORAGE_CLASS:-ebs-gp3}"
           done
 
   kubernetes-validation:
