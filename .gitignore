@@ -88,6 +88,8 @@ override.tf.json
 # Terraform variable secrets
 *.auto.tfvars
 terraform.tfvars
+# Defaults file has no secrets — track it
+!infrastructure/terraform/terraform.defaults.auto.tfvars
 
 # Terraform plans
 *.tfplan
