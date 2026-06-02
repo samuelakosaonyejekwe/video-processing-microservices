@@ -128,14 +128,15 @@ jobs:
           JWT_PRIVATE_KEY: ${{ secrets.JWT_PRIVATE_KEY }}
           JWT_PUBLIC_KEY: ${{ secrets.JWT_PUBLIC_KEY }}
           JWT_SECRET: ${{ secrets.JWT_SECRET }}
+          POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
+          MONGO_PASSWORD: ${{ secrets.MONGO_PASSWORD }}
+          RABBITMQ_PASSWORD: ${{ secrets.RABBITMQ_PASSWORD }}
+          RABBITMQ_USERNAME: ${{ secrets.RABBITMQ_USERNAME }}
+          REDIS_PASSWORD: ${{ secrets.REDIS_PASSWORD }}
+          GRAFANA_ADMIN_PASSWORD: ${{ secrets.GRAFANA_ADMIN_PASSWORD }}
           APP_ENV: test
           REDIS_HOST: localhost
           RATE_LIMIT_FAIL_CLOSED: "false"
-          POSTGRES_PASSWORD: test
-          MONGO_PASSWORD: test
-          RABBITMQ_PASSWORD: test
-          REDIS_PASSWORD: test
-          GRAFANA_ADMIN_PASSWORD: test
         run: |
           pip install pytest
           for service in gateway auth converter notification; do
