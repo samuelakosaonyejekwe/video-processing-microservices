@@ -80,8 +80,8 @@ resource "aws_iam_policy" "irsa_s3_policy" {
 
 resource "aws_iam_role_policy_attachment" "irsa_s3_attach" {
 
-  for_each = aws_iam_role.irsa_roles
+  for_each = toset(local.irsa_services)
 
-  role       = each.value.name
+  role       = aws_iam_role.irsa_roles[each.key].name
   policy_arn = aws_iam_policy.irsa_s3_policy.arn
 }

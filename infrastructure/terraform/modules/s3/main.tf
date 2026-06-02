@@ -150,14 +150,14 @@ resource "aws_s3_bucket_ownership_controls" "this" {
 
 resource "aws_s3_bucket_acl" "this" {
 
-  for_each = aws_s3_bucket.this
+  for_each = var.s3_buckets
 
   depends_on = [
     aws_s3_bucket_ownership_controls.this,
     aws_s3_bucket_public_access_block.this
   ]
 
-  bucket = each.value.id
+  bucket = aws_s3_bucket.this[each.key].id
 
   acl = "private"
 }
