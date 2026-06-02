@@ -138,6 +138,13 @@ variable "ami_type" {
   type = string
 }
 
+variable "eks_node_group_name" {
+
+  description = "Name of the EKS managed node group"
+
+  type = string
+}
+
 variable "max_unavailable" {
 
   description = "Maximum unavailable nodes during update"

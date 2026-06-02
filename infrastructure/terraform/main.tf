@@ -55,6 +55,8 @@ module "eks" {
 
   eks_cluster_name = var.eks_cluster_name
 
+  eks_node_group_name = var.eks_node_group_name
+
   vpc_id = module.vpc.vpc_id
 
   subnet_ids = module.vpc.private_subnet_ids

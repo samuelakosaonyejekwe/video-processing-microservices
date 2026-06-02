@@ -39,7 +39,7 @@ env:
   DOCKER_IMAGE_NAMESPACE: ${{ vars.DOCKER_IMAGE_NAMESPACE }}
   IMAGE_TAG: ${{ github.event_name == 'workflow_dispatch' && (inputs.image_tag || github.sha) || github.sha }}
   MESSAGING_NAMESPACE: ${{ vars.MESSAGING_NAMESPACE }}
-  DATABASE_NAMESPACE: database
+  DATABASE_NAMESPACE: ${{ vars.DATABASE_NAMESPACE }}
   APP_DOMAIN: ${{ vars.APP_DOMAIN }}
   DOMAIN_NAME: ${{ vars.DOMAIN_NAME }}
   API_BASE_URL: ${{ vars.API_BASE_URL }}

@@ -108,15 +108,16 @@ jobs:
             --cov-fail-under=80
 
       - name: Validate production config
+        env:
+          POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
+          MONGO_PASSWORD: ${{ secrets.MONGO_PASSWORD }}
+          RABBITMQ_PASSWORD: ${{ secrets.RABBITMQ_PASSWORD }}
+          REDIS_PASSWORD: ${{ secrets.REDIS_PASSWORD }}
+          GRAFANA_ADMIN_PASSWORD: ${{ secrets.GRAFANA_ADMIN_PASSWORD }}
+          CORS_ALLOWED_ORIGINS: ${{ vars.CORS_ALLOWED_ORIGINS }}
         run: |
           APP_ENV=production \
           REDIS_HOST=redis \
-          POSTGRES_PASSWORD=secure-password \
-          MONGO_PASSWORD=secure-mongo \
-          RABBITMQ_PASSWORD=secure-rabbit \
-          REDIS_PASSWORD=secure-redis \
-          GRAFANA_ADMIN_PASSWORD=secure-grafana \
-          CORS_ALLOWED_ORIGINS=https://app.example.com \
           POSTGRES_SSL_MODE=require \
           bash scripts/validate-production-config.sh
 
@@ -213,13 +214,16 @@ jobs:
         uses: azure/setup-helm@v4
 
       - name: Helm Lint
+        env:
+          RABBITMQ_PASSWORD: ${{ secrets.RABBITMQ_PASSWORD }}
+          RABBITMQ_USERNAME: ${{ secrets.RABBITMQ_USERNAME }}
         run: |
           find infrastructure/helm -name Chart.yaml -exec dirname {} \; | while read chart
           do
             helm lint "$chart" \
-              --set RABBITMQ_PASSWORD=guest \
-              --set RABBITMQ_USERNAME=guest \
-              --set RABBITMQ_ERLANG_COOKIE=local-dev-cookie \
+              --set RABBITMQ_PASSWORD="${RABBITMQ_PASSWORD:-ci-lint-placeholder}" \
+              --set RABBITMQ_USERNAME="${RABBITMQ_USERNAME:-ci-lint-placeholder}" \
+              --set RABBITMQ_ERLANG_COOKIE="$(openssl rand -hex 16)" \
               --set persistence.size=1Gi \
               --set persistence.storageClass=gp2 \
               --set global.storage.className=gp2

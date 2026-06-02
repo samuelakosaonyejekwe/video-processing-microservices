@@ -70,6 +70,24 @@ variable "eks_cluster_name" {
   }
 }
 
+variable "eks_node_group_name" {
+
+  description = "Name of the EKS managed node group."
+
+  type = string
+
+  validation {
+
+    condition = (
+      length(
+        trimspace(var.eks_node_group_name)
+      ) > 0
+    )
+
+    error_message = "eks_node_group_name must not be empty."
+  }
+}
+
 variable "eks_node_instance_type" {
 
   description = "EKS worker node EC2 instance type."

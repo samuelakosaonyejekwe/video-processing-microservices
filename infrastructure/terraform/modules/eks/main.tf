@@ -25,7 +25,7 @@ module "eks" {
 
   eks_managed_node_groups = {
 
-    default = {
+    (var.eks_node_group_name) = {
 
       instance_types = [
         var.eks_node_instance_type
