@@ -14,6 +14,8 @@ resource "aws_security_group" "eks" {
 
     protocol = "tcp"
 
+    description = "kubectl / GitHub Actions API access"
+
     cidr_blocks = var.allowed_cidr_blocks
   }
 
@@ -24,6 +26,8 @@ resource "aws_security_group" "eks" {
     to_port = 6443
 
     protocol = "tcp"
+
+    description = "Kubernetes API (internal)"
 
     cidr_blocks = [var.vpc_cidr]
   }
@@ -36,6 +40,8 @@ resource "aws_security_group" "eks" {
 
     protocol = "tcp"
 
+    description = "RabbitMQ AMQP (internal)"
+
     cidr_blocks = [var.vpc_cidr]
   }
 
@@ -46,6 +52,8 @@ resource "aws_security_group" "eks" {
     to_port = 15672
 
     protocol = "tcp"
+
+    description = "RabbitMQ management (internal)"
 
     cidr_blocks = [var.vpc_cidr]
   }
@@ -58,6 +66,8 @@ resource "aws_security_group" "eks" {
 
     protocol = "tcp"
 
+    description = "MongoDB (internal)"
+
     cidr_blocks = [var.vpc_cidr]
   }
 
@@ -68,6 +78,8 @@ resource "aws_security_group" "eks" {
     to_port = 5432
 
     protocol = "tcp"
+
+    description = "PostgreSQL (internal)"
 
     cidr_blocks = [var.vpc_cidr]
   }
@@ -80,9 +92,9 @@ resource "aws_security_group" "eks" {
 
     protocol = "-1"
 
-    description = "All egress within VPC; internet traffic routes through NAT gateway"
+    description = "Allow all egress; EKS nodes route internet traffic through NAT gateway"
 
-    cidr_blocks = [var.vpc_cidr]
+    cidr_blocks = ["0.0.0.0/0"]
   }
 
   tags = {
@@ -111,6 +123,8 @@ resource "aws_security_group" "jenkins" {
 
     protocol = "tcp"
 
+    description = "Jenkins web UI"
+
     cidr_blocks = var.allowed_cidr_blocks
   }
 
@@ -122,7 +136,9 @@ resource "aws_security_group" "jenkins" {
 
     protocol = "tcp"
 
-    cidr_blocks = var.allowed_cidr_blocks
+    description = "SSH restricted to VPC — use SSM Session Manager for external access"
+
+    cidr_blocks = [var.vpc_cidr]
   }
 
   egress {
@@ -133,9 +149,9 @@ resource "aws_security_group" "jenkins" {
 
     protocol = "-1"
 
-    description = "All egress within VPC; internet traffic routes through NAT gateway"
+    description = "Allow all egress for package downloads, ECR/DockerHub pushes, and GitHub API"
 
-    cidr_blocks = [var.vpc_cidr]
+    cidr_blocks = ["0.0.0.0/0"]
   }
 
   tags = {

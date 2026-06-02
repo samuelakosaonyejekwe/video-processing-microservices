@@ -43,6 +43,8 @@ module "iam" {
   project_name = var.project_name
 
   environment = var.environment
+
+  s3_bucket_arns = values(module.s3.bucket_arns)
 }
 
 # Read the existing EKS cluster so we can pass its actual role_arn back into

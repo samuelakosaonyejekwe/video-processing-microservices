@@ -21,25 +21,12 @@ metrics_server_cleanup_on_fail   = true
 metrics_server_atomic            = true
 metrics_server_dependency_update = true
 
-vpc_id             = ""
-private_subnet_ids = []
+s3_bucket_name       = "samuel-video-processing-video"
+kubernetes_namespace = "video-processing"
 
 tags = {
   ManagedBy = "Terraform"
 }
-
-common_tags = {
-  ManagedBy = "Terraform"
-}
-
-s3_bucket_name       = "samuel-video-processing-video"
-kubernetes_namespace = "video-processing"
-
-cluster_name    = "video-processing-cluster"
-cluster_version = "1.29"
-
-kms_deletion_window_in_days = 7
-eks_service_ipv4_cidr       = "172.20.0.0/16"
 
 # EKS endpoint: public access enabled so GitHub Actions runners can reach the API.
 # public_access_cidrs is scoped to all IPs since GitHub Actions uses dynamic IPs.

@@ -28,7 +28,7 @@ POSTGRES_USER = first_env("POSTGRES_USER", default="postgres")
 
 POSTGRES_PASSWORD = first_env("POSTGRES_PASSWORD")
 
-POSTGRES_SSL_MODE = first_env("POSTGRES_SSL_MODE", default="prefer")
+POSTGRES_SSL_MODE = first_env("POSTGRES_SSL_MODE", default="require")
 
 JWT_PRIVATE_KEY = load_pem("JWT_PRIVATE_KEY", "/run/secrets/jwt-private.pem")
 JWT_PUBLIC_KEY = load_pem("JWT_PUBLIC_KEY", "/run/secrets/jwt-public.pem")
