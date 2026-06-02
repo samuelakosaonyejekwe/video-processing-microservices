@@ -49,6 +49,8 @@ export KEDA_CHART_NAME="${KEDA_CHART_NAME:-keda}"
 export KEDA_NAMESPACE="${KEDA_NAMESPACE:-keda}"
 export DOMAIN_NAME="${DOMAIN_NAME:-${APP_DOMAIN:-api.example.com}}"
 export HOSTED_ZONE_NAME="${HOSTED_ZONE_NAME:-${APP_DOMAIN:-example.com}}"
+# CORS origins for S3 video bucket — default to the project domain; override via S3_CORS_ALLOWED_ORIGINS GH var.
+export S3_CORS_ALLOWED_ORIGINS="${S3_CORS_ALLOWED_ORIGINS:-[\"https://${DOMAIN_NAME}\", \"https://www.${DOMAIN_NAME}\"]}"
 export ACM_CERTIFICATE_ARN="${ACM_CERTIFICATE_ARN:-arn:aws:acm:${AWS_REGION}:000000000000:certificate/placeholder}"
 export S3_BUCKET_NAME="${S3_BUCKET_NAME:-${S3_UPLOAD_BUCKET:-${AWS_S3_VIDEO_BUCKET:-${AWS_S3_BUCKET:-}}}}"
 export S3_VIDEO_BUCKET_NAME="${S3_VIDEO_BUCKET_NAME:-${S3_UPLOAD_BUCKET:-${AWS_S3_VIDEO_BUCKET:-${S3_BUCKET_NAME:-}}}}"
@@ -98,8 +100,9 @@ s3_video_bucket_name  = "${S3_VIDEO_BUCKET_NAME}"
 s3_audio_bucket_name  = "${S3_AUDIO_BUCKET_NAME}"
 s3_buckets = {
   video = {
-    bucket_name = "${S3_VIDEO_BUCKET_NAME}"
-    enable_cors = true
+    bucket_name          = "${S3_VIDEO_BUCKET_NAME}"
+    enable_cors          = true
+    cors_allowed_origins = ${S3_CORS_ALLOWED_ORIGINS}
     prefix_lifecycle_rules = [
       {
         id              = "expire-uploaded-videos"
