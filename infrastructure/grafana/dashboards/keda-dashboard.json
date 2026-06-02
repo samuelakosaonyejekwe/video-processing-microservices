@@ -1,27 +1,344 @@
 {
-  "annotations": {
-    "list": []
-  },
+  "title": "KEDA Autoscaling — Converter Workers",
+  "uid": "keda-autoscaling-v1",
+  "description": "KEDA-driven autoscaling of converter workers based on video-upload-queue depth. Shows queue depth vs replicas live.",
+  "tags": ["keda", "video-processing", "autoscaling", "converter"],
   "editable": true,
-  "graphTooltip": 0,
-  "panels": [],
-  "refresh": "${KEDA_DASHBOARD_REFRESH_INTERVAL}",
-  "schemaVersion": 39,
+  "graphTooltip": 1,
+  "refresh": "15s",
+  "schemaVersion": 38,
   "style": "dark",
-  "tags": [
-    "keda",
-    "${PROJECT_NAME}",
-    "${ENVIRONMENT}"
-  ],
+  "time": { "from": "now-30m", "to": "now" },
+  "timepicker": {},
+  "fiscalYearStartMonth": 0,
+  "weekStart": "",
+  "timezone": "browser",
+  "version": 1,
+  "annotations": { "list": [] },
   "templating": {
-    "list": []
+    "list": [
+      {
+        "name": "datasource",
+        "type": "datasource",
+        "label": "Prometheus",
+        "pluginId": "prometheus",
+        "query": "prometheus",
+        "refresh": 1,
+        "current": {}
+      },
+      {
+        "name": "namespace",
+        "type": "constant",
+        "label": "Namespace",
+        "query": "video-processing",
+        "current": { "value": "video-processing" }
+      }
+    ]
   },
-  "time": {
-    "from": "${KEDA_DASHBOARD_TIME_FROM}",
-    "to": "${KEDA_DASHBOARD_TIME_TO}"
-  },
-  "timezone": "${GRAFANA_TIMEZONE}",
-  "title": "${KEDA_DASHBOARD_TITLE}",
-  "uid": "${KEDA_DASHBOARD_UID}",
-  "version": 1
+  "panels": [
+    {
+      "id": 1,
+      "title": "Current Converter Worker Replicas",
+      "type": "stat",
+      "gridPos": { "x": 0, "y": 0, "w": 6, "h": 4 },
+      "datasource": { "type": "prometheus", "uid": "${datasource}" },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "color": { "mode": "thresholds" },
+          "thresholds": { "mode": "absolute", "steps": [
+            { "color": "red", "value": null },
+            { "color": "yellow", "value": 1 },
+            { "color": "green", "value": 2 }
+          ]}
+        }
+      },
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "textMode": "auto", "colorMode": "background", "graphMode": "area" },
+      "targets": [
+        {
+          "datasource": { "type": "prometheus", "uid": "${datasource}" },
+          "expr": "kube_deployment_status_replicas_ready{namespace=\"$namespace\", deployment=~\".*converter.*worker.*\"}",
+          "legendFormat": "ready replicas",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "title": "video-upload-queue Depth (KEDA trigger)",
+      "type": "stat",
+      "gridPos": { "x": 6, "y": 0, "w": 6, "h": 4 },
+      "datasource": { "type": "prometheus", "uid": "${datasource}" },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "color": { "mode": "thresholds" },
+          "thresholds": { "mode": "absolute", "steps": [
+            { "color": "green", "value": null },
+            { "color": "yellow", "value": 5 },
+            { "color": "red", "value": 20 }
+          ]}
+        }
+      },
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "textMode": "auto", "colorMode": "background", "graphMode": "area" },
+      "targets": [
+        {
+          "datasource": { "type": "prometheus", "uid": "${datasource}" },
+          "expr": "rabbitmq_queue_messages_ready{queue=\"video-upload-queue\"}",
+          "legendFormat": "messages ready",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "title": "KEDA Scale Target (desired replicas)",
+      "type": "stat",
+      "gridPos": { "x": 12, "y": 0, "w": 6, "h": 4 },
+      "datasource": { "type": "prometheus", "uid": "${datasource}" },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "color": { "mode": "thresholds" },
+          "thresholds": { "mode": "absolute", "steps": [
+            { "color": "blue", "value": null }
+          ]}
+        }
+      },
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "textMode": "auto", "colorMode": "background" },
+      "targets": [
+        {
+          "datasource": { "type": "prometheus", "uid": "${datasource}" },
+          "expr": "kube_deployment_spec_replicas{namespace=\"$namespace\", deployment=~\".*converter.*worker.*\"}",
+          "legendFormat": "desired replicas",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "title": "Messages Per Worker",
+      "type": "stat",
+      "gridPos": { "x": 18, "y": 0, "w": 6, "h": 4 },
+      "datasource": { "type": "prometheus", "uid": "${datasource}" },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "color": { "mode": "thresholds" },
+          "thresholds": { "mode": "absolute", "steps": [
+            { "color": "green", "value": null },
+            { "color": "yellow", "value": 5 },
+            { "color": "red", "value": 10 }
+          ]}
+        }
+      },
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "textMode": "auto", "colorMode": "background" },
+      "targets": [
+        {
+          "datasource": { "type": "prometheus", "uid": "${datasource}" },
+          "expr": "rabbitmq_queue_messages_ready{queue=\"video-upload-queue\"} / clamp_min(kube_deployment_status_replicas_ready{namespace=\"$namespace\", deployment=~\".*converter.*worker.*\"}, 1)",
+          "legendFormat": "msgs/worker",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "title": "Queue Depth vs Converter Worker Replicas",
+      "description": "Core KEDA view — when queue grows, workers scale up. When queue drains, workers scale back down.",
+      "type": "timeseries",
+      "gridPos": { "x": 0, "y": 4, "w": 24, "h": 10 },
+      "datasource": { "type": "prometheus", "uid": "${datasource}" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "palette-classic" },
+          "custom": { "lineWidth": 2, "fillOpacity": 10 }
+        },
+        "overrides": [
+          {
+            "matcher": { "id": "byName", "options": "Worker Replicas (ready)" },
+            "properties": [
+              { "id": "custom.axisPlacement", "value": "right" },
+              { "id": "color", "value": { "fixedColor": "green", "mode": "fixed" } },
+              { "id": "unit", "value": "short" }
+            ]
+          },
+          {
+            "matcher": { "id": "byName", "options": "Queue Depth (ready messages)" },
+            "properties": [
+              { "id": "color", "value": { "fixedColor": "orange", "mode": "fixed" } },
+              { "id": "unit", "value": "short" }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "tooltip": { "mode": "multi" },
+        "legend": { "displayMode": "table", "placement": "bottom", "calcs": ["mean", "max", "lastNotNull"] }
+      },
+      "targets": [
+        {
+          "datasource": { "type": "prometheus", "uid": "${datasource}" },
+          "expr": "rabbitmq_queue_messages_ready{queue=\"video-upload-queue\"}",
+          "legendFormat": "Queue Depth (ready messages)",
+          "refId": "A"
+        },
+        {
+          "datasource": { "type": "prometheus", "uid": "${datasource}" },
+          "expr": "kube_deployment_status_replicas_ready{namespace=\"$namespace\", deployment=~\".*converter.*worker.*\"}",
+          "legendFormat": "Worker Replicas (ready)",
+          "refId": "B"
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "title": "KEDA Scaler Metric Value",
+      "type": "timeseries",
+      "gridPos": { "x": 0, "y": 14, "w": 12, "h": 8 },
+      "datasource": { "type": "prometheus", "uid": "${datasource}" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "palette-classic" },
+          "unit": "short",
+          "custom": { "lineWidth": 2, "fillOpacity": 10 }
+        }
+      },
+      "options": {
+        "tooltip": { "mode": "multi" },
+        "legend": { "displayMode": "table", "placement": "bottom" }
+      },
+      "targets": [
+        {
+          "datasource": { "type": "prometheus", "uid": "${datasource}" },
+          "expr": "keda_scaler_metrics_value",
+          "legendFormat": "{{scaledObject}} — {{metric}}",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "id": 7,
+      "title": "Converter Worker — Desired vs Ready vs Unavailable",
+      "type": "timeseries",
+      "gridPos": { "x": 12, "y": 14, "w": 12, "h": 8 },
+      "datasource": { "type": "prometheus", "uid": "${datasource}" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "palette-classic" },
+          "unit": "short",
+          "custom": { "lineWidth": 2, "fillOpacity": 10 }
+        }
+      },
+      "options": {
+        "tooltip": { "mode": "multi" },
+        "legend": { "displayMode": "table", "placement": "bottom" }
+      },
+      "targets": [
+        {
+          "datasource": { "type": "prometheus", "uid": "${datasource}" },
+          "expr": "kube_deployment_spec_replicas{namespace=\"$namespace\", deployment=~\".*converter.*worker.*\"}",
+          "legendFormat": "desired",
+          "refId": "A"
+        },
+        {
+          "datasource": { "type": "prometheus", "uid": "${datasource}" },
+          "expr": "kube_deployment_status_replicas_ready{namespace=\"$namespace\", deployment=~\".*converter.*worker.*\"}",
+          "legendFormat": "ready",
+          "refId": "B"
+        },
+        {
+          "datasource": { "type": "prometheus", "uid": "${datasource}" },
+          "expr": "kube_deployment_status_replicas_unavailable{namespace=\"$namespace\", deployment=~\".*converter.*worker.*\"}",
+          "legendFormat": "unavailable",
+          "refId": "C"
+        }
+      ]
+    },
+    {
+      "id": 8,
+      "title": "video-upload-queue — Ready + Unacked + Total",
+      "type": "timeseries",
+      "gridPos": { "x": 0, "y": 22, "w": 12, "h": 8 },
+      "datasource": { "type": "prometheus", "uid": "${datasource}" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "palette-classic" },
+          "unit": "short",
+          "custom": { "lineWidth": 2, "fillOpacity": 10 }
+        }
+      },
+      "options": {
+        "tooltip": { "mode": "multi" },
+        "legend": { "displayMode": "table", "placement": "bottom", "calcs": ["mean", "max"] }
+      },
+      "targets": [
+        {
+          "datasource": { "type": "prometheus", "uid": "${datasource}" },
+          "expr": "rabbitmq_queue_messages{queue=\"video-upload-queue\"}",
+          "legendFormat": "total",
+          "refId": "A"
+        },
+        {
+          "datasource": { "type": "prometheus", "uid": "${datasource}" },
+          "expr": "rabbitmq_queue_messages_ready{queue=\"video-upload-queue\"}",
+          "legendFormat": "ready",
+          "refId": "B"
+        },
+        {
+          "datasource": { "type": "prometheus", "uid": "${datasource}" },
+          "expr": "rabbitmq_queue_messages_unacknowledged{queue=\"video-upload-queue\"}",
+          "legendFormat": "unacked (in-flight)",
+          "refId": "C"
+        }
+      ]
+    },
+    {
+      "id": 9,
+      "title": "Converter Worker CPU vs Queue Depth",
+      "description": "Correlates CPU load on workers with the queue depth they are draining.",
+      "type": "timeseries",
+      "gridPos": { "x": 12, "y": 22, "w": 12, "h": 8 },
+      "datasource": { "type": "prometheus", "uid": "${datasource}" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "palette-classic" },
+          "custom": { "lineWidth": 2, "fillOpacity": 10 }
+        },
+        "overrides": [
+          {
+            "matcher": { "id": "byName", "options": "queue depth" },
+            "properties": [
+              { "id": "custom.axisPlacement", "value": "right" },
+              { "id": "unit", "value": "short" }
+            ]
+          },
+          {
+            "matcher": { "id": "byName", "options": "worker CPU (cores)" },
+            "properties": [
+              { "id": "unit", "value": "cores" }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "tooltip": { "mode": "multi" },
+        "legend": { "displayMode": "table", "placement": "bottom" }
+      },
+      "targets": [
+        {
+          "datasource": { "type": "prometheus", "uid": "${datasource}" },
+          "expr": "sum(rate(container_cpu_usage_seconds_total{namespace=\"$namespace\", container=~\".*converter.*worker.*\"}[2m]))",
+          "legendFormat": "worker CPU (cores)",
+          "refId": "A"
+        },
+        {
+          "datasource": { "type": "prometheus", "uid": "${datasource}" },
+          "expr": "rabbitmq_queue_messages_ready{queue=\"video-upload-queue\"}",
+          "legendFormat": "queue depth",
+          "refId": "B"
+        }
+      ]
+    }
+  ]
 }
