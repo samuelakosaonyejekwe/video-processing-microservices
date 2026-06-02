@@ -73,9 +73,9 @@ resource "aws_s3_bucket" "this" {
 
 resource "aws_s3_bucket_versioning" "this" {
 
-  for_each = aws_s3_bucket.this
+  for_each = var.s3_buckets
 
-  bucket = each.value.id
+  bucket = aws_s3_bucket.this[each.key].id
 
   versioning_configuration {
 
@@ -93,9 +93,9 @@ resource "aws_s3_bucket_versioning" "this" {
 
 resource "aws_s3_bucket_server_side_encryption_configuration" "this" {
 
-  for_each = aws_s3_bucket.this
+  for_each = var.s3_buckets
 
-  bucket = each.value.id
+  bucket = aws_s3_bucket.this[each.key].id
 
   rule {
 
@@ -115,9 +115,9 @@ resource "aws_s3_bucket_server_side_encryption_configuration" "this" {
 
 resource "aws_s3_bucket_public_access_block" "this" {
 
-  for_each = aws_s3_bucket.this
+  for_each = var.s3_buckets
 
-  bucket = each.value.id
+  bucket = aws_s3_bucket.this[each.key].id
 
   block_public_acls = true
 
@@ -134,9 +134,9 @@ resource "aws_s3_bucket_public_access_block" "this" {
 
 resource "aws_s3_bucket_ownership_controls" "this" {
 
-  for_each = aws_s3_bucket.this
+  for_each = var.s3_buckets
 
-  bucket = each.value.id
+  bucket = aws_s3_bucket.this[each.key].id
 
   rule {
 
@@ -168,9 +168,9 @@ resource "aws_s3_bucket_acl" "this" {
 
 resource "aws_s3_bucket_lifecycle_configuration" "this" {
 
-  for_each = aws_s3_bucket.this
+  for_each = var.s3_buckets
 
-  bucket = each.value.id
+  bucket = aws_s3_bucket.this[each.key].id
 
   rule {
     id = "default-lifecycle"
