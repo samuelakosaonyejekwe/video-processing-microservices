@@ -4,7 +4,7 @@ import smtplib
 
 from email.mime.text import MIMEText
 
-from app.config import SMTP_HOST, SMTP_PORT, SMTP_EMAIL, SMTP_PASSWORD, SMTP_SECURE
+from app.config import SMTP_HOST, SMTP_PORT, SMTP_EMAIL, SMTP_PASSWORD, SMTP_SECURE, EMAIL_ENABLED
 
 logger = logging.getLogger(__name__)
 
@@ -19,6 +19,10 @@ def send_email(recipient: str, subject: str, body: str) -> bool:
         logger.error("Refusing to send email to invalid recipient")
         return False
     recipient = recipient.strip()
+
+    if not EMAIL_ENABLED:
+        logger.info("Email disabled (EMAIL_ENABLED=false) — skipping send to %s", recipient)
+        return True
 
     msg = MIMEText(body, "html")
 

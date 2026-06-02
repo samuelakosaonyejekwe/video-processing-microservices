@@ -205,6 +205,7 @@ services:
       REDIS_PASSWORD: ${REDIS_PASSWORD:-redis}
       WEBSOCKET_HOST: 0.0.0.0
       WEBSOCKET_PORT: ${WEBSOCKET_PORT:-8081}
+      EMAIL_ENABLED: "false"
     ports:
       - "${NOTIFICATION_APP_PORT:-8003}:8003"
     depends_on:
