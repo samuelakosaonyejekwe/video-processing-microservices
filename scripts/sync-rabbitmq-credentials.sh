@@ -37,6 +37,12 @@ if [ -z "${username}" ] || [ -z "${password}" ]; then
   exit 1
 fi
 
+# Guard against shell injection: RabbitMQ usernames must not contain shell metacharacters.
+if ! [[ "${username}" =~ ^[a-zA-Z0-9_.-]+$ ]]; then
+  echo "ERROR: RabbitMQ username '${username}' contains invalid characters. Aborting." >&2
+  exit 1
+fi
+
 password_b64="$(printf '%s' "${password}" | base64 -w0 2>/dev/null || printf '%s' "${password}" | base64)"
 
 echo "Syncing RabbitMQ credentials for user ${username} in ${broker_namespace}..."

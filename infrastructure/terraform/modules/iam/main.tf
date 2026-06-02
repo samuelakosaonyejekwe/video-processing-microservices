@@ -83,9 +83,41 @@ resource "aws_iam_role_policy_attachment" "jenkins_ec2_read" {
   policy_arn = "arn:aws:iam::aws:policy/AmazonEC2ReadOnlyAccess"
 }
 
+# Least-privilege S3 policy for Jenkins — scoped to the project buckets only.
+# AmazonS3FullAccess was replaced to prevent accidental deletion of unrelated buckets.
+resource "aws_iam_policy" "jenkins_s3" {
+  name        = "${var.project_name}-${var.environment}-jenkins-s3"
+  description = "Least-privilege S3 access for Jenkins CI/CD pipelines."
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Sid    = "BucketLevelAccess"
+        Effect = "Allow"
+        Action = [
+          "s3:ListBucket",
+          "s3:GetBucketLocation"
+        ]
+        Resource = length(var.s3_bucket_arns) > 0 ? var.s3_bucket_arns : ["*"]
+      },
+      {
+        Sid    = "ObjectLevelAccess"
+        Effect = "Allow"
+        Action = [
+          "s3:GetObject",
+          "s3:PutObject",
+          "s3:DeleteObject"
+        ]
+        Resource = length(var.s3_bucket_arns) > 0 ? [for arn in var.s3_bucket_arns : "${arn}/*"] : ["*"]
+      }
+    ]
+  })
+}
+
 resource "aws_iam_role_policy_attachment" "jenkins_s3" {
   role       = aws_iam_role.jenkins_role.name
-  policy_arn = "arn:aws:iam::aws:policy/AmazonS3FullAccess"
+  policy_arn = aws_iam_policy.jenkins_s3.arn
 }
 
 resource "aws_iam_instance_profile" "jenkins_profile" {

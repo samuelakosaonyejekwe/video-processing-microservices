@@ -4,11 +4,15 @@ on:
   push:
   pull_request:
 
+permissions:
+  contents: read
+
 jobs:
 
   validate-env:
 
     runs-on: ubuntu-latest
+    timeout-minutes: 10
 
     steps:
 

@@ -592,23 +592,44 @@ variable "node_disk_size" {
 }
 
 variable "public_access_cidrs" {
-  type    = list(string)
-  default = ["0.0.0.0/0"]
+  description = "CIDR blocks permitted to reach the EKS API public endpoint. Must be explicitly set — no default to prevent accidental world-wide exposure."
+  type        = list(string)
+  default     = []
+
+  validation {
+    condition     = length(var.public_access_cidrs) > 0
+    error_message = "public_access_cidrs must contain at least one CIDR block. Set to your VPN/office CIDRs; do not use 0.0.0.0/0 in production."
+  }
 }
 
 variable "s3_bucket_name" {
-  type    = string
-  default = "samuel-video-processing-video"
+  description = "Primary S3 bucket name for video uploads. Must be globally unique — set explicitly in terraform.tfvars."
+  type        = string
+
+  validation {
+    condition     = length(trimspace(var.s3_bucket_name)) > 0
+    error_message = "s3_bucket_name must not be empty."
+  }
 }
 
 variable "s3_video_bucket_name" {
-  type    = string
-  default = "samuel-video-processing-video"
+  description = "S3 bucket name for raw video uploads. Must be globally unique — set explicitly in terraform.tfvars."
+  type        = string
+
+  validation {
+    condition     = length(trimspace(var.s3_video_bucket_name)) > 0
+    error_message = "s3_video_bucket_name must not be empty."
+  }
 }
 
 variable "s3_audio_bucket_name" {
-  type    = string
-  default = "samuel-video-processing-audio"
+  description = "S3 bucket name for converted audio outputs. Must be globally unique — set explicitly in terraform.tfvars."
+  type        = string
+
+  validation {
+    condition     = length(trimspace(var.s3_audio_bucket_name)) > 0
+    error_message = "s3_audio_bucket_name must not be empty."
+  }
 }
 
 variable "s3_buckets" {
@@ -625,7 +646,7 @@ variable "s3_buckets" {
     enable_cors                        = optional(bool, false)
     cors_allowed_headers               = optional(list(string), ["*"])
     cors_allowed_methods               = optional(list(string), ["GET", "PUT", "POST", "HEAD"])
-    cors_allowed_origins               = optional(list(string), ["*"])
+    cors_allowed_origins               = optional(list(string), [])
     cors_expose_headers                = optional(list(string), [])
     cors_max_age_seconds               = optional(number, 3000)
     prefix_lifecycle_rules = optional(list(object({
@@ -635,29 +656,7 @@ variable "s3_buckets" {
     })), [])
   }))
 
-  default = {
-    video = {
-      bucket_name = "samuel-video-processing-video"
-      enable_cors = true
-      prefix_lifecycle_rules = [
-        {
-          id              = "expire-uploaded-videos"
-          prefix          = "uploads/videos/"
-          expiration_days = 7
-        }
-      ]
-    }
-    audio = {
-      bucket_name = "samuel-video-processing-audio"
-      prefix_lifecycle_rules = [
-        {
-          id              = "expire-converted-audio"
-          prefix          = "outputs/audio/"
-          expiration_days = 7
-        }
-      ]
-    }
-  }
+  default = {}
 }
 
 variable "tags" {

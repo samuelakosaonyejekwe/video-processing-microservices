@@ -58,6 +58,12 @@ if [ -z "${mongo_user:-}" ] || [ -z "${mongo_password:-}" ]; then
   exit 1
 fi
 
+# Guard against shell/JS injection: MongoDB usernames are alphanumeric + underscore only.
+if ! [[ "${mongo_user}" =~ ^[a-zA-Z0-9_]+$ ]]; then
+  echo "ERROR: MongoDB username '${mongo_user}' contains invalid characters. Aborting." >&2
+  exit 1
+fi
+
 mongo_auth_source="${mongo_auth_source:-admin}"
 mongo_database="${mongo_database:-video_converter}"
 password_b64="$(printf '%s' "${mongo_password}" | base64 -w0 2>/dev/null || printf '%s' "${mongo_password}" | base64)"

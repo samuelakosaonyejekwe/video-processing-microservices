@@ -8,11 +8,15 @@ on:
     branches:
       - main
 
+permissions:
+  contents: read
+
 jobs:
 
   terraform:
 
     runs-on: ubuntu-latest
+    timeout-minutes: 10
 
     defaults:
       run:
@@ -25,6 +29,8 @@ jobs:
 
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.8.5
 
       - name: Terraform Init
         run: terraform init -backend=false

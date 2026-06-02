@@ -10,6 +10,8 @@ pipeline {
 
         ansiColor('xterm')
 
+        timeout(time: 120, unit: 'MINUTES')
+
         buildDiscarder(
             logRotator(
                 numToKeepStr: '20',
@@ -610,6 +612,12 @@ pipeline {
     post {
 
         always {
+
+            sh '''
+                rm -f infrastructure/terraform/terraform.tfvars
+                rm -f .env.local .env.*.local
+                rm -rf .compose-secrets
+            '''
 
             cleanWs()
         }

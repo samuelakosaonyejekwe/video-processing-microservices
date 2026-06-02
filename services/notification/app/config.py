@@ -26,7 +26,10 @@ SMTP_PASSWORD = os.getenv("SMTP_PASSWORD", "")
 
 SMTP_EMAIL = os.getenv("SMTP_EMAIL") or os.getenv("SMTP_USERNAME") or SMTP_USERNAME
 
-SMTP_SECURE = os.getenv("SMTP_SECURE", "true").strip().lower() in (
+# Default false (STARTTLS on port 587). Set SMTP_SECURE=true only when using
+# SSL-wrapped connections on port 465. Mismatching this with SMTP_PORT causes
+# immediate connection failure at startup.
+SMTP_SECURE = os.getenv("SMTP_SECURE", "false").strip().lower() in (
     "true",
     "1",
     "yes",

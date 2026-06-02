@@ -3,10 +3,14 @@ name: Platform Bootstrap
 on:
   workflow_dispatch:
 
+permissions:
+  contents: read
+
 jobs:
   terraform:
     name: Provision Jenkins Infrastructure
     runs-on: ubuntu-latest
+    timeout-minutes: 60
 
     env:
       AWS_REGION: ${{ vars.AWS_REGION }}
@@ -21,9 +25,9 @@ jobs:
 
       - name: Export Environment Aliases
         run: |
-          chmod +x scripts/lib/env-aliases.sh
+          chmod +x scripts/lib/env-aliases.sh scripts/export-github-env.sh
           source scripts/lib/env-aliases.sh
-          env | sort >> "$GITHUB_ENV"
+          bash scripts/export-github-env.sh
 
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v4

@@ -104,7 +104,13 @@ jobs:
         if: github.event_name == 'workflow_dispatch' && github.event.inputs.force_unlock_lock_id != ''
         continue-on-error: true
         working-directory: infrastructure/terraform
-        run: terraform force-unlock -force "${{ github.event.inputs.force_unlock_lock_id }}"
+        run: |
+          LOCK_ID="${{ github.event.inputs.force_unlock_lock_id }}"
+          if ! [[ "${LOCK_ID}" =~ ^[a-f0-9\-]{36}$ ]]; then
+            echo "ERROR: lock ID '${LOCK_ID}' is not a valid UUID. Aborting force-unlock."
+            exit 1
+          fi
+          terraform force-unlock -force "${LOCK_ID}"
 
       - name: Terraform Format Check
         working-directory: infrastructure/terraform

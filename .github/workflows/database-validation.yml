@@ -5,11 +5,15 @@ on:
     branches:
       - main
 
+permissions:
+  contents: read
+
 jobs:
 
   validate-database:
 
     runs-on: ubuntu-latest
+    timeout-minutes: 5
 
     steps:
 

@@ -34,6 +34,12 @@ if [ -z "${postgres_user}" ] || [ -z "${postgres_password}" ]; then
   exit 1
 fi
 
+# Guard against shell/SQL injection: PostgreSQL usernames are alphanumeric + underscore only.
+if ! [[ "${postgres_user}" =~ ^[a-zA-Z0-9_]+$ ]]; then
+  echo "ERROR: PostgreSQL username '${postgres_user}' contains invalid characters. Aborting." >&2
+  exit 1
+fi
+
 password_b64="$(printf '%s' "${postgres_password}" | base64 -w0 2>/dev/null || printf '%s' "${postgres_password}" | base64)"
 
 echo "Syncing PostgreSQL password for user ${postgres_user} in ${db_namespace}..."
