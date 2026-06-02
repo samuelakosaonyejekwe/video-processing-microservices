@@ -95,9 +95,13 @@ jobs:
 
       - name: Build service image
         run: |
-          docker build \
-            -t scan-${{ matrix.service }}:ci \
-            -f services/${{ matrix.service }}/Dockerfile .
+          for attempt in 1 2 3; do
+            docker build \
+              -t scan-${{ matrix.service }}:ci \
+              -f services/${{ matrix.service }}/Dockerfile . && break
+            echo "Build attempt ${attempt} failed; retrying in 15s..."
+            sleep 15
+          done
 
       - name: Run Trivy Image Scan
         run: |

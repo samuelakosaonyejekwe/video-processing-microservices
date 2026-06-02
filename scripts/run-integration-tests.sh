@@ -59,6 +59,16 @@ for _ in $(seq 1 40); do
   sleep 3
 done
 
+GATEWAY_URL="${GATEWAY_BASE_URL:-http://localhost:8080}"
+echo "Waiting for gateway to accept HTTP requests..."
+for _ in $(seq 1 36); do
+  if curl -sf "${GATEWAY_URL}/health" >/dev/null 2>&1; then
+    echo "Gateway is ready."
+    break
+  fi
+  sleep 5
+done
+
 export INTEGRATION_TESTS=true
 export PRODUCTION_VALIDATION=true
 export GATEWAY_BASE_URL="${GATEWAY_BASE_URL:-http://localhost:8080}"
