@@ -26,7 +26,7 @@ if kubectl get secret "${secret_name}" -n "${app_namespace}" >/dev/null 2>&1; th
   postgres_password="$(kubectl get secret "${secret_name}" -n "${app_namespace}" -o jsonpath='{.data.POSTGRES_PASSWORD}' | base64 -d)"
 else
   postgres_user="${POSTGRES_USER:-postgres}"
-  postgres_password="${POSTGRES_PASSWORD:-postgres}"
+  postgres_password="${POSTGRES_PASSWORD:?ERROR: POSTGRES_PASSWORD must be set}"
 fi
 
 if [ -z "${postgres_user}" ] || [ -z "${postgres_password}" ]; then

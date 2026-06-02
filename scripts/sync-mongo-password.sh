@@ -46,7 +46,7 @@ _load_mongo_credentials() {
 
   sanitize_secret_env
   mongo_user="${MONGO_USERNAME:-mongo}"
-  mongo_password="${MONGO_PASSWORD:-mongo}"
+  mongo_password="${MONGO_PASSWORD:?ERROR: MONGO_PASSWORD must be set}"
   mongo_database="${MONGO_DATABASE:-video_converter}"
   mongo_auth_source="${MONGO_AUTH_SOURCE:-admin}"
 }

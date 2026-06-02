@@ -28,8 +28,8 @@ if kubectl get secret "${secret_name}" -n "${app_namespace}" >/dev/null 2>&1; th
   password="$(kubectl get secret "${secret_name}" -n "${app_namespace}" -o jsonpath='{.data.RABBITMQ_PASSWORD}' | base64 -d)"
 else
   sanitize_secret_env
-  username="${RABBITMQ_USERNAME:-${RABBITMQ_DEFAULT_USER:-guest}}"
-  password="${RABBITMQ_PASSWORD:-${RABBITMQ_DEFAULT_PASS:-guest}}"
+  username="${RABBITMQ_USERNAME:-${RABBITMQ_DEFAULT_USER:-}}"
+  password="${RABBITMQ_PASSWORD:-${RABBITMQ_DEFAULT_PASS:-}}"
 fi
 
 if [ -z "${username}" ] || [ -z "${password}" ]; then

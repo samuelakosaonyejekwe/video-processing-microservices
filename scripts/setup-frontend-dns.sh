@@ -19,7 +19,7 @@ fi
 
 aws_region="${AWS_REGION:-eu-central-1}"
 frontend_domain="${FRONTEND_DOMAIN_NAME}"
-zone_name="${ROUTE53_ZONE_NAME:-samuelonyejekwe.com}"
+zone_name="${ROUTE53_ZONE_NAME:-${HOSTED_ZONE_NAME}}"
 
 if [ -z "${frontend_domain}" ]; then
   echo "ERROR: FRONTEND_DOMAIN_NAME is empty. Set FRONTEND_URL or FRONTEND_DOMAIN_NAME."

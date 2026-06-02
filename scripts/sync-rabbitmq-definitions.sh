@@ -40,8 +40,8 @@ if kubectl get secret "${secret_name}" -n "${app_namespace}" >/dev/null 2>&1; th
   username="$(kubectl get secret "${secret_name}" -n "${app_namespace}" -o jsonpath='{.data.RABBITMQ_USERNAME}' | base64 -d)"
   password="$(kubectl get secret "${secret_name}" -n "${app_namespace}" -o jsonpath='{.data.RABBITMQ_PASSWORD}' | base64 -d)"
 else
-  username="${RABBITMQ_USERNAME:-guest}"
-  password="${RABBITMQ_PASSWORD:-guest}"
+  username="${RABBITMQ_USERNAME:-}"
+  password="${RABBITMQ_PASSWORD:-}"
 fi
 
 echo "Syncing RabbitMQ definitions into ${broker_namespace}/${pod}..."

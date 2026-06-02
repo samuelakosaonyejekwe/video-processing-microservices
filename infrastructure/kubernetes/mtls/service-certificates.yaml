@@ -14,7 +14,7 @@ spec:
     - gateway-service.${K8S_NAMESPACE}.svc
     - gateway-service.${K8S_NAMESPACE}.svc.cluster.local
   issuerRef:
-    name: video-processing-internal-issuer
+    name: ${PROJECT_NAME}-internal-issuer
     kind: ClusterIssuer
 ---
 apiVersion: cert-manager.io/v1
@@ -33,7 +33,7 @@ spec:
     - auth-service.${K8S_NAMESPACE}.svc
     - auth-service.${K8S_NAMESPACE}.svc.cluster.local
   issuerRef:
-    name: video-processing-internal-issuer
+    name: ${PROJECT_NAME}-internal-issuer
     kind: ClusterIssuer
 ---
 apiVersion: cert-manager.io/v1
@@ -52,7 +52,7 @@ spec:
     - converter-service.${K8S_NAMESPACE}.svc
     - converter-service.${K8S_NAMESPACE}.svc.cluster.local
   issuerRef:
-    name: video-processing-internal-issuer
+    name: ${PROJECT_NAME}-internal-issuer
     kind: ClusterIssuer
 ---
 apiVersion: cert-manager.io/v1
@@ -71,5 +71,5 @@ spec:
     - notification-service.${K8S_NAMESPACE}.svc
     - notification-service.${K8S_NAMESPACE}.svc.cluster.local
   issuerRef:
-    name: video-processing-internal-issuer
+    name: ${PROJECT_NAME}-internal-issuer
     kind: ClusterIssuer

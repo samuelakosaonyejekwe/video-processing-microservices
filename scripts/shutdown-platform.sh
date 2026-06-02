@@ -311,12 +311,12 @@ fi
 # ---------------------------------------------------------------------------
 log "=== STEP 6: Remove stale Route53 A record ==="
 HOSTED_ZONE_ID="$(aws route53 list-hosted-zones \
-  --query "HostedZones[?contains(Name, '${HOSTED_ZONE_NAME:-samuelonyejekwe.com}')].Id" \
+  --query "HostedZones[?contains(Name, '${HOSTED_ZONE_NAME}')].Id" \
   --output text 2>/dev/null | head -1 || echo "")"
 
 if [ -n "${HOSTED_ZONE_ID}" ]; then
   ZONE_ID="${HOSTED_ZONE_ID##*/}"
-  DOMAIN="${APP_DOMAIN:-api.samuelonyejekwe.com}"
+  DOMAIN="${APP_DOMAIN:?ERROR: APP_DOMAIN must be set}"
   EXISTING_RECORD="$(aws route53 list-resource-record-sets \
     --hosted-zone-id "${ZONE_ID}" \
     --query "ResourceRecordSets[?Name=='${DOMAIN}.'].{Name:Name,Type:Type,AliasTarget:AliasTarget}" \

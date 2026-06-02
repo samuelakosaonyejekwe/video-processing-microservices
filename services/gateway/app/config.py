@@ -117,4 +117,4 @@ VIDEO_COMPLETED_QUEUE = first_env(
     "VIDEO_COMPLETED_QUEUE",
     default=shared_queues.VIDEO_COMPLETED_QUEUE,
 )
-FRONTEND_URL = first_env("FRONTEND_URL", default="https://samuelonyejekwe.com")
+FRONTEND_URL = first_env("FRONTEND_URL", default="")

@@ -12,7 +12,7 @@ metadata:
   namespace: cert-manager
 spec:
   isCA: true
-  commonName: video-processing-internal-ca
+  commonName: ${PROJECT_NAME}-internal-ca
   secretName: internal-ca-secret
   issuerRef:
     name: internal-ca-issuer
@@ -21,7 +21,7 @@ spec:
 apiVersion: cert-manager.io/v1
 kind: ClusterIssuer
 metadata:
-  name: video-processing-internal-issuer
+  name: ${PROJECT_NAME}-internal-issuer
 spec:
   ca:
     secretName: internal-ca-secret

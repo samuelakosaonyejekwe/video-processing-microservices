@@ -343,8 +343,8 @@ done
 
 # Verify Route53 A record points to the new ALB
 if [ -n "${ALB_DNS:-}" ]; then
-  DOMAIN="${APP_DOMAIN:-api.samuelonyejekwe.com}"
-  HOSTED_ZONE_NAME="${HOSTED_ZONE_NAME:-samuelonyejekwe.com}"
+  DOMAIN="${APP_DOMAIN:?ERROR: APP_DOMAIN must be set}"
+  HOSTED_ZONE_NAME="${HOSTED_ZONE_NAME:?ERROR: HOSTED_ZONE_NAME must be set}"
   ZONE_ID="$(aws route53 list-hosted-zones \
     --query "HostedZones[?contains(Name, '${HOSTED_ZONE_NAME}')].Id" \
     --output text 2>/dev/null | head -1 | sed 's|/hostedzone/||' || echo "")"
@@ -412,7 +412,7 @@ if [ -n "${HEALTH_URL}" ]; then
   done
 else
   warn "GATEWAY_BASE_URL or API_BASE_URL not set. Skipping HTTP health check."
-  warn "Once DNS propagates, verify: curl https://${APP_DOMAIN:-api.samuelonyejekwe.com}/health"
+  warn "Once DNS propagates, verify: curl https://${APP_DOMAIN}/health"
 fi
 
 log ""

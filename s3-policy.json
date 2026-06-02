@@ -10,10 +10,10 @@
         "s3:ListBucket"
       ],
       "Resource": [
-        "arn:aws:s3:::video-converter-uploads-sam",
-        "arn:aws:s3:::video-converter-uploads-sam/*",
-        "arn:aws:s3:::video-converter-audio-sam",
-        "arn:aws:s3:::video-converter-audio-sam/*",
+        "arn:aws:s3:::samuel-video-processing-video",
+        "arn:aws:s3:::samuel-video-processing-video/*",
+        "arn:aws:s3:::samuel-video-processing-audio",
+        "arn:aws:s3:::samuel-video-processing-audio/*",
         "arn:aws:s3:::video-converter-thumbnails-sam",
         "arn:aws:s3:::video-converter-thumbnails-sam/*"
       ]
