@@ -38,10 +38,12 @@ if command -v kubectl >/dev/null 2>&1; then
     --name "${EKS_CLUSTER_NAME}" >/dev/null 2>&1 || true
 
   echo "Waiting for Kubernetes nodes to become Ready..."
+  nodes_ready=0
   for _ in $(seq 1 60); do
     ready_count="$(kubectl get nodes --no-headers 2>/dev/null | awk '$2 == "Ready" { count++ } END { print count + 0 }')"
     total_count="$(kubectl get nodes --no-headers 2>/dev/null | wc -l | tr -d ' ')"
     if [ "${total_count:-0}" -ge "${desired_size}" ] && [ "${ready_count:-0}" -ge "${desired_size}" ]; then
+      nodes_ready=1
       kubectl get nodes
       echo "EKS worker nodes are Ready. Re-run Deploy EKS Services to restore workloads."
       break
@@ -49,8 +51,10 @@ if command -v kubectl >/dev/null 2>&1; then
     sleep 10
   done
 
-  echo "WARNING: Timed out waiting for all nodes to become Ready. Check kubectl get nodes."
-  kubectl get nodes 2>/dev/null || true
+  if [ "${nodes_ready}" -eq 0 ]; then
+    echo "WARNING: Timed out waiting for all nodes to become Ready. Check kubectl get nodes."
+    kubectl get nodes 2>/dev/null || true
+  fi
 fi
 
 worker_name="${EKS_WORKER_INSTANCE_NAME:-${PROJECT_NAME:-video-processing}-${APP_ENV:-production}-eks-worker}"

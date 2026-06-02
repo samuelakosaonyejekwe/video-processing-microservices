@@ -23,6 +23,9 @@ jobs:
       AWS_REGION: ${{ vars.AWS_REGION }}
       EKS_CLUSTER_NAME: ${{ vars.EKS_CLUSTER_NAME }}
       EKS_NODE_GROUP_NAME: ${{ vars.EKS_NODE_GROUP_NAME }}
+      EKS_INSTANCE_TYPE: ${{ vars.EKS_INSTANCE_TYPE }}
+      EKS_DESIRED_SIZE: ${{ vars.EKS_DESIRED_SIZE }}
+      EKS_MIN_SIZE: ${{ vars.EKS_MIN_SIZE }}
       EKS_MAX_SIZE: ${{ vars.EKS_MAX_SIZE }}
       PROJECT_NAME: ${{ vars.PROJECT_NAME }}
       APP_ENV: ${{ vars.APP_ENV }}

@@ -225,6 +225,10 @@ log "=== STEP 4: Terraform destroy — EKS cluster and Jenkins ==="
 
 chmod +x "${TF_DIR}/scripts/"*.sh 2>/dev/null || true
 
+# Generate tfvars — terraform destroy still needs all required variable values
+# (eks_node_instance_type, eks_desired_size, etc. have no defaults in variables.tf)
+bash "${TF_DIR}/scripts/generate-terraform-tfvars.sh"
+
 # Init (connects to S3 backend)
 TF_STATE_BUCKET="${TF_STATE_BUCKET}" \
 TF_LOCK_TABLE="${TF_LOCK_TABLE}" \
