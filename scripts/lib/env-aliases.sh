@@ -99,6 +99,9 @@ export JWT_ACCESS_TOKEN_EXPIRES_MINUTES="${JWT_ACCESS_TOKEN_EXPIRES_MINUTES:-60}
 _export_alias S3_UPLOAD_BUCKET S3_UPLOAD_BUCKET AWS_S3_VIDEO_BUCKET AWS_S3_BUCKET S3_BUCKET_NAME
 _export_alias S3_AUDIO_BUCKET S3_AUDIO_BUCKET AWS_S3_AUDIO_BUCKET
 _export_alias S3_BUCKET_NAME S3_BUCKET_NAME AWS_S3_BUCKET S3_UPLOAD_BUCKET
+# Terraform-specific aliases expected by generate-terraform-tfvars.sh
+export S3_VIDEO_BUCKET_NAME="${S3_VIDEO_BUCKET_NAME:-${S3_UPLOAD_BUCKET:-${AWS_S3_VIDEO_BUCKET:-}}}"
+export S3_AUDIO_BUCKET_NAME="${S3_AUDIO_BUCKET_NAME:-${S3_AUDIO_BUCKET:-${AWS_S3_AUDIO_BUCKET:-}}}"
 
 # RabbitMQ queues
 _export_alias VIDEO_UPLOAD_QUEUE VIDEO_UPLOAD_QUEUE RABBITMQ_QUEUE
@@ -144,6 +147,9 @@ export GATEWAY_PORT="${GATEWAY_PORT:-8080}"
 export VPC_CIDR="${VPC_CIDR:-10.0.0.0/16}"
 export PUBLIC_SUBNET_CIDRS="${PUBLIC_SUBNET_CIDRS:-[\"10.0.1.0/24\",\"10.0.2.0/24\"]}"
 export AVAILABILITY_ZONES="${AVAILABILITY_ZONES:-[\"eu-central-1a\",\"eu-central-1b\"]}"
+# GitHub Actions runners use dynamic IPs, so allow public access from anywhere for CI/CD.
+# Override with your VPN/office CIDR in production for stricter control.
+export PUBLIC_ACCESS_CIDRS="${PUBLIC_ACCESS_CIDRS:-[\"0.0.0.0/0\"]}"
 export ECR_REPOSITORIES="${ECR_REPOSITORIES:-[\"gateway-service\",\"auth-service\",\"converter-service\",\"notification-service\",\"frontend\"]}"
 export JENKINS_INSTANCE_TYPE="${JENKINS_INSTANCE_TYPE:-t3.medium}"
 export JENKINS_ASG_NAME="${JENKINS_ASG_NAME:-${PROJECT_NAME:-video-processing}-jenkins-asg}"
