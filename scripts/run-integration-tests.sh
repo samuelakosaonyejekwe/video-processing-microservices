@@ -14,10 +14,14 @@ cd "${ROOT_DIR}"
 export POSTGRES_PASSWORD="${POSTGRES_PASSWORD:-ci-pg-pass}"
 export MONGO_PASSWORD="${MONGO_PASSWORD:-ci-mongo-pass}"
 export MONGO_USERNAME="${MONGO_USERNAME:-mongo}"
-export RABBITMQ_PASSWORD="${RABBITMQ_PASSWORD:-ci-rabbit-pass}"
-export RABBITMQ_USERNAME="${RABBITMQ_USERNAME:-ci-rabbit-user}"
-export RABBITMQ_DEFAULT_USER="${RABBITMQ_USERNAME}"
-export RABBITMQ_DEFAULT_PASS="${RABBITMQ_PASSWORD}"
+# RabbitMQ: use the docker-compose default user "guest" for integration tests.
+# Using a custom user triggers a 300s retry storm in the gateway producer when
+# the custom user isn't yet initialized — the "guest" user is pre-configured
+# and available immediately without any race condition.
+export RABBITMQ_PASSWORD="guest"
+export RABBITMQ_USERNAME="guest"
+export RABBITMQ_DEFAULT_USER="guest"
+export RABBITMQ_DEFAULT_PASS="guest"
 export REDIS_PASSWORD="${REDIS_PASSWORD:-ci-redis-pass}"
 export GRAFANA_ADMIN_PASSWORD="${GRAFANA_ADMIN_PASSWORD:-ci-grafana-pass}"
 
