@@ -93,15 +93,31 @@ jobs:
           curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh | sh -s -- -b /usr/local/bin v0.69.3
           trivy --version
 
+      - name: Login to DockerHub
+        if: vars.PUSH_DOCKER_HUB == 'true' || secrets.DOCKER_PASSWORD != ''
+        uses: docker/login-action@v3
+        with:
+          username: ${{ vars.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+        continue-on-error: true
+
       - name: Build service image
         run: |
+          built=false
           for attempt in 1 2 3; do
-            docker build \
+            if docker build \
               -t scan-${{ matrix.service }}:ci \
-              -f services/${{ matrix.service }}/Dockerfile . && break
+              -f services/${{ matrix.service }}/Dockerfile .; then
+              built=true
+              break
+            fi
             echo "Build attempt ${attempt} failed; retrying in 15s..."
             sleep 15
           done
+          if [ "${built}" != "true" ]; then
+            echo "All build attempts failed for ${{ matrix.service }}"
+            exit 1
+          fi
 
       - name: Run Trivy Image Scan
         run: |
