@@ -94,7 +94,6 @@ jobs:
           trivy --version
 
       - name: Login to DockerHub
-        if: vars.PUSH_DOCKER_HUB == 'true' || secrets.DOCKER_PASSWORD != ''
         uses: docker/login-action@v3
         with:
           username: ${{ vars.DOCKER_USERNAME }}
