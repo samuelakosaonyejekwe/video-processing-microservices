@@ -24,6 +24,13 @@ export RABBITMQ_DEFAULT_USER="guest"
 export RABBITMQ_DEFAULT_PASS="guest"
 export REDIS_PASSWORD="${REDIS_PASSWORD:-ci-redis-pass}"
 export GRAFANA_ADMIN_PASSWORD="${GRAFANA_ADMIN_PASSWORD:-ci-grafana-pass}"
+# RabbitMQ Erlang cookie and the local MinIO credentials must be present BEFORE
+# prepare_compose_env bakes the runtime env / docker compose starts, because the
+# compose file now fails closed on missing secrets (no insecure defaults). These
+# are throwaway local-stack values, not production secrets.
+export RABBITMQ_ERLANG_COOKIE="${RABBITMQ_ERLANG_COOKIE:-ci-erlang-cookie}"
+export AWS_ACCESS_KEY_ID="${AWS_ACCESS_KEY_ID:-minioadmin}"
+export AWS_SECRET_ACCESS_KEY="${AWS_SECRET_ACCESS_KEY:-minioadmin}"
 
 # shellcheck source=scripts/lib/prepare-compose-env.sh
 source "${ROOT_DIR}/scripts/lib/prepare-compose-env.sh"
