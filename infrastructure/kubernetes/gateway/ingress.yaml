@@ -32,7 +32,7 @@ spec:
 
   rules:
 
-    - host: ${DOMAIN_NAME}
+    - host: ${APP_DOMAIN}
 
       http:
 
