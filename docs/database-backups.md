@@ -17,9 +17,11 @@ Backup daily EBS snapshots**.
 Both volumes are tagged `Backup=daily` (the backup selection key).
 
 ## AWS Backup configuration (region eu-central-1, account 009850210027)
-- **Vault:** `video-processing-db-backup-vault` (snapshots encrypted with the
-  AWS-managed backup KMS key — note the *source* volumes are currently
-  unencrypted at rest; the snapshots in the vault are encrypted).
+- **Vault:** `video-processing-db-backup-vault`. NOTE: EBS snapshots **inherit
+  the source volume's encryption state**, and the source volumes are currently
+  **unencrypted**, so the recovery points are **unencrypted** (the vault KMS key
+  does not force-encrypt EBS snapshots of unencrypted sources). See follow-ups
+  to get encrypted backups.
 - **Plan:** `video-processing-db-daily` (id `b13ebd37-7702-42b2-93f0-34f5b43e3031`)
   - Rule `daily-30d`: `cron(0 3 * * ? *)` (daily 03:00 UTC), start window 60m,
     completion window 180m, **retention 30 days**.
@@ -61,9 +63,12 @@ aws backup list-recovery-points-by-backup-vault \
 ```
 
 ## Follow-ups / notes
-- **Source volumes are unencrypted at rest** (`Encrypted=False`). The snapshots
-  are encrypted, but encrypting the live volumes would require recreating them
-  (migrate to an encrypted gp3 volume) — deferred, defense-in-depth.
+- **Source volumes are unencrypted at rest** (`Encrypted=False`), so the
+  recovery points are also unencrypted. To get **encrypted backups**, either
+  (a) migrate the live volumes to encrypted gp3 (recreates the PVCs — disruptive,
+  the more thorough fix), or (b) add an AWS Backup **copy action** to a
+  CMK-encrypted vault, which re-encrypts on copy. Deferred — defense-in-depth;
+  the backups exist and are restorable today.
 - `scripts/backup-postgres.sh` / `backup-mongodb.sh` are an **alternative**
   logical-dump approach (pg_dump/mongodump → S3) for granular/table-level
   restore. They are **not currently wired** to any schedule; EBS snapshots are
