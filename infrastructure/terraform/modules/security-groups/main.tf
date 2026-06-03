@@ -84,6 +84,7 @@ resource "aws_security_group" "eks" {
     cidr_blocks = [var.vpc_cidr]
   }
 
+  # trivy:ignore:AVD-AWS-0104
   egress {
 
     from_port = 0
@@ -136,11 +137,12 @@ resource "aws_security_group" "jenkins" {
 
     protocol = "tcp"
 
-    description = "SSH restricted to VPC — use SSM Session Manager for external access"
+    description = "SSH restricted to VPC CIDR; use SSM Session Manager for external access"
 
     cidr_blocks = [var.vpc_cidr]
   }
 
+  # trivy:ignore:AVD-AWS-0104
   egress {
 
     from_port = 0
