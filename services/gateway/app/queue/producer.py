@@ -137,40 +137,43 @@ class GatewayEventProducer:
 
         self.connect()
 
-    def publish_video_upload_event(
-        self, job_id, user_id, filename, s3_key, content_type
-    ):
+    def _publish_event(self, routing_key, event, correlation_id, description):
 
-        with self._publish_lock:
+        # Publish a single event, reconnecting and retrying ONCE if the channel
+        # went stale (e.g. after a RabbitMQ restart). Without the retry the very
+        # first publish after a broker restart fails the caller (HTTP 503) even
+        # though the connection is immediately re-established — so the next
+        # request succeeds but the first one is needlessly lost. Callers already
+        # hold self._publish_lock.
+
+        body = json.dumps(event)
+
+        properties = pika.BasicProperties(
+            delivery_mode=2,
+            content_type="application/json",
+            correlation_id=correlation_id,
+        )
+
+        max_attempts = 2
+
+        for attempt in range(max_attempts):
+
             try:
 
-                correlation_id = str(uuid.uuid4())
+                if self.channel is None or self.channel.is_closed:
 
-                event = build_event(
-                    "video_uploaded",
-                    {
-                        "job_id": job_id,
-                        "user_id": user_id,
-                        "filename": filename,
-                        "s3_key": s3_key,
-                        "content_type": content_type,
-                    },
-                    correlation_id,
-                )
+                    self.reconnect()
 
                 self.channel.basic_publish(
                     exchange="",
-                    routing_key=self.video_upload_queue,
-                    body=json.dumps(event),
-                    properties=pika.BasicProperties(
-                        delivery_mode=2,
-                        content_type="application/json",
-                        correlation_id=correlation_id,
-                    ),
+                    routing_key=routing_key,
+                    body=body,
+                    properties=properties,
                 )
 
                 logger.info(
-                    "Video upload event published successfully " "correlation_id=%s",
+                    "%s published successfully correlation_id=%s",
+                    description,
                     correlation_id,
                 )
 
@@ -178,95 +181,95 @@ class GatewayEventProducer:
 
             except Exception as error:
 
-                logger.error("Failed to publish video upload event: %s", str(error))
+                if attempt >= max_attempts - 1:
+
+                    logger.error(
+                        "Failed to publish %s after %d attempt(s): %s",
+                        description,
+                        max_attempts,
+                        str(error),
+                    )
+
+                    self.reconnect()
+
+                    raise
+
+                logger.warning(
+                    "%s publish failed (%s); reconnecting and retrying once...",
+                    description,
+                    str(error),
+                )
 
                 self.reconnect()
 
-                raise error
+    def publish_video_upload_event(
+        self, job_id, user_id, filename, s3_key, content_type
+    ):
+
+        with self._publish_lock:
+
+            correlation_id = str(uuid.uuid4())
+
+            event = build_event(
+                "video_uploaded",
+                {
+                    "job_id": job_id,
+                    "user_id": user_id,
+                    "filename": filename,
+                    "s3_key": s3_key,
+                    "content_type": content_type,
+                },
+                correlation_id,
+            )
+
+            return self._publish_event(
+                self.video_upload_queue,
+                event,
+                correlation_id,
+                "Video upload event",
+            )
 
     def publish_notification_event(
         self, recipient, subject, content, job_id=None, user_id=None
     ):
 
         with self._publish_lock:
-            try:
 
-                correlation_id = str(uuid.uuid4())
+            correlation_id = str(uuid.uuid4())
 
-                event = build_event(
-                    "notification_requested",
-                    {
-                        "recipient": recipient,
-                        "subject": subject,
-                        "content": content,
-                        "job_id": job_id,
-                        "user_id": user_id,
-                    },
-                    correlation_id,
-                )
+            event = build_event(
+                "notification_requested",
+                {
+                    "recipient": recipient,
+                    "subject": subject,
+                    "content": content,
+                    "job_id": job_id,
+                    "user_id": user_id,
+                },
+                correlation_id,
+            )
 
-                self.channel.basic_publish(
-                    exchange="",
-                    routing_key=self.notification_queue,
-                    body=json.dumps(event),
-                    properties=pika.BasicProperties(
-                        delivery_mode=2,
-                        content_type="application/json",
-                        correlation_id=correlation_id,
-                    ),
-                )
-
-                logger.info(
-                    "Notification event published successfully " "correlation_id=%s",
-                    correlation_id,
-                )
-
-                return correlation_id
-
-            except Exception as error:
-
-                logger.error("Failed to publish notification event: %s", str(error))
-
-                self.reconnect()
-
-                raise error
+            return self._publish_event(
+                self.notification_queue,
+                event,
+                correlation_id,
+                "Notification event",
+            )
 
     def publish_gateway_event(self, event_type, payload):
 
         with self._publish_lock:
-            try:
 
-                correlation_id = str(uuid.uuid4())
+            correlation_id = str(uuid.uuid4())
 
-                event = build_event(event_type, payload, correlation_id)
+            event = build_event(event_type, payload, correlation_id)
 
-                self.channel.basic_publish(
-                    exchange="",
-                    routing_key=self.gateway_events_queue,
-                    body=json.dumps(event),
-                    properties=pika.BasicProperties(
-                        delivery_mode=2,
-                        content_type="application/json",
-                        correlation_id=correlation_id,
-                    ),
-                )
-
-                logger.info(
-                    "Gateway event published successfully "
-                    "event_type=%s correlation_id=%s",
-                    event_type,
-                    correlation_id,
-                )
-
-                return correlation_id
-
-            except Exception as error:
-
-                logger.error("Failed to publish gateway event: %s", str(error))
-
-                self.reconnect()
-
-                raise error
+            return self._publish_event(
+                self.gateway_events_queue,
+                event,
+                correlation_id,
+                f"Gateway event event_type={event_type}",
+            )
 
     def close(self):
 
