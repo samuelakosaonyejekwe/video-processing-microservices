@@ -177,7 +177,11 @@ jobs:
         env:
           APPLY_NETWORK_POLICIES: "true"
           SKIP_INFRA_DEPLOY: "true"
-          SKIP_MONGO_PASSWORD_SYNC: "true"
+          # MONGO_PASSWORD (GitHub secret) is the single source of truth for the
+          # mongo server (helm) and the app secret. The sync verifies the live
+          # password matches and exits cleanly when aligned; on real drift it now
+          # FAILS LOUDLY (never auto-wipes prod data — see sync-mongo-password.sh).
+          SKIP_MONGO_PASSWORD_SYNC: "false"
           INSTALL_KEDA: "true"
           KEDA_INSTALL_TIMEOUT: "120s"
           KEDA_SCALEDOBJECT_WAIT_TIMEOUT: "120s"

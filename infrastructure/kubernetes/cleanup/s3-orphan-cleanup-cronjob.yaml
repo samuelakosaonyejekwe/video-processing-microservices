@@ -7,17 +7,22 @@ metadata:
     app: s3-orphan-cleanup
 spec:
   schedule: "0 3 * * *"
+  concurrencyPolicy: Forbid
+  startingDeadlineSeconds: 300
   successfulJobsHistoryLimit: 1
   failedJobsHistoryLimit: 1
   jobTemplate:
     spec:
       ttlSecondsAfterFinished: 3600
+      activeDeadlineSeconds: 1800
+      backoffLimit: 3
       template:
         metadata:
           labels:
             app: s3-orphan-cleanup
         spec:
           restartPolicy: OnFailure
+          serviceAccountName: gateway-service-account
           securityContext:
             runAsNonRoot: true
             runAsUser: 1000
