@@ -79,6 +79,9 @@ jobs:
       REDIS_HOST: ${{ vars.REDIS_HOST }}
       AUTH_SERVICE_PORT: ${{ vars.AUTH_SERVICE_PORT }}
       AUTH_PORT: ${{ vars.AUTH_SERVICE_PORT }}
+      VPC_CIDR: ${{ vars.VPC_CIDR }}
+      PUBLIC_SUBNET_CIDRS: ${{ vars.PUBLIC_SUBNET_CIDRS }}
+      AVAILABILITY_ZONES: ${{ vars.AVAILABILITY_ZONES }}
 
     steps:
       - name: Checkout Repository
