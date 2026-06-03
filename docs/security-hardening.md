@@ -81,7 +81,13 @@ the hardening.
 
 - IRSA trust policies now bind the `:aud` claim; S3 access scoped per-service
   (auth/notification lose S3 entirely; converter/worker lose cross-bucket Delete).
-- EKS secrets envelope encryption (KMS), node EBS encryption + IMDSv2 enforced.
+- EKS secrets envelope encryption: kept (it is already enabled on the live
+  cluster via the EKS module's own KMS key). The earlier attempt to swap it to a
+  separate CMK was reverted because, on the live cluster, it forced Terraform to
+  destroy the in-use cluster KMS key — a dangerous, outage-prone change. Node EBS
+  encryption + IMDSv2 enforcement were likewise reverted from the EKS module
+  because they force a rolling node replacement; defer them to a deliberate
+  maintenance window rather than an unattended apply.
 - VPC Flow Logs + multi-region CloudTrail added (KMS-encrypted).
 - Terraform state backend bootstrap hardened (public-access-block, KMS, TLS-only).
 - ECR KMS encryption; `force_delete` made configurable (default false).
@@ -111,12 +117,17 @@ These complete the hardening but need access/decisions outside this change:
 
 ## ⚠️ Apply-time impact on live infrastructure
 
-The following Terraform changes are **one-way or force replacement** — review before
-`terraform apply`:
+A read-only `terraform plan` against the live cluster was used to verify blast
+radius. The dangerous EKS-module changes (KMS-key swap, node EBS/IMDSv2) have been
+reverted so an apply no longer destroys the in-use cluster KMS key or replaces
+nodes. Remaining notes:
 
-- EKS secrets envelope encryption is **irreversible** once enabled.
-- Node group EBS/IMDSv2 changes force a **rolling node replacement**.
-- ECR KMS encryption forces **repository replacement** (images must be re-pushed) —
-  consider a state migration / manual recreation.
+- ECR CMK encryption is now **non-destructive** for existing repos
+  (`lifecycle.ignore_changes`); only new repos get the CMK.
 - The auth and converter services now **refuse to start** if `CORS_ALLOWED_ORIGINS`
   is `"*"`; ensure explicit origins are configured before deploying.
+- The Terraform **state is mid-way through a previously interrupted apply** (many
+  `deposed` objects) and a pending **node-group rename** (`default` →
+  `production-workers`). This must be reconciled in a **maintenance window with the
+  plan reviewed**, NOT via an unattended apply. Node IMDSv2/EBS encryption should
+  be re-introduced as a deliberate, watched change at that time.
