@@ -166,8 +166,10 @@ jobs:
           mkdir -p .compose-secrets
           openssl genrsa -out .compose-secrets/jwt-private.pem 2048
           openssl rsa -in .compose-secrets/jwt-private.pem -pubout -out .compose-secrets/jwt-public.pem
-          chmod 600 .compose-secrets/jwt-private.pem
-          chmod 644 .compose-secrets/jwt-public.pem
+          # 0644: compose bind-mounts these into non-root containers (UID mismatch
+          # would make 0600 unreadable). The .compose-secrets dir guards host access.
+          chmod 700 .compose-secrets
+          chmod 644 .compose-secrets/jwt-private.pem .compose-secrets/jwt-public.pem
           cp .env.example .env.compose.runtime
           # The compose file now fails closed on missing credentials (no insecure
           # defaults). Supply throwaway values so this syntax/build validation can

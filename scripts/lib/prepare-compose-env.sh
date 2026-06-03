@@ -97,8 +97,11 @@ prepare_compose_env() {
     openssl rsa -in "${secrets_dir}/jwt-private.pem" -pubout \
       -out "${secrets_dir}/jwt-public.pem" 2>/dev/null || true
   fi
-  # Private key must not be world-readable; public key may stay 644.
-  chmod 600 "${secrets_dir}/jwt-private.pem" 2>/dev/null || true
+  # Host-side protection comes from the 0700 secrets_dir above (other users
+  # can't traverse into it). The key files themselves stay 0644 because compose
+  # bind-mounts them read-only into containers that run as a NON-root user with a
+  # different UID — 0600 would make the mounted key unreadable and crash the app.
+  chmod 644 "${secrets_dir}/jwt-private.pem" 2>/dev/null || true
   chmod 644 "${secrets_dir}/jwt-public.pem" 2>/dev/null || true
   # Always RS256 — RSA material is always present in secrets_dir after the block above.
   echo "JWT_ALGORITHM=RS256" >> "${runtime_env}"

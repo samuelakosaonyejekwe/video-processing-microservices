@@ -67,7 +67,10 @@ the hardening.
 
 ## Container / config
 
-- RabbitMQ `guest/guest` admin removed; `loopback_users.guest = true`.
+- Production RabbitMQ (Kubernetes/Helm, `definitions.json`) defines **no** users —
+  credentials come from Secrets — and its management port is locked down by
+  NetworkPolicy. The local docker-compose broker intentionally keeps the built-in
+  `guest` user (it is bound to 127.0.0.1 and is dev/integration-only).
 - Helm postgres password is now `required` (no `postgres/postgres` default).
 - docker-compose secrets are fail-closed (`${VAR:?...}`).
 - nginx: `server_tokens off`, security headers, `/api/` rate limiting, runs non-root.
