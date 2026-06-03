@@ -141,9 +141,7 @@ if JWT_ALGORITHM not in SUPPORTED_JWT_ALGORITHMS:
 # The converter only verifies tokens with the platform public key, so it must
 # use an RS* algorithm. Refusing HS* prevents an RS/HS confusion downgrade.
 if not JWT_ALGORITHM.startswith("RS"):
-    raise RuntimeError(
-        f"Converter requires an RS* JWT algorithm; got {JWT_ALGORITHM}"
-    )
+    raise RuntimeError(f"Converter requires an RS* JWT algorithm; got {JWT_ALGORITHM}")
 
 if APP_ENV == "production" and CORS_ALLOWED_ORIGINS == ["http://localhost:3000"]:
     _frontend_origin = first_env("FRONTEND_URL")

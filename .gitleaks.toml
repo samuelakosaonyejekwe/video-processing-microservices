@@ -1,0 +1,22 @@
+# Gitleaks configuration.
+#
+# Extends the upstream default ruleset (so all real secret detections stay
+# active) and allowlists a small set of unit-test fixtures that intentionally
+# embed throwaway / placeholder PEM material so the JWT signing/verification
+# code can be exercised offline. These are NOT real credentials.
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Throwaway placeholder keys used only by unit tests (not real secrets)"
+# Scope the exemption to the specific test fixtures that carry placeholder PEMs.
+paths = [
+  '''tests/shared/test_pem_loader\.py''',
+  '''services/auth/conftest\.py''',
+]
+# Belt-and-suspenders: also exempt by content, so the same obvious placeholders
+# are ignored wherever they appear, while any real-looking key elsewhere fails.
+regexes = [
+  '''test-key-placeholder''',
+  '''-----BEGIN RSA PRIVATE KEY-----\\nABC\\n-----END RSA PRIVATE KEY-----''',
+]

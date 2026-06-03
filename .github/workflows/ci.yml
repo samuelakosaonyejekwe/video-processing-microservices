@@ -166,8 +166,23 @@ jobs:
           mkdir -p .compose-secrets
           openssl genrsa -out .compose-secrets/jwt-private.pem 2048
           openssl rsa -in .compose-secrets/jwt-private.pem -pubout -out .compose-secrets/jwt-public.pem
-          chmod 644 .compose-secrets/*.pem
+          chmod 600 .compose-secrets/jwt-private.pem
+          chmod 644 .compose-secrets/jwt-public.pem
           cp .env.example .env.compose.runtime
+          # The compose file now fails closed on missing credentials (no insecure
+          # defaults). Supply throwaway values so this syntax/build validation can
+          # run — these are NOT real secrets and never leave the CI runner.
+          {
+            echo "POSTGRES_PASSWORD=ci-dummy-postgres"
+            echo "MONGO_PASSWORD=ci-dummy-mongo"
+            echo "MONGO_URI=mongodb://ci:ci-dummy-mongo@mongodb:27017/video?authSource=admin"
+            echo "REDIS_PASSWORD=ci-dummy-redis"
+            echo "RABBITMQ_PASSWORD=ci-dummy-rabbit"
+            echo "RABBITMQ_DEFAULT_PASS=ci-dummy-rabbit"
+            echo "RABBITMQ_ERLANG_COOKIE=ci-dummy-cookie"
+            echo "AWS_ACCESS_KEY_ID=ci-dummy-akid"
+            echo "AWS_SECRET_ACCESS_KEY=ci-dummy-secret"
+          } >> .env.compose.runtime
           export COMPOSE_ENV_FILE=.env.compose.runtime
           export COMPOSE_SECRETS_DIR=.compose-secrets
           docker compose --env-file .env.compose.runtime config

@@ -152,14 +152,15 @@ export AVAILABILITY_ZONES="${AVAILABILITY_ZONES:-}"
 # Override with your VPN/office CIDR in production for stricter control.
 export PUBLIC_ACCESS_CIDRS="${PUBLIC_ACCESS_CIDRS:-[\"0.0.0.0/0\"]}"
 if [ "${APP_ENV:-development}" = "production" ]; then
-  # The user keeps the EKS endpoint publicly reachable for CI, so a real CIDR
-  # list is allowed — only refuse a literal 0.0.0.0/0 (open to the world).
+  # The EKS endpoint is intentionally kept publicly reachable so GitHub Actions
+  # (dynamic runner IPs) can deploy. A literal 0.0.0.0/0 is therefore a WARNING,
+  # not a hard error — narrow it to your VPN/office CIDR once OIDC + private
+  # runners are in place. See docs/security-hardening.md.
   if [[ "${PUBLIC_ACCESS_CIDRS}" == *'0.0.0.0/0'* ]]; then
-    echo "ERROR: PUBLIC_ACCESS_CIDRS is 0.0.0.0/0 in production (open to the world)." >&2
-    echo "       Set PUBLIC_ACCESS_CIDRS to an explicit CIDR list." >&2
-    exit 1
+    echo "WARNING: PUBLIC_ACCESS_CIDRS is 0.0.0.0/0 in production (EKS API open to the world). Narrow to an explicit CIDR list when possible." >&2
+  else
+    echo "WARNING: PUBLIC_ACCESS_CIDRS=${PUBLIC_ACCESS_CIDRS} — EKS endpoint is publicly reachable. Restrict to your VPN/office CIDR if possible." >&2
   fi
-  echo "WARNING: PUBLIC_ACCESS_CIDRS=${PUBLIC_ACCESS_CIDRS} — EKS endpoint is publicly reachable. Restrict to your VPN/office CIDR if possible." >&2
 fi
 export ECR_REPOSITORIES="${ECR_REPOSITORIES:-[\"gateway-service\",\"auth-service\",\"converter-service\",\"notification-service\",\"frontend\"]}"
 export JENKINS_INSTANCE_TYPE="${JENKINS_INSTANCE_TYPE:-t3.medium}"

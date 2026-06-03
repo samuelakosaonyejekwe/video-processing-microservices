@@ -38,9 +38,7 @@ logger = logging.getLogger(__name__)
 # missing REDIS_HOST would silently disable revocation. Fail hard at startup
 # instead of shipping a fail-open auth service.
 if APP_ENV == "production" and not os.getenv("REDIS_HOST", "").strip():
-    raise RuntimeError(
-        "REDIS_HOST is required in production for token revocation"
-    )
+    raise RuntimeError("REDIS_HOST is required in production for token revocation")
 
 
 @asynccontextmanager
