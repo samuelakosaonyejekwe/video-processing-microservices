@@ -74,10 +74,10 @@
         "s3:DeleteObject"
       ],
       "Resource": [
-        "arn:aws:s3:::samuel-video-processing-video",
-        "arn:aws:s3:::samuel-video-processing-video/*",
-        "arn:aws:s3:::samuel-video-processing-audio",
-        "arn:aws:s3:::samuel-video-processing-audio/*"
+        "arn:aws:s3:::${AWS_S3_VIDEO_BUCKET}",
+        "arn:aws:s3:::${AWS_S3_VIDEO_BUCKET}/*",
+        "arn:aws:s3:::${AWS_S3_AUDIO_BUCKET}",
+        "arn:aws:s3:::${AWS_S3_AUDIO_BUCKET}/*"
       ]
     }
   ]

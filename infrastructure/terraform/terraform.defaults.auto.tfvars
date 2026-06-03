@@ -21,8 +21,12 @@ metrics_server_cleanup_on_fail   = true
 metrics_server_atomic            = true
 metrics_server_dependency_update = true
 
-s3_bucket_name       = "samuel-video-processing-video"
-kubernetes_namespace = "video-processing"
+# NOTE: environment-specific values (s3_bucket_name, kubernetes_namespace,
+# account/region/domain/ARNs, CIDRs) are intentionally NOT set here. They are
+# generated into terraform.tfvars from GitHub Variables by
+# scripts/generate-terraform-tfvars.sh. Because *.auto.tfvars loads AFTER
+# terraform.tfvars and would override it, hardcoding them here would silently
+# shadow the GitHub Variables — so they are kept out of this committed file.
 
 tags = {
   ManagedBy = "Terraform"

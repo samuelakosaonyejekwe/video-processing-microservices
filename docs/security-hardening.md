@@ -83,7 +83,9 @@ the hardening.
 - Terraform state backend bootstrap hardened (public-access-block, KMS, TLS-only).
 - ECR KMS encryption; `force_delete` made configurable (default false).
 - Jenkins instance profile ECR access scoped to project repos.
-- KMS/S3 wildcards in `s3-policy.json` and the GitHub Actions policy pinned.
+- Removed the dead, hardcoded `s3-policy.json` (account ID + bucket names baked
+  in); its policy is managed by Terraform. GitHub Actions policy S3 ARNs
+  templated to `${AWS_S3_*_BUCKET}` placeholders (no committed literals).
 - `endpoint_private_access = true` added (public access kept, per decision).
 - Separate `jenkins_allowed_cidr_blocks` var so the Jenkins UI can be scoped off
   `0.0.0.0/0` without affecting EKS.
