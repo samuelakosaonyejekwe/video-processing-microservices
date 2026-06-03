@@ -1,3 +1,19 @@
+# Customer-managed KMS key for ECR image (at-rest) encryption.
+resource "aws_kms_key" "ecr" {
+  description             = "CMK for ${var.project_name}-${var.environment} ECR image encryption"
+  deletion_window_in_days = 30
+  enable_key_rotation     = true
+
+  tags = {
+    Name = "${var.project_name}-${var.environment}-ecr-cmk"
+  }
+}
+
+resource "aws_kms_alias" "ecr" {
+  name          = "alias/${var.project_name}-${var.environment}-ecr"
+  target_key_id = aws_kms_key.ecr.key_id
+}
+
 resource "aws_ecr_repository" "repos" {
   for_each = toset(var.ecr_repositories)
 
@@ -12,7 +28,14 @@ resource "aws_ecr_repository" "repos" {
     scan_on_push = true
   }
 
-  force_delete = true
+  encryption_configuration {
+    encryption_type = "KMS"
+    kms_key         = aws_kms_key.ecr.arn
+  }
+
+  # Defaults to false for production safety; set var.force_delete = true only
+  # for ephemeral/test environments where deleting non-empty repos is intended.
+  force_delete = var.force_delete
 
   tags = {
     Name = "${var.project_name}-${var.environment}-${each.value}"

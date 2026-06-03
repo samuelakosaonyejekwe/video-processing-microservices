@@ -88,3 +88,79 @@ spec:
     - name: otlp-http
       port: 4318
       targetPort: 4318
+---
+#
+# TRACING NAMESPACE: default-deny-all backstop.
+# Co-located with the otel-collector manifest so it is applied by
+# deploy-tracing.sh AFTER the tracing namespace is created (the
+# network-policies deploy script does not target this namespace).
+#
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: default-deny-all
+  namespace: ${TRACING_NAMESPACE}
+  labels:
+    app: network-security
+    policy: default-deny
+spec:
+  podSelector: {}
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress: []
+  egress: []
+---
+#
+# TRACING NAMESPACE: allow OTLP/HTTP (4318) ingress from app-namespace pods so
+# the services can ship traces to the collector.
+#
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: otel-collector-allow
+  namespace: ${TRACING_NAMESPACE}
+  labels:
+    app: otel-collector
+    policy: otel-collector-allow
+spec:
+  podSelector:
+    matchLabels:
+      app: otel-collector
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: ${K8S_NAMESPACE}
+      ports:
+        - protocol: TCP
+          port: 4318
+---
+#
+# TRACING NAMESPACE: allow DNS egress for every pod so the deny-all above does
+# not break cluster service resolution.
+#
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-dns-egress
+  namespace: ${TRACING_NAMESPACE}
+  labels:
+    app: network-security
+    policy: allow-dns
+spec:
+  podSelector: {}
+  policyTypes:
+    - Egress
+  egress:
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: ${KUBE_SYSTEM_NAMESPACE}
+      ports:
+        - protocol: UDP
+          port: ${DNS_PORT}
+        - protocol: TCP
+          port: ${DNS_PORT}

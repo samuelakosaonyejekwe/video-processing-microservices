@@ -1,3 +1,9 @@
+# NOTE: Base default-deny template. This is a standalone manifest (not part of
+# any Helm chart under infrastructure/helm/*/templates) and is not currently
+# rendered or applied by any pipeline. It must be LAYERED with explicit allow
+# policies for the traffic each workload needs — applied alone it black-holes all
+# pod traffic. A DNS egress allow is included below so cluster DNS resolution is
+# never broken even when only this policy is present.
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 
@@ -12,3 +18,14 @@ spec:
   policyTypes:
     - Ingress
     - Egress
+
+  # Allow DNS resolution (kube-dns/CoreDNS) so this base policy does not
+  # black-hole name resolution. Add further allow rules in layered policies.
+  egress:
+    - to:
+        - namespaceSelector: {}
+      ports:
+        - protocol: UDP
+          port: 53
+        - protocol: TCP
+          port: 53

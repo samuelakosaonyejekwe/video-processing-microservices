@@ -34,6 +34,11 @@ module "security_groups" {
   vpc_cidr = var.vpc_cidr
 
   allowed_cidr_blocks = var.allowed_cidr_blocks
+
+  # Defaults to allowed_cidr_blocks to preserve current Jenkins access when the
+  # dedicated variable is left unset. Narrow var.jenkins_allowed_cidr_blocks to
+  # admin IPs to lock down the Jenkins UI without affecting other access.
+  jenkins_allowed_cidr_blocks = length(var.jenkins_allowed_cidr_blocks) > 0 ? var.jenkins_allowed_cidr_blocks : var.allowed_cidr_blocks
 }
 
 module "iam" {

@@ -19,6 +19,7 @@ spec:
 
   policyTypes:
     - Ingress
+    - Egress
 
   ingress:
 
@@ -36,3 +37,16 @@ spec:
       ports:
         - protocol: TCP
           port: ${REDIS_PORT}
+
+  egress:
+
+    # DNS — required for cluster service resolution.
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: ${KUBE_SYSTEM_NAMESPACE}
+      ports:
+        - protocol: UDP
+          port: ${DNS_PORT}
+        - protocol: TCP
+          port: ${DNS_PORT}

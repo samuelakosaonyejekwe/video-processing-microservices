@@ -83,15 +83,11 @@ class AuthMiddleware(BaseHTTPMiddleware):
                 token,
                 decode_key,
                 algorithms=[algorithm],
-                issuer=jwt_config.JWT_ISSUER if algorithm.startswith("RS") else None,
-                audience=(
-                    jwt_config.JWT_AUDIENCE if algorithm.startswith("RS") else None
-                ),
+                issuer=jwt_config.JWT_ISSUER,
+                audience=jwt_config.JWT_AUDIENCE,
             )
 
-            token_type = payload.get("type")
-
-            if token_type and token_type != "access":
+            if payload.get("type") != "access":
                 return JSONResponse(
                     status_code=401,
                     content={"detail": "Invalid token type"},

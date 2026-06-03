@@ -145,12 +145,10 @@ if APP_ENV != "production":
                 token,
                 decode_key,
                 algorithms=[algorithm],
-                issuer=jwt_config.JWT_ISSUER if algorithm.startswith("RS") else None,
-                audience=(
-                    jwt_config.JWT_AUDIENCE if algorithm.startswith("RS") else None
-                ),
+                issuer=jwt_config.JWT_ISSUER,
+                audience=jwt_config.JWT_AUDIENCE,
             )
-            if payload.get("type") and payload.get("type") != "access":
+            if payload.get("type") != "access":
                 return {"valid": False, "detail": "Invalid token type"}
             return {"valid": True, "sub": payload.get("sub")}
         except ExpiredSignatureError:

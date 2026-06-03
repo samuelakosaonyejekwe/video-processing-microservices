@@ -18,7 +18,7 @@ services:
       RABBITMQ_HOST: rabbitmq
       RABBITMQ_PORT: ${RABBITMQ_PORT:-5672}
       RABBITMQ_USERNAME: ${RABBITMQ_USERNAME:-${RABBITMQ_DEFAULT_USER:-guest}}
-      RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD:-${RABBITMQ_DEFAULT_PASS:-guest}}
+      RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD:?RABBITMQ_PASSWORD must be set (no insecure default)}
       RABBITMQ_EXCHANGE: ${RABBITMQ_EXCHANGE:-video-conversion-exchange}
       VIDEO_UPLOAD_QUEUE: ${VIDEO_UPLOAD_QUEUE:-${RABBITMQ_QUEUE:-video-upload-queue}}
       NOTIFICATION_QUEUE: ${NOTIFICATION_QUEUE:-notification-queue}
@@ -28,8 +28,8 @@ services:
       AUTH_SERVICE_PORT: "8000"
       CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:-http://localhost:3000}
       AWS_REGION: ${AWS_REGION:-eu-central-1}
-      AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID:-minioadmin}
-      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY:-minioadmin}
+      AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID:?AWS_ACCESS_KEY_ID must be set (no insecure default)}
+      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY:?AWS_SECRET_ACCESS_KEY must be set (no insecure default)}
       AWS_S3_ENDPOINT_URL: ${AWS_S3_ENDPOINT_URL:-http://minio:9000}
       AWS_S3_VIDEO_BUCKET: ${AWS_S3_VIDEO_BUCKET:-${S3_UPLOAD_BUCKET:-video-uploads}}
       AWS_S3_BUCKET: ${AWS_S3_BUCKET:-${S3_UPLOAD_BUCKET:-video-uploads}}
@@ -39,13 +39,13 @@ services:
       MAX_VIDEO_UPLOAD_SIZE_MB: ${MAX_VIDEO_UPLOAD_SIZE_MB:-500}
       REDIS_HOST: redis
       REDIS_PORT: ${REDIS_PORT:-6379}
-      REDIS_PASSWORD: ${REDIS_PASSWORD:-redis}
+      REDIS_PASSWORD: ${REDIS_PASSWORD:?REDIS_PASSWORD must be set (no insecure default)}
       MONGO_HOST: mongodb
       MONGO_PORT: ${MONGO_PORT:-27017}
       MONGO_DATABASE: ${MONGO_DATABASE:-video_converter}
       MONGO_USERNAME: ${MONGO_USERNAME:-mongo}
-      MONGO_PASSWORD: ${MONGO_PASSWORD:-mongo}
-      MONGO_URI: ${MONGO_URI:-mongodb://mongo:mongo@mongodb:27017/video_converter?authSource=admin}
+      MONGO_PASSWORD: ${MONGO_PASSWORD:?MONGO_PASSWORD must be set (no insecure default)}
+      MONGO_URI: ${MONGO_URI:?MONGO_URI must be set (no insecure default)}
     ports:
       - "${GATEWAY_APP_PORT:-8080}:8080"
     volumes:
@@ -85,7 +85,7 @@ services:
       APP_PORT: "8000"
       AUTH_SERVICE_PORT: "8000"
       POSTGRES_HOST: postgres
-      POSTGRES_SSL_MODE: disable
+      POSTGRES_SSL_MODE: ${POSTGRES_SSL_MODE:-prefer}
       JWT_ACTIVE_KID: ${JWT_ACTIVE_KID:-default}
       JWT_ISSUER: ${JWT_ISSUER:-${JWT_TOKEN_ISSUER:-video-converter-platform}}
       JWT_AUDIENCE: ${JWT_AUDIENCE:-${JWT_TOKEN_AUDIENCE:-video-converter-users}}
@@ -93,11 +93,11 @@ services:
       RABBITMQ_HOST: rabbitmq
       RABBITMQ_PORT: ${RABBITMQ_PORT:-5672}
       RABBITMQ_USERNAME: ${RABBITMQ_USERNAME:-${RABBITMQ_DEFAULT_USER:-guest}}
-      RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD:-${RABBITMQ_DEFAULT_PASS:-guest}}
+      RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD:?RABBITMQ_PASSWORD must be set (no insecure default)}
       CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:-http://localhost:3000}
       REDIS_HOST: redis
       REDIS_PORT: ${REDIS_PORT:-6379}
-      REDIS_PASSWORD: ${REDIS_PASSWORD:-redis}
+      REDIS_PASSWORD: ${REDIS_PASSWORD:?REDIS_PASSWORD must be set (no insecure default)}
     ports:
       - "${AUTH_APP_PORT:-8000}:8000"
     volumes:
@@ -134,7 +134,7 @@ services:
       RABBITMQ_HOST: rabbitmq
       RABBITMQ_PORT: ${RABBITMQ_PORT:-5672}
       RABBITMQ_USERNAME: ${RABBITMQ_USERNAME:-${RABBITMQ_DEFAULT_USER:-guest}}
-      RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD:-${RABBITMQ_DEFAULT_PASS:-guest}}
+      RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD:?RABBITMQ_PASSWORD must be set (no insecure default)}
       VIDEO_UPLOAD_QUEUE: ${VIDEO_UPLOAD_QUEUE:-video-upload-queue}
       VIDEO_UPLOAD_RETRY_QUEUE: ${VIDEO_UPLOAD_RETRY_QUEUE:-video-upload-retry-queue}
       VIDEO_UPLOAD_DLQ: ${VIDEO_UPLOAD_DLQ:-video-upload-dlq}
@@ -147,8 +147,8 @@ services:
       MONGO_PORT: ${MONGO_PORT:-27017}
       MONGO_DATABASE: ${MONGO_DATABASE:-video_converter}
       AWS_REGION: ${AWS_REGION:-eu-central-1}
-      AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID:-minioadmin}
-      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY:-minioadmin}
+      AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID:?AWS_ACCESS_KEY_ID must be set (no insecure default)}
+      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY:?AWS_SECRET_ACCESS_KEY must be set (no insecure default)}
       AWS_S3_ENDPOINT_URL: ${AWS_S3_ENDPOINT_URL:-http://minio:9000}
       S3_BUCKET_NAME: ${S3_BUCKET_NAME:-${S3_UPLOAD_BUCKET:-video-uploads}}
       S3_UPLOAD_BUCKET: ${S3_UPLOAD_BUCKET:-video-uploads}
@@ -197,12 +197,12 @@ services:
       RABBITMQ_HOST: rabbitmq
       RABBITMQ_PORT: ${RABBITMQ_PORT:-5672}
       RABBITMQ_USERNAME: ${RABBITMQ_USERNAME:-${RABBITMQ_DEFAULT_USER:-guest}}
-      RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD:-${RABBITMQ_DEFAULT_PASS:-guest}}
+      RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD:?RABBITMQ_PASSWORD must be set (no insecure default)}
       NOTIFICATION_QUEUE: ${NOTIFICATION_QUEUE:-notification-queue}
       NOTIFICATION_RETRY_QUEUE: ${NOTIFICATION_RETRY_QUEUE:-notification-retry-queue}
       REDIS_HOST: redis
       REDIS_PORT: ${REDIS_PORT:-6379}
-      REDIS_PASSWORD: ${REDIS_PASSWORD:-redis}
+      REDIS_PASSWORD: ${REDIS_PASSWORD:?REDIS_PASSWORD must be set (no insecure default)}
       WEBSOCKET_HOST: 0.0.0.0
       WEBSOCKET_PORT: ${WEBSOCKET_PORT:-8081}
       EMAIL_ENABLED: ${EMAIL_ENABLED:-false}
@@ -233,7 +233,7 @@ services:
     environment:
       POSTGRES_DB: ${POSTGRES_DB:-video_to_audio_converter}
       POSTGRES_USER: ${POSTGRES_USER:-postgres}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set (no insecure default)}
     ports:
       # Bind datastore ports to loopback only — never expose them on all
       # interfaces, even in local dev.
@@ -256,7 +256,7 @@ services:
     restart: unless-stopped
     environment:
       MONGO_INITDB_ROOT_USERNAME: ${MONGO_USERNAME:-mongo}
-      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_PASSWORD:-mongo}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_PASSWORD:?MONGO_PASSWORD must be set (no insecure default)}
       MONGO_INITDB_DATABASE: ${MONGO_DATABASE:-video_converter}
     ports:
       - "127.0.0.1:${MONGO_PORT:-27017}:27017"
@@ -278,8 +278,8 @@ services:
       - ${COMPOSE_ENV_FILE:-.env}
     environment:
       RABBITMQ_DEFAULT_USER: ${RABBITMQ_DEFAULT_USER:-${RABBITMQ_USERNAME:-guest}}
-      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_DEFAULT_PASS:-${RABBITMQ_PASSWORD:-guest}}
-      RABBITMQ_ERLANG_COOKIE: ${RABBITMQ_ERLANG_COOKIE:-local-dev-cookie}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_DEFAULT_PASS:?RABBITMQ_DEFAULT_PASS must be set (no insecure default)}
+      RABBITMQ_ERLANG_COOKIE: ${RABBITMQ_ERLANG_COOKIE:?RABBITMQ_ERLANG_COOKIE must be set (no insecure default)}
     ports:
       - "127.0.0.1:${RABBITMQ_PORT:-5672}:5672"
       - "127.0.0.1:${RABBITMQ_MANAGEMENT_PORT:-15672}:15672"
@@ -300,13 +300,13 @@ services:
     image: redis:7-alpine
     container_name: ${REDIS_CONTAINER_NAME:-redis}
     restart: unless-stopped
-    command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD:-redis}
+    command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD:?REDIS_PASSWORD must be set (no insecure default)}
     ports:
       - "127.0.0.1:${REDIS_PORT:-6379}:6379"
     volumes:
       - redis_data:/data
     healthcheck:
-      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD:-redis}", "ping"]
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD:?REDIS_PASSWORD must be set (no insecure default)}", "ping"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -319,8 +319,8 @@ services:
     restart: unless-stopped
     command: server /data --console-address ":9001"
     environment:
-      MINIO_ROOT_USER: ${AWS_ACCESS_KEY_ID:-minioadmin}
-      MINIO_ROOT_PASSWORD: ${AWS_SECRET_ACCESS_KEY:-minioadmin}
+      MINIO_ROOT_USER: ${AWS_ACCESS_KEY_ID:?AWS_ACCESS_KEY_ID must be set (no insecure default)}
+      MINIO_ROOT_PASSWORD: ${AWS_SECRET_ACCESS_KEY:?AWS_SECRET_ACCESS_KEY must be set (no insecure default)}
     ports:
       - "127.0.0.1:${MINIO_PORT:-9000}:9000"
       - "127.0.0.1:${MINIO_CONSOLE_PORT:-9001}:9001"
@@ -342,7 +342,7 @@ services:
         condition: service_healthy
     entrypoint: >
       /bin/sh -c "
-      mc alias set local http://minio:9000 ${AWS_ACCESS_KEY_ID:-minioadmin} ${AWS_SECRET_ACCESS_KEY:-minioadmin} &&
+      mc alias set local http://minio:9000 ${AWS_ACCESS_KEY_ID:?AWS_ACCESS_KEY_ID must be set (no insecure default)} ${AWS_SECRET_ACCESS_KEY:?AWS_SECRET_ACCESS_KEY must be set (no insecure default)} &&
       mc mb --ignore-existing local/${S3_UPLOAD_BUCKET:-video-uploads} &&
       mc mb --ignore-existing local/${S3_AUDIO_BUCKET:-audio-outputs}
       "

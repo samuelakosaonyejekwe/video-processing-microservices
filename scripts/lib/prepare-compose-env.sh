@@ -6,7 +6,10 @@ prepare_compose_env() {
   local runtime_env="${root_dir}/.env.compose.runtime"
   local secrets_dir="${root_dir}/.compose-secrets"
 
-  : > "${runtime_env}"
+  # This runtime env file holds AWS keys and all DB/RabbitMQ/SMTP passwords.
+  # Create it world-unreadable (0600) and keep it that way across later appends.
+  ( umask 077; : > "${runtime_env}" )
+  chmod 600 "${runtime_env}" 2>/dev/null || true
 
   if [ -f "${root_dir}/.env" ]; then
     set +u
@@ -80,6 +83,7 @@ prepare_compose_env() {
   # Priority: user-supplied keys at root_dir → already-generated keys in
   # secrets_dir (preserve across re-runs) → generate a throwaway pair.
   mkdir -p "${secrets_dir}"
+  chmod 700 "${secrets_dir}" 2>/dev/null || true
   if [ -f "${root_dir}/jwt-private.pem" ]; then
     cp "${root_dir}/jwt-private.pem" "${secrets_dir}/jwt-private.pem"
     if [ -f "${root_dir}/jwt-public.pem" ]; then
@@ -93,7 +97,12 @@ prepare_compose_env() {
     openssl rsa -in "${secrets_dir}/jwt-private.pem" -pubout \
       -out "${secrets_dir}/jwt-public.pem" 2>/dev/null || true
   fi
-  chmod 644 "${secrets_dir}/jwt-private.pem" "${secrets_dir}/jwt-public.pem" 2>/dev/null || true
+  # Host-side protection comes from the 0700 secrets_dir above (other users
+  # can't traverse into it). The key files themselves stay 0644 because compose
+  # bind-mounts them read-only into containers that run as a NON-root user with a
+  # different UID — 0600 would make the mounted key unreadable and crash the app.
+  chmod 644 "${secrets_dir}/jwt-private.pem" 2>/dev/null || true
+  chmod 644 "${secrets_dir}/jwt-public.pem" 2>/dev/null || true
   # Always RS256 — RSA material is always present in secrets_dir after the block above.
   echo "JWT_ALGORITHM=RS256" >> "${runtime_env}"
 

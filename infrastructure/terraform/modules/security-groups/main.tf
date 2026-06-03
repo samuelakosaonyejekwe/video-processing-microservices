@@ -126,7 +126,10 @@ resource "aws_security_group" "jenkins" {
 
     description = "Jenkins web UI"
 
-    cidr_blocks = var.allowed_cidr_blocks
+    # Scoped via a dedicated variable so the Jenkins UI can be locked down to
+    # admin IPs independently of the broad allowed_cidr_blocks. SECURITY: narrow
+    # jenkins_allowed_cidr_blocks in terraform.tfvars; do not leave 0.0.0.0/0.
+    cidr_blocks = var.jenkins_allowed_cidr_blocks
   }
 
   ingress {

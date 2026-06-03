@@ -124,7 +124,24 @@ JWT_AUDIENCE = first_env(
     "JWT_AUDIENCE", "JWT_TOKEN_AUDIENCE", default="video-converter-users"
 )
 
-JWT_ALGORITHM = first_env("JWT_ALGORITHM", default="RS256")
+JWT_ALGORITHM = first_env("JWT_ALGORITHM", default="RS256").upper()
+
+SUPPORTED_JWT_ALGORITHMS = {
+    "HS256",
+    "HS384",
+    "HS512",
+    "RS256",
+    "RS384",
+    "RS512",
+}
+
+if JWT_ALGORITHM not in SUPPORTED_JWT_ALGORITHMS:
+    raise RuntimeError(f"Unsupported JWT algorithm: {JWT_ALGORITHM}")
+
+# The converter only verifies tokens with the platform public key, so it must
+# use an RS* algorithm. Refusing HS* prevents an RS/HS confusion downgrade.
+if not JWT_ALGORITHM.startswith("RS"):
+    raise RuntimeError(f"Converter requires an RS* JWT algorithm; got {JWT_ALGORITHM}")
 
 if APP_ENV == "production" and CORS_ALLOWED_ORIGINS == ["http://localhost:3000"]:
     _frontend_origin = first_env("FRONTEND_URL")

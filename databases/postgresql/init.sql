@@ -32,9 +32,43 @@ END
 $$;
 
 -- =========================================================
--- Grant Database Privileges
+-- Grant Database Privileges (Least Privilege)
+-- The app needs to connect, use the public schema, run DML on its
+-- tables, and use sequences for serial primary keys. It does NOT need
+-- ownership/DDL/ALL ON DATABASE.
 -- =========================================================
 
-GRANT ALL PRIVILEGES
-ON DATABASE video_converter_db
-TO CURRENT_SETTING('app.postgres_user');
+DO
+$$
+DECLARE
+   app_user text := current_setting('app.postgres_user');
+BEGIN
+   -- Connect on the application database only.
+   EXECUTE format('GRANT CONNECT ON DATABASE video_converter_db TO %I', app_user);
+
+   -- Schema usage (required to reference any object in public).
+   EXECUTE format('GRANT USAGE ON SCHEMA public TO %I', app_user);
+
+   -- DML on all existing tables.
+   EXECUTE format(
+      'GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO %I',
+      app_user
+   );
+
+   -- Sequence usage for serial / identity primary keys.
+   EXECUTE format(
+      'GRANT USAGE, SELECT, UPDATE ON ALL SEQUENCES IN SCHEMA public TO %I',
+      app_user
+   );
+
+   -- Ensure future tables/sequences created in public are covered too.
+   EXECUTE format(
+      'ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO %I',
+      app_user
+   );
+   EXECUTE format(
+      'ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT USAGE, SELECT, UPDATE ON SEQUENCES TO %I',
+      app_user
+   );
+END
+$$;

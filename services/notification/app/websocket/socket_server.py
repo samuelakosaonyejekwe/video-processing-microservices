@@ -24,12 +24,23 @@ _MAX_CONNECTIONS_PER_USER = int(os.getenv("WS_MAX_CONNECTIONS_PER_USER", "5"))
 _MAX_MESSAGE_BYTES = int(os.getenv("WS_MAX_MESSAGE_BYTES", str(64 * 1024)))
 
 
+# Server-to-server (non-browser) clients omit the Origin header. By default we
+# require a present, allow-listed Origin so a browser CSWSH attempt can't slip
+# through; set WS_ALLOW_MISSING_ORIGIN=true only when a trusted non-browser
+# client legitimately needs the exemption (auth is still enforced separately).
+_ALLOW_MISSING_ORIGIN = os.getenv("WS_ALLOW_MISSING_ORIGIN", "false").lower() in (
+    "true",
+    "1",
+    "yes",
+)
+
+
 def _origin_allowed(origin: str | None) -> bool:
     # Browsers always send Origin on a WebSocket handshake; a cross-site forgery
-    # attempt would carry a disallowed Origin. Missing Origin (non-browser
-    # clients) is allowed because the cookie/JWT is still required.
+    # attempt would carry a disallowed Origin. A missing Origin is rejected
+    # unless explicitly opted into for trusted server-to-server clients.
     if not origin:
-        return True
+        return _ALLOW_MISSING_ORIGIN
     if CORS_ALLOWED_ORIGINS == ["*"]:
         return True
     return origin in CORS_ALLOWED_ORIGINS

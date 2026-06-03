@@ -151,6 +151,17 @@ export AVAILABILITY_ZONES="${AVAILABILITY_ZONES:-}"
 # GitHub Actions runners use dynamic IPs, so allow public access from anywhere for CI/CD.
 # Override with your VPN/office CIDR in production for stricter control.
 export PUBLIC_ACCESS_CIDRS="${PUBLIC_ACCESS_CIDRS:-[\"0.0.0.0/0\"]}"
+if [ "${APP_ENV:-development}" = "production" ]; then
+  # The EKS endpoint is intentionally kept publicly reachable so GitHub Actions
+  # (dynamic runner IPs) can deploy. A literal 0.0.0.0/0 is therefore a WARNING,
+  # not a hard error — narrow it to your VPN/office CIDR once OIDC + private
+  # runners are in place. See docs/security-hardening.md.
+  if [[ "${PUBLIC_ACCESS_CIDRS}" == *'0.0.0.0/0'* ]]; then
+    echo "WARNING: PUBLIC_ACCESS_CIDRS is 0.0.0.0/0 in production (EKS API open to the world). Narrow to an explicit CIDR list when possible." >&2
+  else
+    echo "WARNING: PUBLIC_ACCESS_CIDRS=${PUBLIC_ACCESS_CIDRS} — EKS endpoint is publicly reachable. Restrict to your VPN/office CIDR if possible." >&2
+  fi
+fi
 export ECR_REPOSITORIES="${ECR_REPOSITORIES:-[\"gateway-service\",\"auth-service\",\"converter-service\",\"notification-service\",\"frontend\"]}"
 export JENKINS_INSTANCE_TYPE="${JENKINS_INSTANCE_TYPE:-t3.medium}"
 export JENKINS_ASG_NAME="${JENKINS_ASG_NAME:-${PROJECT_NAME:-video-processing}-jenkins-asg}"
@@ -210,7 +221,20 @@ export MONGO_HOST="${MONGO_HOST:-mongodb.${DATABASE_NAMESPACE}.svc.cluster.local
 export RABBITMQ_HOST="${RABBITMQ_HOST:-rabbitmq.${MESSAGING_NAMESPACE}.svc.cluster.local}"
 export RABBITMQ_PORT="${RABBITMQ_PORT:-5672}"
 export RABBITMQ_VHOST="${RABBITMQ_VHOST:-/}"
-export RABBITMQ_ERLANG_COOKIE="${RABBITMQ_ERLANG_COOKIE:-production-erlang-cookie}"
+if [ "${APP_ENV:-development}" = "production" ]; then
+  # No guessable default in production — clustering security depends on this.
+  # env-aliases is sourced by many scripts that don't deploy RabbitMQ, so this is
+  # a warning here (not a hard failure); the value is REQUIRED at the point it is
+  # actually consumed — render-k8s-secrets.sh enforces it before rendering the
+  # rabbitmq secret. Left empty (never a guessable default) when unset.
+  export RABBITMQ_ERLANG_COOKIE="${RABBITMQ_ERLANG_COOKIE:-}"
+  if [ -z "${RABBITMQ_ERLANG_COOKIE}" ]; then
+    echo "WARNING: RABBITMQ_ERLANG_COOKIE is unset in production; it must be provided (from GitHub Secrets) before deploying RabbitMQ." >&2
+  fi
+else
+  # Dev-only default; never use this value outside local/non-production runs.
+  export RABBITMQ_ERLANG_COOKIE="${RABBITMQ_ERLANG_COOKIE:-dev-only-erlang-cookie}"
+fi
 export RABBITMQ_AMQP_URL="${RABBITMQ_AMQP_URL:-amqp://${RABBITMQ_USERNAME}:${RABBITMQ_PASSWORD}@${RABBITMQ_HOST}:${RABBITMQ_PORT}/}"
 export RABBITMQ_URI="${RABBITMQ_URI:-${RABBITMQ_AMQP_URL}}"
 # Built after MONGO_AUTH_SOURCE is defined (see end of file).
@@ -354,6 +378,12 @@ if [ "${APP_ENV:-development}" = "production" ] && [ "${CORS_ALLOWED_ORIGINS}" =
     export CORS_ALLOWED_ORIGINS="https://${DOMAIN_NAME}"
   elif [ -n "${API_BASE_URL:-}" ]; then
     export CORS_ALLOWED_ORIGINS="${API_BASE_URL}"
+  fi
+  if [ "${CORS_ALLOWED_ORIGINS}" = "*" ]; then
+    # Warning only: env-aliases is sourced by non-deploy scripts. The auth and
+    # gateway services hard-reject '*' + credentials at startup, so this is
+    # enforced at the actual point of use.
+    echo "WARNING: CORS_ALLOWED_ORIGINS is '*' in production. Set explicit allowed origin(s)." >&2
   fi
 fi
 export API_PREFIX="${API_PREFIX:-/api/v1}"
@@ -567,6 +597,16 @@ export GRAFANA_IMAGE="${GRAFANA_IMAGE:-grafana/grafana:11.2.0}"
 export GRAFANA_SERVICE_TYPE="${GRAFANA_SERVICE_TYPE:-ClusterIP}"
 export GRAFANA_ADMIN_USER="${GRAFANA_ADMIN_USER:-admin}"
 export GRAFANA_ADMIN_PASSWORD="${GRAFANA_ADMIN_PASSWORD:-}"
+if [ "${APP_ENV:-development}" = "production" ] && [ "${DEPLOY_MONITORING_STACK:-true}" = "true" ]; then
+  # Warnings only here — env-aliases is sourced by many non-deploy scripts.
+  # deploy-monitoring.sh enforces these before applying the Grafana secret.
+  if [ "${GRAFANA_ADMIN_USER}" = "admin" ]; then
+    echo "WARNING: GRAFANA_ADMIN_USER should not be 'admin' in production." >&2
+  fi
+  if [ -z "${GRAFANA_ADMIN_PASSWORD}" ]; then
+    echo "WARNING: GRAFANA_ADMIN_PASSWORD should be set (non-empty) in production." >&2
+  fi
+fi
 export PROMETHEUS_LABEL_KEY="${PROMETHEUS_LABEL_KEY:-app}"
 export PROMETHEUS_LABEL_VALUE="${PROMETHEUS_LABEL_VALUE:-prometheus}"
 export APPLY_NETWORK_POLICIES="${APPLY_NETWORK_POLICIES:-true}"

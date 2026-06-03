@@ -408,7 +408,7 @@ docker compose --env-file .env.compose.runtime up -d --build --wait
 | `http://localhost:8000/docs` | Auth (Swagger UI) |
 | `http://localhost:8002/docs` | Converter (Swagger UI) |
 | `http://localhost:8003/docs` | Notification (Swagger UI) |
-| `http://localhost:15672` | RabbitMQ management (guest/guest) |
+| `http://localhost:15672` | RabbitMQ management (log in with `${RABBITMQ_USERNAME}` / `${RABBITMQ_PASSWORD}`) |
 | `http://localhost:9090` | Prometheus |
 | `http://localhost:3000` | Grafana |
 

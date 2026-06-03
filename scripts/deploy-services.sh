@@ -32,6 +32,11 @@ RENDERED="${ROOT_DIR}/.rendered-k8s/infrastructure/kubernetes"
 
 kubectl apply -f "${RENDERED}/namespaces/"
 kubectl apply -f "${RENDERED}/serviceaccounts/"
+if [ -d "${RENDERED}/policies" ]; then
+  # LimitRange backstop (default requests/limits) — apply after the namespace
+  # exists so unbounded pods can never be scheduled.
+  kubectl apply -f "${RENDERED}/policies/"
+fi
 kubectl apply -f "${RENDERED}/secrets/"
 
 bash "${ROOT_DIR}/scripts/sync-rabbitmq-credentials.sh"

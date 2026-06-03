@@ -4,7 +4,7 @@
 
 resource "aws_kms_key" "s3" {
   description             = "CMK for ${var.project_name}-${var.environment} S3 bucket encryption"
-  deletion_window_in_days = 7
+  deletion_window_in_days = 30
   enable_key_rotation     = true
 
   tags = merge(

@@ -28,8 +28,15 @@ jobs:
       github.event.workflow_run.conclusion == 'success'
     runs-on: ubuntu-latest
     timeout-minutes: 20
+    # Scope all production secrets to the protected "production" environment so
+    # that workflow_run deploys (which check out the triggering commit) require
+    # the configured reviewers/branch protection before secrets are exposed.
+    environment: production
     permissions:
       contents: read
+      # Allow OIDC role assumption when vars.AWS_OIDC_ROLE_ARN is configured.
+      # Static keys remain the fallback when the var is unset.
+      id-token: write
 
     env:
       AWS_REGION: ${{ vars.AWS_REGION }}
@@ -50,6 +57,7 @@ jobs:
       AWS_S3_AUDIO_BUCKET: ${{ vars.AWS_S3_AUDIO_BUCKET }}
       AWS_S3_BUCKET: ${{ vars.AWS_S3_BUCKET }}
       EKS_CLUSTER_NAME: ${{ vars.EKS_CLUSTER_NAME }}
+      EKS_NODE_GROUP_NAME: ${{ vars.EKS_NODE_GROUP_NAME }}
       K8S_NAMESPACE: ${{ vars.K8S_NAMESPACE }}
       APP_ENV: ${{ vars.APP_ENV }}
       PROJECT_NAME: ${{ vars.PROJECT_NAME }}
@@ -85,7 +93,7 @@ jobs:
 
     steps:
       - name: Checkout Repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
           ref: ${{ github.event.workflow_run.head_sha || github.ref }}
 
@@ -96,25 +104,53 @@ jobs:
           bash scripts/export-github-env.sh
 
       - name: Configure AWS Credentials
-        uses: aws-actions/configure-aws-credentials@v4
+        uses: aws-actions/configure-aws-credentials@e3dd6a429d7300a6a4c196c26e071d42e0343502 # v4.0.2
         with:
+          # Prefer OIDC role assumption when vars.AWS_OIDC_ROLE_ARN (or the
+          # AWS_DEPLOY_ROLE_ARN alias) is configured; otherwise fall back to the
+          # existing static access keys. The action prefers role-to-assume when
+          # it is non-empty, so leaving the var unset keeps the static-key path.
+          role-to-assume: ${{ vars.AWS_OIDC_ROLE_ARN || vars.AWS_DEPLOY_ROLE_ARN }}
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ vars.AWS_REGION }}
 
       - name: Setup Helm
-        uses: azure/setup-helm@v4
+        uses: azure/setup-helm@fe7b79cd5ee1e45176fcad797de68ecaf3ca4814 # v4.2.0
 
       - name: Check EKS Cluster Availability
         id: eks_check
         run: |
+          # Distinguish three states:
+          #  1. Cluster intentionally scaled to zero (nodegroup desired size == 0)
+          #     -> skip the deploy gracefully (expected low-cost mode).
+          #  2. Cluster reachable with Ready nodes -> deploy.
+          #  3. Cluster unreachable for any other reason -> FAIL (do not mask a
+          #     broken deploy as a green run).
           aws eks update-kubeconfig --region "${AWS_REGION}" --name "${EKS_CLUSTER_NAME}"
-          if ! kubectl get nodes --request-timeout=30s 2>/dev/null | grep -q "Ready"; then
-            echo "EKS cluster has no ready nodes. Skipping deployment."
+
+          desired="$(aws eks describe-nodegroup \
+            --cluster-name "${EKS_CLUSTER_NAME}" \
+            --nodegroup-name "${EKS_NODE_GROUP_NAME:-}" \
+            --query 'nodegroup.scalingConfig.desiredSize' \
+            --output text 2>/dev/null || echo "unknown")"
+
+          if [ "${desired}" = "0" ]; then
+            echo "Nodegroup desired size is 0 (cluster intentionally scaled to zero). Skipping deployment."
             echo "skip=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "skip=false" >> "$GITHUB_OUTPUT"
+            exit 0
           fi
+
+          if kubectl get nodes --request-timeout=30s 2>/dev/null | grep -q "Ready"; then
+            echo "EKS cluster has ready nodes. Proceeding with deployment."
+            echo "skip=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          echo "ERROR: EKS cluster '${EKS_CLUSTER_NAME}' has no Ready nodes but the"
+          echo "nodegroup desired size is '${desired}' (not 0). Treating this as an"
+          echo "unexpected unreachable cluster and failing the deploy."
+          exit 1
 
       - name: Configure kubectl
         if: steps.eks_check.outputs.skip != 'true'
@@ -168,3 +204,9 @@ jobs:
           API_BASE_URL: ${{ vars.API_BASE_URL }}
           GATEWAY_BASE_URL: ${{ vars.API_BASE_URL }}
         run: bash scripts/run-production-validation.sh
+
+      - name: Cleanup Rendered Secret Files
+        if: always()
+        run: |
+          rm -f infrastructure/terraform/terraform.tfvars
+          rm -rf .rendered-k8s .rendered-helm

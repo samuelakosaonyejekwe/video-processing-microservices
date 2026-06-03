@@ -229,7 +229,7 @@ variable "single_nat_gateway" {
 
 variable "allowed_cidr_blocks" {
 
-  description = "Allowed CIDR blocks for ingress access."
+  description = "Allowed CIDR blocks for ingress access (EKS API SG :443, Jenkins fallback). SECURITY: 0.0.0.0/0 exposes these to the entire internet — prefer your VPN/office CIDRs. GitHub Actions uses dynamic IPs, so the EKS API path may require a broad range, but Jenkins should be scoped via jenkins_allowed_cidr_blocks."
 
   type = list(string)
 
@@ -241,6 +241,15 @@ variable "allowed_cidr_blocks" {
 
     error_message = "allowed_cidr_blocks must contain at least one CIDR block."
   }
+}
+
+variable "jenkins_allowed_cidr_blocks" {
+
+  description = "CIDR blocks permitted to reach the Jenkins web UI (port 8080). Leave empty ([]) to inherit allowed_cidr_blocks (preserves current access). SECURITY: set this to your admin/VPN/office IPs — do NOT leave the Jenkins UI open to 0.0.0.0/0 in production."
+
+  type = list(string)
+
+  default = []
 }
 
 variable "keda_release_name" {
@@ -610,7 +619,7 @@ variable "node_disk_size" {
 }
 
 variable "public_access_cidrs" {
-  description = "CIDR blocks permitted to reach the EKS API public endpoint. Must be explicitly set — no default to prevent accidental world-wide exposure."
+  description = "CIDR blocks permitted to reach the EKS API public endpoint. Must be explicitly set — no default to prevent accidental world-wide exposure. SECURITY: 0.0.0.0/0 exposes the Kubernetes API to the entire internet. It is currently set wide because GitHub Actions CI connects from dynamic IPs; if you migrate CI to the GitHub OIDC role (var.enable_github_oidc) or a fixed egress, narrow this to your VPN/office CIDRs. endpoint_private_access is enabled so in-VPC clients are unaffected by narrowing."
   type        = list(string)
   default     = []
 
@@ -680,6 +689,36 @@ variable "s3_buckets" {
 variable "tags" {
   type    = map(string)
   default = {}
+}
+
+# ---------------------------------------------------------------------------
+# GitHub Actions OIDC (opt-in). When enabled, creates an IAM OIDC provider +
+# role that GitHub Actions can assume via short-lived web-identity tokens
+# instead of long-lived static access keys. Disabled by default so the existing
+# static-key CI path keeps working unchanged.
+# ---------------------------------------------------------------------------
+variable "enable_github_oidc" {
+  description = "Opt-in: create a GitHub Actions OIDC provider + IAM role for keyless CI auth. Default false preserves the existing static-key path. Setting true is additive and does not disable static keys."
+  type        = bool
+  default     = false
+}
+
+variable "github_oidc_repo" {
+  description = "GitHub repository allowed to assume the OIDC role, in 'owner/repo' form (e.g. samuelakosaonyejekwe/microservices-video-converter-app). Only used when enable_github_oidc = true."
+  type        = string
+  default     = ""
+}
+
+variable "github_oidc_subject_claims" {
+  description = "List of token 'sub' claim patterns permitted to assume the OIDC role (e.g. [\"repo:OWNER/REPO:ref:refs/heads/main\", \"repo:OWNER/REPO:environment:production\"]). If empty, defaults to any ref/branch in github_oidc_repo. Only used when enable_github_oidc = true."
+  type        = list(string)
+  default     = []
+}
+
+variable "github_oidc_policy_arns" {
+  description = "IAM policy ARNs to attach to the GitHub Actions OIDC role (e.g. the scoped deploy policy). Only used when enable_github_oidc = true."
+  type        = list(string)
+  default     = []
 }
 
 variable "ubuntu_ami_name_filter" {

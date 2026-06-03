@@ -16,6 +16,13 @@ if [ ! -f "${POLICY_FILE}" ]; then
   exit 1
 fi
 
+# The policy is a template: S3 bucket ARNs are ${AWS_S3_*_BUCKET} placeholders so
+# no environment-specific bucket name is committed. Render a ready-to-attach copy
+# from the current env (sourced from GitHub Variables) before referencing it.
+RENDERED_POLICY="$(mktemp)"
+trap 'rm -f "${RENDERED_POLICY}"' EXIT
+envsubst '${AWS_S3_VIDEO_BUCKET} ${AWS_S3_AUDIO_BUCKET}' < "${POLICY_FILE}" > "${RENDERED_POLICY}"
+
 ROLE_PREFIX="${EKS_CLUSTER_NAME:-video-processing-cluster}"
 checks=(
   "iam:PassRole|arn:aws:iam::${ACCOUNT_ID}:role/${ROLE_PREFIX}-alb-controller-role"
@@ -43,7 +50,8 @@ done
 
 if [ "${failures}" -gt 0 ]; then
   echo ""
-  echo "Attach scoped policy from ${POLICY_FILE} to the GitHub Actions IAM user/role."
+  echo "Attach the scoped policy (rendered from ${POLICY_FILE}) to the GitHub Actions IAM user/role:"
+  echo "  ${RENDERED_POLICY}"
   exit 1
 fi
 

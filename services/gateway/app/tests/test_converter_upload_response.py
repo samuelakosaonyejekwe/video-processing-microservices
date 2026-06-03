@@ -10,7 +10,13 @@ from app.main import app
 
 def _build_access_token(secret: str, algorithm: str) -> str:
     return jwt.encode(
-        {"sub": "test-user", "type": "access", "jti": str(uuid.uuid4())},
+        {
+            "sub": "test-user",
+            "type": "access",
+            "jti": str(uuid.uuid4()),
+            "iss": "video-converter-platform",
+            "aud": "video-converter-users",
+        },
         secret,
         algorithm=algorithm,
     )

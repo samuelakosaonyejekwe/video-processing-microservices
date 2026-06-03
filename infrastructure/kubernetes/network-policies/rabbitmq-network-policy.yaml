@@ -22,11 +22,34 @@ spec:
     - Egress
 
   ingress:
+
+    # AMQP from the specific producer/consumer pods in the app namespace.
+    # The management API port is intentionally NOT exposed to this broad set.
     - from:
 
         - namespaceSelector:
             matchLabels:
               kubernetes.io/metadata.name: ${K8S_NAMESPACE}
+          podSelector:
+            matchExpressions:
+              - key: app
+                operator: In
+                values:
+                  - ${GATEWAY_POD_LABEL}
+                  - ${GATEWAY_WORKER_POD_LABEL}
+                  - ${CONVERTER_APP_NAME}
+                  - ${CONVERTER_WORKER_POD_LABEL}
+                  - ${NOTIFICATION_POD_LABEL}
+                  - ${NOTIFICATION_WORKER_POD_LABEL}
+                  - ${AUTH_APP_NAME}
+
+      ports:
+
+        - protocol: TCP
+          port: ${RABBITMQ_AMQP_PORT}
+
+    # KEDA polls queue depth over AMQP (RABBITMQ_PROTOCOL=amqp); AMQP only.
+    - from:
 
         - namespaceSelector:
             matchLabels:
@@ -36,6 +59,19 @@ spec:
 
         - protocol: TCP
           port: ${RABBITMQ_AMQP_PORT}
+
+    # RabbitMQ management API (15672) exposed only to an explicit admin/monitoring
+    # selector so it is not reachable by every workload in the app namespace.
+    - from:
+
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: ${K8S_NAMESPACE}
+          podSelector:
+            matchLabels:
+              rabbitmq-management-access: "true"
+
+      ports:
 
         - protocol: TCP
           port: ${RABBITMQ_MANAGEMENT_PORT}

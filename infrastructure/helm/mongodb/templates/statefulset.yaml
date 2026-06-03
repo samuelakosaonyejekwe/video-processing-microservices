@@ -49,6 +49,9 @@ spec:
 
         fsGroupChangePolicy: OnRootMismatch
 
+        seccompProfile:
+          type: RuntimeDefault
+
       containers:
 
         - name: mongodb
@@ -64,6 +67,15 @@ spec:
             runAsUser: 999
 
             allowPrivilegeEscalation: false
+
+            readOnlyRootFilesystem: true
+
+            capabilities:
+              drop:
+                - ALL
+
+            seccompProfile:
+              type: RuntimeDefault
 
           ports:
 
@@ -94,6 +106,10 @@ spec:
             - name: mongodb-storage
 
               mountPath: /data/db
+
+            - name: tmp
+
+              mountPath: /tmp
 
           resources:
 
@@ -132,3 +148,7 @@ spec:
           persistentVolumeClaim:
 
             claimName: mongodb-pvc
+
+        - name: tmp
+
+          emptyDir: {}

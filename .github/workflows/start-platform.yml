@@ -10,6 +10,9 @@ jobs:
     timeout-minutes: 45
     permissions:
       contents: read
+      # Allow OIDC role assumption when vars.AWS_OIDC_ROLE_ARN is configured;
+      # static keys remain the fallback when the var is unset.
+      id-token: write
 
     env:
       AWS_REGION: ${{ vars.AWS_REGION }}
@@ -47,7 +50,7 @@ jobs:
 
     steps:
       - name: Checkout Repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
       - name: Export Environment Aliases
         run: |
@@ -56,20 +59,22 @@ jobs:
           bash scripts/export-github-env.sh
 
       - name: Configure AWS Credentials
-        uses: aws-actions/configure-aws-credentials@v4
+        uses: aws-actions/configure-aws-credentials@e3dd6a429d7300a6a4c196c26e071d42e0343502 # v4.0.2
         with:
+          # Prefer OIDC role assumption when configured; fall back to static keys.
+          role-to-assume: ${{ vars.AWS_OIDC_ROLE_ARN || vars.AWS_DEPLOY_ROLE_ARN }}
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ vars.AWS_REGION }}
 
       - name: Install kubectl
-        uses: azure/setup-kubectl@v4
+        uses: azure/setup-kubectl@3e0aec4d80787158d308d7b364cb1b702e7feb7f # v4.0.0
 
       - name: Install Helm
-        uses: azure/setup-helm@v4
+        uses: azure/setup-helm@fe7b79cd5ee1e45176fcad797de68ecaf3ca4814 # v4.2.0
 
       - name: Setup Terraform
-        uses: hashicorp/setup-terraform@v3
+        uses: hashicorp/setup-terraform@b9cd54a3c349d3f38e8881555d616ced269862dd # v3.1.2
         with:
           terraform_version: 1.8.5
 
@@ -80,4 +85,6 @@ jobs:
 
       - name: Cleanup Sensitive Files
         if: always()
-        run: rm -f infrastructure/terraform/terraform.tfvars .rendered-k8s -rf
+        run: |
+          rm -f infrastructure/terraform/terraform.tfvars
+          rm -rf .rendered-k8s .rendered-helm

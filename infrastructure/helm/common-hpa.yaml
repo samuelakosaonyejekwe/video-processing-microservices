@@ -1,3 +1,8 @@
+# NOTE: Base/example template. This is a standalone manifest (not part of any
+# Helm chart under infrastructure/helm/*/templates) and is not currently rendered
+# or applied by any pipeline. The per-service HPAs in infrastructure/kubernetes
+# supersede it. Copy + set `scaleTargetRef` to the target Deployment before use;
+# an HPA without a scaleTargetRef is non-functional.
 apiVersion: autoscaling/v2
 kind: HorizontalPodAutoscaler
 
@@ -6,6 +11,12 @@ metadata:
   namespace: video-converter
 
 spec:
+
+  # Required: the workload this HPA scales. Adjust name to the target Deployment.
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: gateway
 
   minReplicas: 1
 
