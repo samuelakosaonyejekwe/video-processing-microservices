@@ -67,6 +67,29 @@ aws sts get-caller-identity --region "${AWS_REGION}" \
 log "AWS credentials OK."
 
 # ---------------------------------------------------------------------------
+# STEP 0 (full mode only) — Back up databases to S3 BEFORE anything is torn down
+# ---------------------------------------------------------------------------
+# Full mode destroys the Postgres/MongoDB PVCs. Dump them to S3 first — while the
+# nodes and DB pods are still running — so start-platform can restore the exact
+# pre-shutdown state. If the dump fails, ABORT the destroy (better to keep paying
+# than to silently lose data). Set SKIP_DB_DUMP=true to destroy without a backup.
+if [ "${MODE}" = "full" ] && [ "${SKIP_DB_DUMP:-false}" != "true" ]; then
+  log "=== STEP 0: Back up databases to S3 before full teardown ==="
+  : "${DATABASE_BACKUP_BUCKET:?Missing DATABASE_BACKUP_BUCKET (required to back up DBs before full destroy)}"
+  if ! command -v kubectl >/dev/null 2>&1; then
+    echo "ERROR: kubectl is required to back up databases before a full destroy." >&2
+    exit 1
+  fi
+  aws eks update-kubeconfig --region "${AWS_REGION}" --name "${EKS_CLUSTER_NAME}" >/dev/null 2>&1 || true
+  if ! bash "${ROOT_DIR}/scripts/dump-databases.sh"; then
+    echo "ERROR: Database dump failed — ABORTING full destroy to avoid data loss." >&2
+    echo "       Fix the dump, or set SKIP_DB_DUMP=true to destroy WITHOUT a backup." >&2
+    exit 1
+  fi
+  log "Database backup complete — safe to proceed with teardown."
+fi
+
+# ---------------------------------------------------------------------------
 # STEP 1 — Scale EKS nodes to zero (both modes)
 # ---------------------------------------------------------------------------
 log "=== STEP 1: Scale EKS worker nodes to 0 ==="

@@ -47,6 +47,8 @@ jobs:
       RABBITMQ_USERNAME: ${{ secrets.RABBITMQ_USERNAME }}
       REDIS_PASSWORD: ${{ secrets.REDIS_PASSWORD }}
       GRAFANA_ADMIN_PASSWORD: ${{ secrets.GRAFANA_ADMIN_PASSWORD }}
+      # Restore DBs from this bucket after a full recreate (no-op if no dump exists).
+      DATABASE_BACKUP_BUCKET: ${{ vars.DATABASE_BACKUP_BUCKET }}
 
     steps:
       - name: Checkout Repository

@@ -36,6 +36,8 @@ jobs:
       TF_LOCK_TABLE: ${{ vars.TF_LOCK_TABLE }}
       HOSTED_ZONE_NAME: ${{ vars.HOSTED_ZONE_NAME }}
       APP_DOMAIN: ${{ vars.APP_DOMAIN }}
+      # Full mode dumps the DBs here before destroy (start-platform restores from it).
+      DATABASE_BACKUP_BUCKET: ${{ vars.DATABASE_BACKUP_BUCKET }}
 
     steps:
       - name: Checkout Repository

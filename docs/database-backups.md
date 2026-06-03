@@ -1,8 +1,35 @@
 # Database Backups
 
 The production databases (`mongodb`, `postgresql`) run as in-cluster StatefulSets
-on EBS-backed PVCs in the `database` namespace. They are backed up with **AWS
-Backup daily EBS snapshots**.
+on EBS-backed PVCs in the `database` namespace. There are **two** backup
+mechanisms:
+
+1. **AWS Backup daily EBS snapshots** (scheduled DR — see below).
+2. **Logical dump→S3 on full shutdown, restore on start** (so a full
+   destroy+recreate loses NO data — see "Full-mode shutdown/restore" below).
+
+## Full-mode shutdown/restore (no data loss across a destroy+recreate)
+`scripts/dump-databases.sh` and `scripts/restore-databases.sh` do `pg_dump` /
+`mongodump` (and the reverse) **inside the DB pods via `kubectl exec`**, streaming
+to/from **`s3://samuel-video-processing-db-dumps`** (`DATABASE_BACKUP_BUCKET`,
+private + versioned + AES256 + 30-day lifecycle). No extra images, IRSA, or
+NetworkPolicies are needed.
+
+- **Full shutdown** (`shutdown-platform.sh --full`) runs `dump-databases.sh`
+  FIRST (STEP 0, while the DBs are still up) and **aborts the destroy if the
+  dump fails** (so data is never lost silently). `SKIP_DB_DUMP=true` overrides.
+- **Start** (`start-platform.sh`) runs `restore-databases.sh` after services
+  deploy (STEP 8b), restoring the latest dump (idempotent: `--clean`/`--drop`),
+  then restarts the app deployments. `RESTORE_DATABASES=false` skips (fresh start).
+- **Verified** 2026-06-03: dump→restore round-trip into scratch DBs reproduced
+  exact row/doc counts (postgres users, mongo conversion_jobs).
+
+So: **soft shutdown** = nothing lost, ~$116/mo remaining; **full shutdown** =
+~$10/mo AND nothing lost (DBs dumped to S3 and restored on start). A full
+destroy+recreate also rebuilds the EKS cluster fresh, which **resolves the
+terraform state drift** as a side effect.
+
+## AWS Backup daily EBS snapshots
 
 > Set up 2026-06-03 after confirming **no backup mechanism was active** — the
 > `scripts/backup-*.sh` logical-dump scripts existed but nothing invoked them,

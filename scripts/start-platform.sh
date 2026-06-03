@@ -308,6 +308,23 @@ bash "${ROOT_DIR}/scripts/deploy-services.sh"
 ok "Services deployed."
 
 # ---------------------------------------------------------------------------
+# STEP 8b — Restore databases from the latest S3 dump
+# ---------------------------------------------------------------------------
+# After a full recreate the DBs come up empty (schema re-migrated). Restore the
+# pre-shutdown data from S3 so the platform is identical to before the shutdown.
+# Idempotent (uses --clean/--drop); a no-op/skip if no dump exists (fresh start).
+# Set RESTORE_DATABASES=false to deliberately start fresh.
+log "=== STEP 8b: Restoring databases from S3 (if a dump exists) ==="
+if bash "${ROOT_DIR}/scripts/restore-databases.sh"; then
+  ok "Database restore step complete."
+  # Restart app deployments so they pick up restored data cleanly.
+  kubectl -n "${K8S_NAMESPACE}" rollout restart deployment 2>/dev/null || true
+else
+  warn "Database restore FAILED — platform is up but DB data was NOT restored."
+  warn "Re-run: DATABASE_BACKUP_BUCKET=... bash scripts/restore-databases.sh"
+fi
+
+# ---------------------------------------------------------------------------
 # STEP 9 — Verify deployments
 # ---------------------------------------------------------------------------
 log "=== STEP 9: Verifying deployments ==="
