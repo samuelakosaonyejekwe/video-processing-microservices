@@ -163,6 +163,10 @@ jobs:
           POSTGRES_SSL_MODE: require
         run: bash scripts/validate-production-config.sh
 
+      - name: EKS Apply Safety Guard
+        if: github.event_name == 'workflow_dispatch'
+        run: infrastructure/terraform/scripts/terraform-apply-guard.sh
+
       - name: Terraform Apply
         if: github.event_name == 'workflow_dispatch'
         run: infrastructure/terraform/scripts/terraform-apply.sh

@@ -91,8 +91,10 @@ terraform.tfvars
 # Defaults file has no secrets — track it
 !infrastructure/terraform/terraform.defaults.auto.tfvars
 
-# Terraform plans
+# Terraform plans (may contain secrets — never commit)
 *.tfplan
+tfplan
+tfplan.json
 
 # ==========================================================
 # KUBERNETES
