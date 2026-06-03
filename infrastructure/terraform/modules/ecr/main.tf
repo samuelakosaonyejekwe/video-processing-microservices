@@ -28,6 +28,7 @@ resource "aws_ecr_repository" "repos" {
     scan_on_push = true
   }
 
+  # New repositories are created encrypted with the customer-managed CMK above.
   encryption_configuration {
     encryption_type = "KMS"
     kms_key         = aws_kms_key.ecr.arn
@@ -39,6 +40,17 @@ resource "aws_ecr_repository" "repos" {
 
   tags = {
     Name = "${var.project_name}-${var.environment}-${each.value}"
+  }
+
+  lifecycle {
+    # ECR encryption_configuration is immutable, so changing it on an EXISTING
+    # repository forces a destructive replace (all pushed images are deleted and
+    # must be re-pushed before pods can pull). Repos that predate the CMK keep
+    # their current at-rest encryption (AES-256, still encrypted); only newly
+    # created repos pick up the CMK. This makes `terraform apply` non-destructive
+    # for existing repositories. To migrate an existing repo to the CMK, do it
+    # deliberately (recreate + re-push) rather than via an in-place apply.
+    ignore_changes = [encryption_configuration]
   }
 }
 
