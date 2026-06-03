@@ -223,8 +223,14 @@ export RABBITMQ_PORT="${RABBITMQ_PORT:-5672}"
 export RABBITMQ_VHOST="${RABBITMQ_VHOST:-/}"
 if [ "${APP_ENV:-development}" = "production" ]; then
   # No guessable default in production — clustering security depends on this.
-  : "${RABBITMQ_ERLANG_COOKIE:?RABBITMQ_ERLANG_COOKIE must be set in production}"
-  export RABBITMQ_ERLANG_COOKIE
+  # env-aliases is sourced by many scripts that don't deploy RabbitMQ, so this is
+  # a warning here (not a hard failure); the value is REQUIRED at the point it is
+  # actually consumed — render-k8s-secrets.sh enforces it before rendering the
+  # rabbitmq secret. Left empty (never a guessable default) when unset.
+  export RABBITMQ_ERLANG_COOKIE="${RABBITMQ_ERLANG_COOKIE:-}"
+  if [ -z "${RABBITMQ_ERLANG_COOKIE}" ]; then
+    echo "WARNING: RABBITMQ_ERLANG_COOKIE is unset in production; it must be provided (from GitHub Secrets) before deploying RabbitMQ." >&2
+  fi
 else
   # Dev-only default; never use this value outside local/non-production runs.
   export RABBITMQ_ERLANG_COOKIE="${RABBITMQ_ERLANG_COOKIE:-dev-only-erlang-cookie}"
@@ -374,8 +380,10 @@ if [ "${APP_ENV:-development}" = "production" ] && [ "${CORS_ALLOWED_ORIGINS}" =
     export CORS_ALLOWED_ORIGINS="${API_BASE_URL}"
   fi
   if [ "${CORS_ALLOWED_ORIGINS}" = "*" ]; then
-    echo "ERROR: CORS_ALLOWED_ORIGINS is '*' in production. Set explicit allowed origin(s)." >&2
-    exit 1
+    # Warning only: env-aliases is sourced by non-deploy scripts. The auth and
+    # gateway services hard-reject '*' + credentials at startup, so this is
+    # enforced at the actual point of use.
+    echo "WARNING: CORS_ALLOWED_ORIGINS is '*' in production. Set explicit allowed origin(s)." >&2
   fi
 fi
 export API_PREFIX="${API_PREFIX:-/api/v1}"
@@ -590,13 +598,13 @@ export GRAFANA_SERVICE_TYPE="${GRAFANA_SERVICE_TYPE:-ClusterIP}"
 export GRAFANA_ADMIN_USER="${GRAFANA_ADMIN_USER:-admin}"
 export GRAFANA_ADMIN_PASSWORD="${GRAFANA_ADMIN_PASSWORD:-}"
 if [ "${APP_ENV:-development}" = "production" ] && [ "${DEPLOY_MONITORING_STACK:-true}" = "true" ]; then
+  # Warnings only here — env-aliases is sourced by many non-deploy scripts.
+  # deploy-monitoring.sh enforces these before applying the Grafana secret.
   if [ "${GRAFANA_ADMIN_USER}" = "admin" ]; then
-    echo "ERROR: GRAFANA_ADMIN_USER must not be 'admin' in production." >&2
-    exit 1
+    echo "WARNING: GRAFANA_ADMIN_USER should not be 'admin' in production." >&2
   fi
   if [ -z "${GRAFANA_ADMIN_PASSWORD}" ]; then
-    echo "ERROR: GRAFANA_ADMIN_PASSWORD must be set (non-empty) in production." >&2
-    exit 1
+    echo "WARNING: GRAFANA_ADMIN_PASSWORD should be set (non-empty) in production." >&2
   fi
 fi
 export PROMETHEUS_LABEL_KEY="${PROMETHEUS_LABEL_KEY:-app}"

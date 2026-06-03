@@ -19,6 +19,19 @@ bash "${ROOT_DIR}/scripts/render-k8s-manifests.sh" "${ROOT_DIR}/.rendered-k8s"
 
 kubectl create namespace "${MONITORING_NAMESPACE}" --dry-run=client -o yaml | kubectl apply -f -
 
+# Enforce strong Grafana admin credentials at the actual deploy point (env-aliases
+# only warns, since it is sourced by many non-deploy scripts).
+if [ "${APP_ENV:-development}" = "production" ]; then
+  if [ "${GRAFANA_ADMIN_USER:-admin}" = "admin" ]; then
+    echo "ERROR: GRAFANA_ADMIN_USER must not be 'admin' in production (set the GitHub Variable)." >&2
+    exit 1
+  fi
+  if [ -z "${GRAFANA_ADMIN_PASSWORD:-}" ]; then
+    echo "ERROR: GRAFANA_ADMIN_PASSWORD must be set in production (provide via GitHub Secrets)." >&2
+    exit 1
+  fi
+fi
+
 grafana_secret_template="${ROOT_DIR}/infrastructure/kubernetes/monitoring/grafana-secret.yaml"
 if [ -f "${grafana_secret_template}" ]; then
   envsubst < "${grafana_secret_template}" | kubectl apply -f -

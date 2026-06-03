@@ -144,6 +144,14 @@ _create_secret gateway-secret "${SECRETS_DIR}/gateway-secret.yaml" \
   GATEWAY_EVENTS_QUEUE GATEWAY_EVENTS_QUEUE \
   JWT_SECRET JWT_SECRET
 
+# RabbitMQ clustering security depends on a non-guessable Erlang cookie. Enforce
+# it here — the actual point of consumption — rather than when env-aliases is
+# merely sourced (which happens in many non-deploy contexts).
+if [ "${APP_ENV:-development}" = "production" ] && [ -z "${RABBITMQ_ERLANG_COOKIE:-}" ]; then
+  echo "ERROR: RABBITMQ_ERLANG_COOKIE must be set in production (provide it via GitHub Secrets)."
+  exit 1
+fi
+
 _create_secret rabbitmq-secret "${SECRETS_DIR}/rabbitmq-secret.yaml" \
   RABBITMQ_DEFAULT_USER RABBITMQ_DEFAULT_USER \
   RABBITMQ_DEFAULT_PASS RABBITMQ_DEFAULT_PASS \
