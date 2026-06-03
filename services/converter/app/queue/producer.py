@@ -131,183 +131,181 @@ class ConverterEventProducer:
 
         self.connect()
 
+    def _publish_event(self, routing_key, event, correlation_id, description):
+
+        # Publish a single event, reconnecting and retrying ONCE if the channel
+        # went stale (e.g. after a RabbitMQ restart). Previously each publish
+        # reconnected on failure but then re-raised, so a single stale
+        # connection dropped the event (e.g. the conversion-completed
+        # notification) even though the connection was immediately
+        # re-established. The consumer drives publishes from a single thread, so
+        # no extra locking is needed here.
+
+        body = json.dumps(event)
+
+        properties = pika.BasicProperties(
+            delivery_mode=2,
+            content_type="application/json",
+            correlation_id=correlation_id,
+        )
+
+        max_attempts = 2
+
+        for attempt in range(max_attempts):
+
+            try:
+
+                if self.channel is None or self.channel.is_closed:
+
+                    self.reconnect()
+
+                self.channel.basic_publish(
+                    exchange="",
+                    routing_key=routing_key,
+                    body=body,
+                    properties=properties,
+                )
+
+                return
+
+            except Exception as error:
+
+                if attempt >= max_attempts - 1:
+
+                    logger.error(
+                        "Failed to publish %s after %d attempt(s): %s",
+                        description,
+                        max_attempts,
+                        str(error),
+                    )
+
+                    self.reconnect()
+
+                    raise
+
+                logger.warning(
+                    "%s publish failed (%s); reconnecting and retrying once...",
+                    description,
+                    str(error),
+                )
+
+                self.reconnect()
+
     def publish_conversion_completed_event(
         self, job_id, user_id, original_filename, audio_s3_key, output_format
     ):
 
-        try:
+        correlation_id = str(uuid.uuid4())
 
-            correlation_id = str(uuid.uuid4())
+        event = build_event(
+            "video_conversion_completed",
+            {
+                "job_id": job_id,
+                "user_id": user_id,
+                "original_filename": original_filename,
+                "audio_s3_key": audio_s3_key,
+                "output_format": output_format,
+            },
+            correlation_id,
+        )
 
-            event = build_event(
-                "video_conversion_completed",
-                {
-                    "job_id": job_id,
-                    "user_id": user_id,
-                    "original_filename": original_filename,
-                    "audio_s3_key": audio_s3_key,
-                    "output_format": output_format,
-                },
-                correlation_id,
-            )
+        self._publish_event(
+            self.video_completed_queue,
+            event,
+            correlation_id,
+            "Conversion completed event",
+        )
 
-            self.channel.basic_publish(
-                exchange="",
-                routing_key=self.video_completed_queue,
-                body=json.dumps(event),
-                properties=pika.BasicProperties(
-                    delivery_mode=2,
-                    content_type="application/json",
-                    correlation_id=correlation_id,
-                ),
-            )
+        logger.info(
+            "Conversion completed event published " "correlation_id=%s",
+            correlation_id,
+        )
 
-            logger.info(
-                "Conversion completed event published " "correlation_id=%s",
-                correlation_id,
-            )
-
-            return correlation_id
-
-        except Exception as error:
-
-            logger.error("Failed to publish conversion completed event: %s", str(error))
-
-            self.reconnect()
-
-            raise error
+        return correlation_id
 
     def publish_conversion_failed_event(
         self, job_id, user_id, original_filename, error_message
     ):
 
-        try:
+        correlation_id = str(uuid.uuid4())
 
-            correlation_id = str(uuid.uuid4())
+        event = build_event(
+            "video_conversion_failed",
+            {
+                "job_id": job_id,
+                "user_id": user_id,
+                "original_filename": original_filename,
+                "error_message": error_message,
+            },
+            correlation_id,
+        )
 
-            event = build_event(
-                "video_conversion_failed",
-                {
-                    "job_id": job_id,
-                    "user_id": user_id,
-                    "original_filename": original_filename,
-                    "error_message": error_message,
-                },
+        self._publish_event(
+            self.video_completed_queue,
+            event,
+            correlation_id,
+            "Conversion failed event",
+        )
+
+        if self.video_failed_queue:
+            self._publish_event(
+                self.video_failed_queue,
+                event,
                 correlation_id,
+                "Conversion failed event (failed queue)",
             )
 
-            self.channel.basic_publish(
-                exchange="",
-                routing_key=self.video_completed_queue,
-                body=json.dumps(event),
-                properties=pika.BasicProperties(
-                    delivery_mode=2,
-                    content_type="application/json",
-                    correlation_id=correlation_id,
-                ),
-            )
+        logger.info(
+            "Conversion failed event published " "correlation_id=%s", correlation_id
+        )
 
-            if self.video_failed_queue:
-                self.channel.basic_publish(
-                    exchange="",
-                    routing_key=self.video_failed_queue,
-                    body=json.dumps(event),
-                    properties=pika.BasicProperties(
-                        delivery_mode=2,
-                        content_type="application/json",
-                        correlation_id=correlation_id,
-                    ),
-                )
-
-            logger.info(
-                "Conversion failed event published " "correlation_id=%s", correlation_id
-            )
-
-            return correlation_id
-
-        except Exception as error:
-
-            logger.error("Failed to publish conversion failed event: %s", str(error))
-
-            self.reconnect()
-
-            raise error
+        return correlation_id
 
     def publish_notification_event(self, recipient, subject, content):
 
-        try:
+        correlation_id = str(uuid.uuid4())
 
-            correlation_id = str(uuid.uuid4())
+        event = build_event(
+            "notification_requested",
+            {
+                "recipient": recipient,
+                "subject": subject,
+                "content": content,
+            },
+            correlation_id,
+        )
 
-            event = build_event(
-                "notification_requested",
-                {
-                    "recipient": recipient,
-                    "subject": subject,
-                    "content": content,
-                },
-                correlation_id,
-            )
+        self._publish_event(
+            self.notification_queue,
+            event,
+            correlation_id,
+            "Notification event",
+        )
 
-            self.channel.basic_publish(
-                exchange="",
-                routing_key=self.notification_queue,
-                body=json.dumps(event),
-                properties=pika.BasicProperties(
-                    delivery_mode=2,
-                    content_type="application/json",
-                    correlation_id=correlation_id,
-                ),
-            )
+        logger.info("Notification event published " "correlation_id=%s", correlation_id)
 
-            logger.info(
-                "Notification event published " "correlation_id=%s", correlation_id
-            )
-
-            return correlation_id
-
-        except Exception as error:
-
-            logger.error("Failed to publish notification event: %s", str(error))
-
-            self.reconnect()
-
-            raise error
+        return correlation_id
 
     def publish_gateway_event(self, event_type, payload):
 
-        try:
+        correlation_id = str(uuid.uuid4())
 
-            correlation_id = str(uuid.uuid4())
+        event = build_event(event_type, payload, correlation_id)
 
-            event = build_event(event_type, payload, correlation_id)
+        self._publish_event(
+            self.gateway_events_queue,
+            event,
+            correlation_id,
+            f"Gateway event event_type={event_type}",
+        )
 
-            self.channel.basic_publish(
-                exchange="",
-                routing_key=self.gateway_events_queue,
-                body=json.dumps(event),
-                properties=pika.BasicProperties(
-                    delivery_mode=2,
-                    content_type="application/json",
-                    correlation_id=correlation_id,
-                ),
-            )
+        logger.info(
+            "Gateway event published " "event_type=%s correlation_id=%s",
+            event_type,
+            correlation_id,
+        )
 
-            logger.info(
-                "Gateway event published " "event_type=%s correlation_id=%s",
-                event_type,
-                correlation_id,
-            )
-
-            return correlation_id
-
-        except Exception as error:
-
-            logger.error("Failed to publish gateway event: %s", str(error))
-
-            self.reconnect()
-
-            raise error
+        return correlation_id
 
     def close(self):
 
@@ -353,8 +351,6 @@ def publish_conversion_job(
     user_id: str = "anonymous",
 ) -> str:
 
-    import json
-
     producer = get_converter_producer()
 
     correlation_id = str(uuid.uuid4())
@@ -371,15 +367,11 @@ def publish_conversion_job(
         correlation_id,
     )
 
-    producer.channel.basic_publish(
-        exchange="",
-        routing_key=producer.video_upload_queue,
-        body=json.dumps(event),
-        properties=pika.BasicProperties(
-            delivery_mode=2,
-            content_type="application/json",
-            correlation_id=correlation_id,
-        ),
+    producer._publish_event(
+        producer.video_upload_queue,
+        event,
+        correlation_id,
+        "Conversion job",
     )
 
     logger.info(
