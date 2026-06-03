@@ -1,0 +1,41 @@
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: postgres-migrations-network-policy
+  namespace: ${K8S_NAMESPACE}
+  labels:
+    app: postgres-migrations
+    policy: postgres-migrations-access
+    environment: ${APP_ENV}
+spec:
+  podSelector:
+    matchLabels:
+      app: postgres-migrations
+  policyTypes:
+    - Egress
+  egress:
+    #
+    # POSTGRESQL (schema migrations run against the database)
+    #
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: ${DATABASE_NAMESPACE}
+          podSelector:
+            matchLabels:
+              app: ${POSTGRES_APP_NAME}
+      ports:
+        - protocol: TCP
+          port: ${POSTGRES_PORT}
+    #
+    # DNS
+    #
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: ${KUBE_SYSTEM_NAMESPACE}
+      ports:
+        - protocol: UDP
+          port: ${DNS_PORT}
+        - protocol: TCP
+          port: ${DNS_PORT}
