@@ -31,11 +31,27 @@ const els = {
   stepUpload: document.getElementById("step-upload"),
   stepProcess: document.getElementById("step-process"),
   stepDownload: document.getElementById("step-download"),
+  authAlert: document.getElementById("auth-alert"),
 };
 
 function setAlert(message, type = "info") {
   els.alertBox.className = `alert ${type}`;
   els.alertBox.textContent = message;
+}
+
+// The main alert-box lives inside the (hidden) app card, so it is invisible
+// during sign-in / registration. Auth feedback must use this alert, which sits
+// inside the always-visible auth card.
+function setAuthAlert(message, type = "error") {
+  if (!els.authAlert) return;
+  els.authAlert.className = `alert ${type}`;
+  els.authAlert.textContent = message;
+}
+
+function clearAuthAlert() {
+  if (!els.authAlert) return;
+  els.authAlert.className = "alert error hidden";
+  els.authAlert.textContent = "";
 }
 
 function setStep(step) {
@@ -138,6 +154,7 @@ function switchTab(mode) {
   els.tabRegister.classList.toggle("active", !isLogin);
   els.loginForm.classList.toggle("hidden", !isLogin);
   els.registerForm.classList.toggle("hidden", isLogin);
+  clearAuthAlert();
 }
 
 async function handleLogin(event) {
@@ -152,10 +169,11 @@ async function handleLogin(event) {
     });
     state.email = data.email || email;
     state.authenticated = true;
+    clearAuthAlert();
     showAuthenticatedView();
     resetConversionUi();
   } catch (error) {
-    setAlert(error.message, "error");
+    setAuthAlert(error.message, "error");
   }
 }
 
@@ -172,9 +190,9 @@ async function handleRegister(event) {
     });
     switchTab("login");
     document.getElementById("login-email").value = email;
-    setAlert("Account created. Sign in to upload and convert videos.", "success");
+    setAuthAlert("Account created. Sign in to upload and convert videos.", "success");
   } catch (error) {
-    setAlert(error.message, "error");
+    setAuthAlert(error.message, "error");
   }
 }
 
