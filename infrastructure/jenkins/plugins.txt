@@ -1,3 +1,8 @@
+# TODO: pin each plugin to an explicit ":version" (e.g. "git:5.4.0") for
+# reproducible, supply-chain-hardened builds. Versions were left unpinned to
+# avoid guessing values that could break the Jenkins build; resolve the current
+# compatible versions against the pinned jenkins/jenkins:lts digest in the
+# Dockerfile (e.g. via `jenkins-plugin-cli --available-updates`) before pinning.
 configuration-as-code
 workflow-aggregator
 docker-workflow

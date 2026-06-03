@@ -49,6 +49,14 @@ services:
 
       - ./init.groovy.d:/var/jenkins_home/init.groovy.d
 
+      # SECURITY WARNING: mounting the host Docker socket grants this container
+      # full root-equivalent control over the Docker host. Any pipeline able to
+      # run `docker` here can escape to the host. This is a known risk accepted
+      # for local/dev Jenkins builds only.
+      # RECOMMENDED hardening for shared/production hosts: replace this bind
+      # mount with a read-scoped socket proxy (e.g. tecnativa/docker-socket-proxy)
+      # exposing only the required Docker API endpoints over the network, and
+      # point DOCKER_HOST at the proxy instead of mounting the raw socket.
       - /var/run/docker.sock:/var/run/docker.sock
 
     networks:

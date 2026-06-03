@@ -1,5 +1,7 @@
 #!/bin/bash
 
+set -euo pipefail
+
 echo "Building Gateway Service Image..."
 docker build -t gateway-service ./services/gateway
 

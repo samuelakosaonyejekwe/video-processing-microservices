@@ -17,7 +17,7 @@ jobs:
     steps:
 
       - name: Checkout Repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
           fetch-depth: 0
 
@@ -27,7 +27,14 @@ jobs:
       - name: Run Environment Discovery
         run: ./scripts/discover-env-vars.sh
 
+      - name: Install Gitleaks
+        run: |
+          GITLEAKS_VERSION=v8.18.0
+          wget -q "https://github.com/gitleaks/gitleaks/releases/download/${GITLEAKS_VERSION}/gitleaks_linux_x64.tar.gz"
+          tar -xzf gitleaks_linux_x64.tar.gz
+          sudo mv gitleaks /usr/local/bin/
+
       - name: Scan For Hardcoded Secrets
-        uses: gitleaks/gitleaks-action@v2
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        # Run the binary directly with --exit-code 1 so findings fail the build
+        # and block the PR instead of silently passing.
+        run: gitleaks detect --source . --verbose --redact --exit-code 1

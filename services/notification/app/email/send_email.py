@@ -27,6 +27,12 @@ def send_email(recipient: str, subject: str, body: str) -> bool:
         return False
     recipient = recipient.strip()
 
+    # A CR/LF in the subject would otherwise enable SMTP header injection, the
+    # same way it would in the recipient. Reject any control characters.
+    if subject is None or "\r" in subject or "\n" in subject:
+        logger.error("Refusing to send email with invalid subject header")
+        return False
+
     if not EMAIL_ENABLED:
         logger.info(
             "Email disabled (EMAIL_ENABLED=false) — skipping send to %s", recipient

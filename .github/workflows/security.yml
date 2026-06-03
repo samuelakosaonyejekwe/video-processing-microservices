@@ -20,7 +20,7 @@ jobs:
     timeout-minutes: 30
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
       - name: Install Trivy
         run: |
@@ -47,7 +47,7 @@ jobs:
             --exit-code 1
 
       - name: Upload Trivy FS SARIF
-        uses: github/codeql-action/upload-sarif@v3
+        uses: github/codeql-action/upload-sarif@662472033e021d55d94146f66f6058822b0b39fd # v3.27.0
         if: always()
         with:
           sarif_file: security/trivy/reports/trivy-fs.sarif
@@ -58,7 +58,7 @@ jobs:
     timeout-minutes: 20
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
       - name: Install Trivy
         run: |
@@ -86,19 +86,23 @@ jobs:
         service: [gateway, auth, converter, notification, frontend]
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
       - name: Install Trivy
         run: |
           curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh | sh -s -- -b /usr/local/bin v0.69.3
           trivy --version
 
+      # Authenticated DockerHub login keeps base-image pulls resilient against
+      # anonymous rate limits. Only attempt the login when credentials are
+      # configured; when they are, a failure is fatal so the scan never silently
+      # falls back to an unauthenticated, rate-limited pull.
       - name: Login to DockerHub
-        uses: docker/login-action@v3
+        if: vars.DOCKER_USERNAME != ''
+        uses: docker/login-action@9780b0c442fbb1117ed29e0efdff1e18412f7567 # v3.3.0
         with:
           username: ${{ vars.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
-        continue-on-error: true
 
       - name: Build service image
         run: |
@@ -133,8 +137,23 @@ jobs:
             --severity CRITICAL,HIGH \
             --exit-code 1
 
+      - name: Generate SBOM
+        run: |
+          mkdir -p security/trivy/reports
+          trivy image scan-${{ matrix.service }}:ci \
+            --format cyclonedx \
+            --output security/trivy/reports/sbom-${{ matrix.service }}.cdx.json
+
+      - name: Upload SBOM Artifact
+        uses: actions/upload-artifact@b4b15b8c7c6ac21ea08fcf65892d2ee8f75cf882 # v4.4.3
+        if: always()
+        with:
+          name: sbom-${{ matrix.service }}
+          path: security/trivy/reports/sbom-${{ matrix.service }}.cdx.json
+          if-no-files-found: ignore
+
       - name: Upload Trivy Image SARIF
-        uses: github/codeql-action/upload-sarif@v3
+        uses: github/codeql-action/upload-sarif@662472033e021d55d94146f66f6058822b0b39fd # v3.27.0
         if: always()
         with:
           sarif_file: security/trivy/reports/trivy-${{ matrix.service }}.sarif
@@ -145,11 +164,19 @@ jobs:
     timeout-minutes: 15
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
           fetch-depth: 0
 
+      - name: Install Gitleaks
+        run: |
+          GITLEAKS_VERSION=v8.18.0
+          wget -q "https://github.com/gitleaks/gitleaks/releases/download/${GITLEAKS_VERSION}/gitleaks_linux_x64.tar.gz"
+          tar -xzf gitleaks_linux_x64.tar.gz
+          sudo mv gitleaks /usr/local/bin/
+
       - name: Run Gitleaks
-        uses: gitleaks/gitleaks-action@v2
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        # Run the binary directly with --exit-code 1 so any finding fails the
+        # build and blocks the PR (the marketplace action defaulted to a
+        # non-blocking exit code for pull_request events).
+        run: gitleaks detect --source . --verbose --redact --exit-code 1

@@ -39,4 +39,4 @@ capacity_type           = "ON_DEMAND"
 ami_type                = "AL2_x86_64"
 max_unavailable         = 1
 
-enable_cluster_log_types = ["api", "audit"]
+enable_cluster_log_types = ["api", "audit", "authenticator", "controllerManager", "scheduler"]

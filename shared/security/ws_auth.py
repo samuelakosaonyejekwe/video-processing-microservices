@@ -18,22 +18,22 @@ def decode_access_token(token: str) -> dict[str, Any] | None:
         return None
 
     decode_key = public_key if algorithm.startswith("RS") else secret
-    options = {}
-    decode_kwargs: dict[str, Any] = {"algorithms": [algorithm]}
-    if algorithm.startswith("RS"):
-        decode_kwargs["issuer"] = os.getenv("JWT_ISSUER")
-        decode_kwargs["audience"] = os.getenv("JWT_AUDIENCE")
-    else:
-        options["verify_aud"] = False
+    decode_kwargs: dict[str, Any] = {
+        "algorithms": [algorithm],
+        "issuer": os.getenv("JWT_ISSUER"),
+        "audience": os.getenv("JWT_AUDIENCE"),
+    }
 
     try:
-        payload = jwt.decode(token, decode_key, options=options, **decode_kwargs)
+        payload = jwt.decode(
+            token, decode_key, options={"verify_aud": True}, **decode_kwargs
+        )
     except PyJWTError:
         return None
 
     # Enforce token revocation on WebSocket connections too — otherwise a
     # logged-out/revoked access token could hold a live notification socket.
-    if payload.get("type") not in (None, "access"):
+    if payload.get("type") != "access":
         return None
     if is_token_revoked(payload.get("jti")):
         return None

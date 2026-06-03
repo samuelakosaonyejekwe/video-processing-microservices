@@ -13,8 +13,6 @@ fi
 
 pod="${RABBITMQ_RELEASE_NAME:-rabbitmq}-0"
 broker_namespace="${MESSAGING_NAMESPACE:-messaging}"
-app_namespace="${K8S_NAMESPACE:-video-processing}"
-secret_name="${RABBITMQ_APP_SECRET_NAME:-rabbitmq-secret}"
 definitions_template="${ROOT_DIR}/messaging/rabbitmq/definitions.json"
 rendered_definitions="${ROOT_DIR}/.rendered-k8s/rabbitmq-definitions.json"
 
@@ -35,14 +33,6 @@ fi
 
 mkdir -p "$(dirname "${rendered_definitions}")"
 envsubst < "${definitions_template}" > "${rendered_definitions}"
-
-if kubectl get secret "${secret_name}" -n "${app_namespace}" >/dev/null 2>&1; then
-  username="$(kubectl get secret "${secret_name}" -n "${app_namespace}" -o jsonpath='{.data.RABBITMQ_USERNAME}' | base64 -d)"
-  password="$(kubectl get secret "${secret_name}" -n "${app_namespace}" -o jsonpath='{.data.RABBITMQ_PASSWORD}' | base64 -d)"
-else
-  username="${RABBITMQ_USERNAME:-}"
-  password="${RABBITMQ_PASSWORD:-}"
-fi
 
 echo "Syncing RabbitMQ definitions into ${broker_namespace}/${pod}..."
 kubectl cp "${rendered_definitions}" "${broker_namespace}/${pod}:/tmp/rabbitmq-definitions.json"

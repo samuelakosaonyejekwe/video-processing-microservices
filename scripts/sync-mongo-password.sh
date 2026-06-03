@@ -66,6 +66,18 @@ fi
 
 mongo_auth_source="${mongo_auth_source:-admin}"
 mongo_database="${mongo_database:-video_converter}"
+
+# Guard against JS/shell injection: these values are interpolated into
+# mongosh --eval. Allow only the same safe charset as the username above.
+if ! [[ "${mongo_database}" =~ ^[a-zA-Z0-9_]+$ ]]; then
+  echo "ERROR: MongoDB database '${mongo_database}' contains invalid characters. Aborting." >&2
+  exit 1
+fi
+if ! [[ "${mongo_auth_source}" =~ ^[a-zA-Z0-9_]+$ ]]; then
+  echo "ERROR: MongoDB auth source '${mongo_auth_source}' contains invalid characters. Aborting." >&2
+  exit 1
+fi
+
 password_b64="$(printf '%s' "${mongo_password}" | base64 -w0 2>/dev/null || printf '%s' "${mongo_password}" | base64)"
 
 _mongo_auth_ok() {

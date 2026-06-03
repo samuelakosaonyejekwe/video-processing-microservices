@@ -26,15 +26,20 @@ ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "${ROOT_DIR}"
 
 MODE="soft"
-if [[ "${1:-}" == "--full" ]]; then
-  MODE="full"
-fi
+for arg in "$@"; do
+  case "${arg}" in
+    --full)   MODE="full" ;;
+    --yes|-y) export CONFIRM_DESTROY=yes ;;
+  esac
+done
 
 # ---------------------------------------------------------------------------
 # Source environment aliases (normalise variable names)
 # ---------------------------------------------------------------------------
 # shellcheck source=scripts/lib/env-aliases.sh
 source "${ROOT_DIR}/scripts/lib/env-aliases.sh"
+# shellcheck source=scripts/lib/confirm-destructive.sh
+source "${ROOT_DIR}/scripts/lib/confirm-destructive.sh"
 if [ -f "${ROOT_DIR}/.env" ]; then
   set +u; set -a
   # shellcheck disable=SC1091
@@ -177,8 +182,7 @@ log ""
 log "=== FULL SHUTDOWN: Destroying EKS cluster and Jenkins via Terraform ==="
 warn "EKS PVC data (Postgres/MongoDB/RabbitMQ) will be LOST."
 warn "App databases start empty on next restart (Postgres migrations re-run automatically)."
-log "Proceeding in 5 seconds... (Ctrl+C to abort)"
-sleep 5
+confirm_destructive "destroy the EKS cluster + Jenkins (EKS PVC data WILL be lost)"
 
 : "${TF_STATE_BUCKET:?Missing TF_STATE_BUCKET (required for full mode)}"
 : "${TF_LOCK_TABLE:?Missing TF_LOCK_TABLE (required for full mode)}"

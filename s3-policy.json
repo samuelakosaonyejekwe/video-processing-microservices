@@ -19,6 +19,7 @@
       ]
     },
     {
+      "_comment": "Pinned to the project S3 CMK (alias video-processing-production-s3) in account 009850210027 / eu-central-1. The trailing key/* wildcard covers the CMK key-id ARN; replace the account/region/key-id below if the CMK is recreated. kms:ViaService keeps usage restricted to S3.",
       "Sid": "AllowKmsForS3CmkEncryption",
       "Effect": "Allow",
       "Action": [
@@ -27,10 +28,13 @@
         "kms:GenerateDataKey",
         "kms:DescribeKey"
       ],
-      "Resource": "*",
+      "Resource": [
+        "arn:aws:kms:eu-central-1:009850210027:alias/video-processing-production-s3",
+        "arn:aws:kms:eu-central-1:009850210027:key/*"
+      ],
       "Condition": {
-        "StringLike": {
-          "kms:ViaService": "s3.*.amazonaws.com"
+        "StringEquals": {
+          "kms:ViaService": "s3.eu-central-1.amazonaws.com"
         }
       }
     }

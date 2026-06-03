@@ -68,9 +68,48 @@ resource "aws_iam_role" "jenkins_role" {
   })
 }
 
+# Custom least-privilege ECR policy for Jenkins, replacing the broad AWS-managed
+# AmazonEC2ContainerRegistryPowerUser (which grants push/pull on ALL repos in the
+# account). Scoped to this project's repositories (created as
+# "${project_name}/<repo>" -> arn:aws:ecr:*:*:repository/<project_name>/*).
+# GetAuthorizationToken is registry-wide and cannot be resource-scoped.
+resource "aws_iam_policy" "jenkins_ecr" {
+  name        = "${var.project_name}-${var.environment}-jenkins-ecr"
+  description = "Least-privilege ECR push/pull for Jenkins, scoped to project repositories."
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Sid      = "ECRAuthToken"
+        Effect   = "Allow"
+        Action   = ["ecr:GetAuthorizationToken"]
+        Resource = "*"
+      },
+      {
+        Sid    = "ECRPushPull"
+        Effect = "Allow"
+        Action = [
+          "ecr:BatchCheckLayerAvailability",
+          "ecr:GetDownloadUrlForLayer",
+          "ecr:BatchGetImage",
+          "ecr:PutImage",
+          "ecr:InitiateLayerUpload",
+          "ecr:UploadLayerPart",
+          "ecr:CompleteLayerUpload",
+          "ecr:DescribeRepositories",
+          "ecr:ListImages",
+          "ecr:DescribeImages"
+        ]
+        Resource = "arn:aws:ecr:*:*:repository/${var.project_name}/*"
+      }
+    ]
+  })
+}
+
 resource "aws_iam_role_policy_attachment" "jenkins_ecr" {
   role       = aws_iam_role.jenkins_role.name
-  policy_arn = "arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryPowerUser"
+  policy_arn = aws_iam_policy.jenkins_ecr.arn
 }
 
 # Least-privilege EKS policy for Jenkins: only allows kubeconfig lookup and node

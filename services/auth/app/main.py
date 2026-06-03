@@ -33,6 +33,15 @@ from shared.security.cors import ALLOWED_CORS_HEADERS
 
 logger = logging.getLogger(__name__)
 
+# Token revocation is security-critical for the auth service. The shared
+# revocation store fails open when Redis is unconfigured, so in production a
+# missing REDIS_HOST would silently disable revocation. Fail hard at startup
+# instead of shipping a fail-open auth service.
+if APP_ENV == "production" and not os.getenv("REDIS_HOST", "").strip():
+    raise RuntimeError(
+        "REDIS_HOST is required in production for token revocation"
+    )
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -70,10 +79,16 @@ app.add_middleware(SecurityHeadersMiddleware)
 app.add_middleware(CorrelationIdMiddleware)
 app.add_middleware(AuthRateLimitMiddleware)
 
+if CORS_ALLOWED_ORIGINS == ["*"]:
+    raise RuntimeError(
+        "CORS_ALLOWED_ORIGINS cannot be '*' with credentialed requests; "
+        "set explicit origins"
+    )
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=CORS_ALLOWED_ORIGINS,
-    allow_credentials=True,
+    allow_credentials=CORS_ALLOWED_ORIGINS != ["*"],
     allow_methods=["*"],
     allow_headers=ALLOWED_CORS_HEADERS,
 )

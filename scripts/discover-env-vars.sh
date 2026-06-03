@@ -1,5 +1,7 @@
 #!/bin/bash
 
+set -euo pipefail
+
 echo "=========================================="
 echo "DISCOVERING ENVIRONMENT VARIABLES"
 echo "=========================================="

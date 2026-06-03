@@ -54,10 +54,16 @@ app = FastAPI(
 
 Instrumentator().instrument(app).expose(app)
 
+if CORS_ALLOWED_ORIGINS == ["*"]:
+    raise RuntimeError(
+        "CORS_ALLOWED_ORIGINS cannot be '*' with credentialed requests; "
+        "set explicit origins"
+    )
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=CORS_ALLOWED_ORIGINS,
-    allow_credentials=True,
+    allow_credentials=CORS_ALLOWED_ORIGINS != ["*"],
     allow_methods=["*"],
     allow_headers=ALLOWED_CORS_HEADERS,
 )

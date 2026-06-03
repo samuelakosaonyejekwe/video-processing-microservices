@@ -2,6 +2,16 @@ apiVersion: v1
 kind: Namespace
 metadata:
   name: ${APP_NAMESPACE}
+  labels:
+    # Pod Security Standards: workloads here drop ALL caps, runAsNonRoot,
+    # seccompProfile RuntimeDefault and allowPrivilegeEscalation false,
+    # which satisfy the "restricted" profile.
+    pod-security.kubernetes.io/enforce: restricted
+    pod-security.kubernetes.io/enforce-version: latest
+    pod-security.kubernetes.io/warn: restricted
+    pod-security.kubernetes.io/warn-version: latest
+    pod-security.kubernetes.io/audit: restricted
+    pod-security.kubernetes.io/audit-version: latest
 
 ---
 apiVersion: v1

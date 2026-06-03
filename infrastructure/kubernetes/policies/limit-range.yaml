@@ -1,0 +1,38 @@
+#
+# Backstop resource governance for the application namespace.
+#
+# LimitRange injects default requests/limits into any container that omits
+# them, so a missing resources block can never schedule an unbounded pod.
+#
+apiVersion: v1
+kind: LimitRange
+metadata:
+  name: default-container-limits
+  namespace: ${K8S_NAMESPACE}
+  labels:
+    app: resource-governance
+    environment: ${APP_ENV}
+spec:
+  limits:
+    - type: Container
+      # Applied to containers that set no limits.
+      default:
+        cpu: 500m
+        memory: 512Mi
+      # Applied to containers that set no requests.
+      defaultRequest:
+        cpu: 50m
+        memory: 64Mi
+      # Floor/ceiling guard rails per container.
+      min:
+        cpu: 10m
+        memory: 32Mi
+      max:
+        cpu: "2"
+        memory: 2Gi
+#
+# NOTE: A namespace ResourceQuota is intentionally NOT enabled here. A quota
+# requires every pod to carry requests+limits (the LimitRange above satisfies
+# that) but ALSO caps aggregate namespace consumption — which, if sized below
+# live HPA/KEDA scale-out capacity, would reject new pods and stall scaling.
+# Add one once you have measured steady-state + peak usage for this cluster.
