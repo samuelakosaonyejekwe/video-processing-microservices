@@ -152,6 +152,22 @@ if _sync_password_in_mongo && _wait_for_mongo_auth 60; then
   exit 0
 fi
 
+# Could not authenticate with the secret password, and changeUserPassword also
+# failed (it requires authenticating with the CURRENT password, which we don't
+# have here). In production we must NEVER auto-wipe the data volume to force
+# alignment — that destroys all conversion history. Fail loudly with a
+# non-destructive remediation path instead.
+if [ "${APP_ENV:-development}" = "production" ] && [ "${ALLOW_MONGO_DATA_RESET:-false}" != "true" ]; then
+  echo "ERROR: MongoDB password drift detected for user '${mongo_user}' in production." >&2
+  echo "       The live MongoDB password no longer matches the '${secret_name}' secret" >&2
+  echo "       (sourced from the MONGO_PASSWORD GitHub secret, the single source of truth)," >&2
+  echo "       and it cannot be rotated automatically because changeUserPassword needs the" >&2
+  echo "       CURRENT password. Remediate WITHOUT data loss:" >&2
+  echo "         MONGO_OLD_PASSWORD=<current-live-pw> scripts/rotate-mongo-password.sh" >&2
+  echo "       Only set ALLOW_MONGO_DATA_RESET=true to DELIBERATELY wipe + reinitialise Mongo." >&2
+  exit 1
+fi
+
 echo "MongoDB password change with current credentials failed; reinitializing data volume..."
 _reset_mongo_data
 

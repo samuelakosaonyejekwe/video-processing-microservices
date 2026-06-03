@@ -1,0 +1,49 @@
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: prometheus-network-policy
+  namespace: ${K8S_NAMESPACE}
+  labels:
+    app: prometheus
+    policy: prometheus-access
+    environment: ${APP_ENV}
+spec:
+  podSelector:
+    matchLabels:
+      ${PROMETHEUS_LABEL_KEY}: ${PROMETHEUS_LABEL_VALUE}
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress:
+    #
+    # GRAFANA QUERIES
+    #
+    - from:
+        - podSelector:
+            matchLabels:
+              app: grafana
+      ports:
+        - protocol: TCP
+          port: 9090
+    #
+    # UI ACCESS (kubectl port-forward via node, or in-VPC sources).
+    #
+    - from:
+        - ipBlock:
+            cidr: ${VPC_CIDR}
+      ports:
+        - protocol: TCP
+          port: 9090
+  egress:
+    #
+    # DNS (target/service-name resolution)
+    #
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: ${KUBE_SYSTEM_NAMESPACE}
+      ports:
+        - protocol: UDP
+          port: ${DNS_PORT}
+        - protocol: TCP
+          port: ${DNS_PORT}

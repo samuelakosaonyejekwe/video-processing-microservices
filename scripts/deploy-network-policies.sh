@@ -24,7 +24,9 @@ for policy in \
   converter-network-policy.yaml \
   notification-network-policy.yaml \
   frontend-network-policy.yaml \
-  redis-network-policy.yaml; do
+  redis-network-policy.yaml \
+  grafana-network-policy.yaml \
+  prometheus-network-policy.yaml; do
   if [ -f "${RENDERED}/${policy}" ]; then
     kubectl apply -f "${RENDERED}/${policy}"
   fi

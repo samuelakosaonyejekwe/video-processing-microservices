@@ -71,6 +71,14 @@ module "eks" {
   cluster_addons = {
     vpc-cni = {
       most_recent = true
+      # Enable Kubernetes NetworkPolicy enforcement via the AWS VPC CNI
+      # network-policy agent, so the default-deny + per-app NetworkPolicies are
+      # actually enforced rather than declarative. Enforcing mode defaults to
+      # "standard" (allows traffic until a policy reconciles, avoiding startup
+      # deadlocks); leave it at the default.
+      configuration_values = jsonencode({
+        enableNetworkPolicy = "true"
+      })
     }
     coredns = {
       most_recent = true
