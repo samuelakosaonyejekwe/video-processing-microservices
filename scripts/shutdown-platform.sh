@@ -223,6 +223,41 @@ else
 fi
 
 # ---------------------------------------------------------------------------
+# STEP 3b — Delete ALL EKS node groups (AWS-native)
+# ---------------------------------------------------------------------------
+# An EKS cluster cannot be deleted while it still has node groups. The running
+# node group may NOT be tracked by Terraform (state drift), in which case
+# `terraform destroy -target=module.eks` leaves it in place and the cluster
+# deletion fails with "Cluster has nodegroups". Delete every node group directly
+# first so the Terraform cluster destroy succeeds. (Deleting the node group also
+# deletes its EBS-backed PVCs — DB data loss is already expected in full mode;
+# AWS Backup snapshots exist for recovery, see docs/database-backups.md.)
+log "=== STEP 3b: Delete EKS node groups (handles Terraform-unmanaged node groups) ==="
+EXISTING_NGS="$(aws eks list-nodegroups \
+  --cluster-name "${EKS_CLUSTER_NAME}" \
+  --region "${AWS_REGION}" \
+  --query 'nodegroups' --output text 2>/dev/null || echo "")"
+if [ -n "${EXISTING_NGS}" ] && [ "${EXISTING_NGS}" != "None" ]; then
+  for ng in ${EXISTING_NGS}; do
+    log "Deleting node group ${ng}..."
+    aws eks delete-nodegroup \
+      --cluster-name "${EKS_CLUSTER_NAME}" \
+      --nodegroup-name "${ng}" \
+      --region "${AWS_REGION}" >/dev/null 2>&1 || true
+  done
+  for ng in ${EXISTING_NGS}; do
+    log "Waiting for node group ${ng} to be deleted (up to ~10 min)..."
+    aws eks wait nodegroup-deleted \
+      --cluster-name "${EKS_CLUSTER_NAME}" \
+      --nodegroup-name "${ng}" \
+      --region "${AWS_REGION}" 2>/dev/null || true
+  done
+  log "All node groups deleted."
+else
+  log "No node groups found. Nothing to delete."
+fi
+
+# ---------------------------------------------------------------------------
 # STEP 4 — Terraform init + targeted destroy of EKS and Jenkins
 # ---------------------------------------------------------------------------
 log "=== STEP 4: Terraform destroy — EKS cluster and Jenkins ==="

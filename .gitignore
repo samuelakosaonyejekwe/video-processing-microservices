@@ -221,3 +221,6 @@ cluster-auth.txt
 # Terraform generated
 **/.terraform/
 .terraform/
+
+# Local Claude Code config — never commit
+.claude/
