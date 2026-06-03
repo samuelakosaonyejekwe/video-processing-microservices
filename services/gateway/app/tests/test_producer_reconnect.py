@@ -78,7 +78,9 @@ def test_publish_raises_when_all_attempts_fail(monkeypatch):
 
     producer.channel = always_failing_channel()
     monkeypatch.setattr(
-        producer, "reconnect", lambda: setattr(producer, "channel", always_failing_channel())
+        producer,
+        "reconnect",
+        lambda: setattr(producer, "channel", always_failing_channel()),
     )
 
     with pytest.raises(pika.exceptions.AMQPError):
