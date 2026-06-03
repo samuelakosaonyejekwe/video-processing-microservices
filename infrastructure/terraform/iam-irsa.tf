@@ -107,6 +107,17 @@ resource "aws_iam_policy" "irsa_s3_gateway" {
         Effect   = "Allow"
         Action   = ["s3:ListBucket", "s3:GetBucketLocation"]
         Resource = [local.irsa_bucket_arn["audio"]]
+      },
+      {
+        # The S3 buckets are CMK-encrypted, so PutObject/GetObject require KMS
+        # data-key operations on the bucket CMK (scoped via the S3 service).
+        Sid      = "S3BucketCmkEncryptDecrypt"
+        Effect   = "Allow"
+        Action   = ["kms:GenerateDataKey", "kms:Decrypt", "kms:DescribeKey"]
+        Resource = [module.s3.kms_key_arn]
+        Condition = {
+          StringEquals = { "kms:ViaService" = "s3.${var.aws_region}.amazonaws.com" }
+        }
       }
     ]
   })
@@ -147,6 +158,17 @@ resource "aws_iam_policy" "irsa_s3_converter" {
         Effect   = "Allow"
         Action   = ["s3:ListBucket", "s3:GetBucketLocation"]
         Resource = [local.irsa_bucket_arn["audio"]]
+      },
+      {
+        # CMK-encrypted buckets require KMS data-key ops (read source video,
+        # write encrypted audio output), scoped via the S3 service.
+        Sid      = "S3BucketCmkEncryptDecrypt"
+        Effect   = "Allow"
+        Action   = ["kms:GenerateDataKey", "kms:Decrypt", "kms:DescribeKey"]
+        Resource = [module.s3.kms_key_arn]
+        Condition = {
+          StringEquals = { "kms:ViaService" = "s3.${var.aws_region}.amazonaws.com" }
+        }
       }
     ]
   })
