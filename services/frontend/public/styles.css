@@ -241,9 +241,12 @@ button {
   text-align: center;
   padding: 0.65rem 0.35rem;
   border-radius: 8px;
-  border: 1px solid var(--border);
+  /* Progress indicators, not buttons — dashed border + no click affordance. */
+  border: 1px dashed var(--border);
   color: var(--muted);
   font-size: 0.8rem;
+  cursor: default;
+  user-select: none;
 }
 
 .step.active {
