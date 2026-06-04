@@ -325,6 +325,40 @@ else
 fi
 
 # ---------------------------------------------------------------------------
+# STEP 8c — Restore RabbitMQ (topology + durable messages) from S3
+# ---------------------------------------------------------------------------
+log "=== STEP 8c: Restoring RabbitMQ from S3 (if a backup exists) ==="
+if bash "${ROOT_DIR}/scripts/restore-rabbitmq.sh"; then
+  ok "RabbitMQ restore step complete."
+else
+  warn "RabbitMQ restore FAILED — apps recreate queues on connect, but queued messages were NOT restored."
+  warn "Re-run: DATABASE_BACKUP_BUCKET=... bash scripts/restore-rabbitmq.sh"
+fi
+
+# ---------------------------------------------------------------------------
+# STEP 8d — Re-point DNS to the freshly provisioned ALB
+# ---------------------------------------------------------------------------
+# A recreate yields a NEW ALB DNS name. Deterministically point every ingress
+# host (apex, api, grafana) at it (idempotent — no-op if already correct).
+log "=== STEP 8d: Re-pointing Route53 records to the current ALB ==="
+if bash "${ROOT_DIR}/scripts/repoint-dns.sh"; then
+  ok "DNS re-pointed to the current ALB."
+else
+  warn "DNS re-point FAILED — domains may resolve to a stale/absent ALB."
+  warn "Re-run: ROUTE53_HOSTED_ZONE_ID=... bash scripts/repoint-dns.sh"
+fi
+
+# ---------------------------------------------------------------------------
+# STEP 8e — Restore Jenkins home from the latest EBS snapshot
+# ---------------------------------------------------------------------------
+log "=== STEP 8e: Restoring Jenkins home from snapshot (if one exists) ==="
+if bash "${ROOT_DIR}/scripts/restore-jenkins.sh"; then
+  ok "Jenkins restore step complete."
+else
+  warn "Jenkins restore FAILED — Jenkins is up but may be empty. See restore-jenkins.sh output for manual steps."
+fi
+
+# ---------------------------------------------------------------------------
 # STEP 9 — Verify deployments
 # ---------------------------------------------------------------------------
 log "=== STEP 9: Verifying deployments ==="
