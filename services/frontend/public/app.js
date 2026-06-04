@@ -328,6 +328,26 @@ async function handleDownload() {
   }
 }
 
+// "2. Convert" step box: start the conversion, with guidance if not ready yet.
+function handleStepConvert() {
+  if (!state.authenticated) return;
+  if (!els.fileInput.files[0]) {
+    setAlert("Select a video first — click '1. Upload' or the drop zone.", "info");
+    return;
+  }
+  handleUpload();
+}
+
+// "3. Download" step box: download the result, with guidance if not ready yet.
+function handleStepDownload() {
+  if (!state.authenticated) return;
+  if (els.downloadBtn.classList.contains("hidden")) {
+    setAlert("Convert a video first — your MP3 isn't ready yet.", "info");
+    return;
+  }
+  handleDownload();
+}
+
 function connectWebSocket() {
   if (!WS_URL || state.socket) {
     return;
@@ -368,6 +388,14 @@ function bindEvents() {
   els.logoutBtn.addEventListener("click", handleLogout);
   els.uploadBtn.addEventListener("click", handleUpload);
   els.downloadBtn.addEventListener("click", handleDownload);
+
+  // The 1/2/3 step boxes double as action shortcuts:
+  //   1. Upload  -> open the file picker
+  //   2. Convert -> start the upload + conversion
+  //   3. Download -> download the MP3
+  els.stepUpload.addEventListener("click", () => els.fileInput.click());
+  els.stepProcess.addEventListener("click", handleStepConvert);
+  els.stepDownload.addEventListener("click", handleStepDownload);
 
   els.dropzone.addEventListener("click", () => els.fileInput.click());
   els.fileInput.addEventListener("change", (event) => {
