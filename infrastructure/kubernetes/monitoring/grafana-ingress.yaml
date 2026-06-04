@@ -1,0 +1,28 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: ${GRAFANA_INGRESS_NAME}
+  namespace: ${K8S_NAMESPACE}
+  annotations:
+    kubernetes.io/ingress.class: ${INGRESS_CLASS_NAME}
+    alb.ingress.kubernetes.io/scheme: ${ALB_SCHEME}
+    alb.ingress.kubernetes.io/target-type: ${ALB_TARGET_TYPE}
+    alb.ingress.kubernetes.io/group.name: ${ALB_INGRESS_GROUP_NAME}
+    alb.ingress.kubernetes.io/group.order: "30"
+    alb.ingress.kubernetes.io/listen-ports: '[{"HTTPS":443}]'
+    alb.ingress.kubernetes.io/certificate-arn: "${GRAFANA_ACM_CERTIFICATE_ARN}"
+    alb.ingress.kubernetes.io/ssl-redirect: '${ALB_SSL_REDIRECT_PORT}'
+    alb.ingress.kubernetes.io/healthcheck-path: /api/health
+spec:
+  ingressClassName: ${INGRESS_CLASS_NAME}
+  rules:
+    - host: ${GRAFANA_DOMAIN}
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: ${GRAFANA_SERVICE_NAME}
+                port:
+                  number: ${GRAFANA_SERVICE_PORT}

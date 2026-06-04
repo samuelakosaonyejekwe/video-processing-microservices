@@ -51,5 +51,17 @@ for manifest in prometheus-configmap.yaml prometheus.yaml grafana.yaml gateway-s
   fi
 done
 
+# Grafana ingress (public ALB URL). Only applied when both the hostname and an
+# ACM certificate are configured; otherwise Grafana stays internal-only and the
+# ingress is skipped so an empty host/cert can never be applied to the ALB.
+if [ -n "${GRAFANA_DOMAIN:-}" ] && [ -n "${GRAFANA_ACM_CERTIFICATE_ARN:-}" ]; then
+  if [ -f "${RENDERED}/grafana-ingress.yaml" ]; then
+    echo "Applying Grafana ingress for ${GRAFANA_DOMAIN}..."
+    kubectl apply -f "${RENDERED}/grafana-ingress.yaml"
+  fi
+else
+  echo "Skipping Grafana ingress (GRAFANA_DOMAIN / GRAFANA_ACM_CERTIFICATE_ARN not set)."
+fi
+
 kubectl get pods -n "${K8S_NAMESPACE}" -l 'app in (prometheus,grafana)' || true
 echo "Monitoring stack deployed."
