@@ -241,12 +241,18 @@ button {
   text-align: center;
   padding: 0.65rem 0.35rem;
   border-radius: 8px;
-  /* Progress indicators, not buttons — dashed border + no click affordance. */
-  border: 1px dashed var(--border);
+  border: 1px solid var(--border);
   color: var(--muted);
   font-size: 0.8rem;
-  cursor: default;
+  /* Clickable shortcuts: 1=browse file, 2=convert, 3=download. */
+  cursor: pointer;
   user-select: none;
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.step:hover {
+  border-color: var(--primary);
+  background: rgba(99, 102, 241, 0.1);
 }
 
 .step.active {
