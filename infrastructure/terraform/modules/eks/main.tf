@@ -25,6 +25,18 @@ module "eks" {
 
   cluster_enabled_log_types = var.enable_cluster_log_types
 
+  # Secrets encryption: when an existing key ARN is supplied (the default — the
+  # live cluster's current key), reference it instead of creating a new key. This
+  # keeps terraform state aligned with the live, immutable encryption_config and
+  # prevents a catastrophic key-change-forced cluster replacement. When the ARN is
+  # "", fall back to the module-managed key (fresh-cluster / recreate path).
+  create_kms_key = var.cluster_encryption_kms_key_arn == "" ? true : false
+
+  cluster_encryption_config = {
+    provider_key_arn = var.cluster_encryption_kms_key_arn
+    resources        = ["secrets"]
+  }
+
   eks_managed_node_groups = {
 
     (var.eks_node_group_name) = {
