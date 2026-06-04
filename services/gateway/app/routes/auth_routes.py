@@ -117,11 +117,38 @@ def _clear_auth_cookies(response: Response) -> None:
     response.delete_cookie(REFRESH_COOKIE, path="/")
 
 
-def _cookie_auth_response(email: str | None = None) -> JSONResponse:
+def _cookie_auth_response(
+    email: str | None = None, username: str | None = None
+) -> JSONResponse:
     content = {"message": "Authenticated", "token_type": "cookie"}
     if email:
         content["email"] = email
+    if username:
+        content["username"] = username
     return JSONResponse(content=content)
+
+
+async def _fetch_user_profile(access_token: str | None) -> dict:
+    """Best-effort lookup of the signed-in user's username/email from the auth
+    service (/auth/me). Never raises — returns {} on any failure so it can't
+    break login/session if the auth service is briefly unavailable."""
+    if not access_token:
+        return {}
+    try:
+        async with internal_http_client() as client:
+            resp = await client.get(
+                f"{JWT_AUTH_SERVICE_URL}/auth/me",
+                headers={"Authorization": f"Bearer {access_token}"},
+            )
+        if resp.status_code == 200:
+            data = resp.json()
+            return {
+                "username": data.get("username"),
+                "email": data.get("email"),
+            }
+    except httpx.HTTPError:
+        pass
+    return {}
 
 
 @router.get("/session")
@@ -144,9 +171,12 @@ async def session(request: Request):
     if payload.get("type") != "access":
         raise HTTPException(status_code=401, detail="Not authenticated")
 
+    profile = await _fetch_user_profile(token)
     return {
         "authenticated": True,
         "user_id": payload.get("sub"),
+        "username": profile.get("username"),
+        "email": profile.get("email"),
     }
 
 
@@ -171,7 +201,11 @@ async def login(data: LoginRequest, request: Request):
         _raise_upstream_error(response, "Login failed")
 
     payload = response.json()
-    json_response = _cookie_auth_response(str(data.email))
+    profile = await _fetch_user_profile(payload.get("access_token"))
+    json_response = _cookie_auth_response(
+        profile.get("email") or str(data.email),
+        profile.get("username"),
+    )
     _apply_auth_cookies(json_response, payload)
     return json_response
 
