@@ -17,6 +17,12 @@ apt-get install -y \
   apt-transport-https \
   software-properties-common
 
+# AWS SSM agent — lets shutdown/restore automation run commands on this host
+# (e.g. restore-jenkins.sh copies JENKINS_HOME back in) without SSH keys.
+snap install amazon-ssm-agent --classic 2>/dev/null || apt-get install -y amazon-ssm-agent 2>/dev/null || true
+systemctl enable --now snap.amazon-ssm-agent.amazon-ssm-agent.service 2>/dev/null || \
+  systemctl enable --now amazon-ssm-agent 2>/dev/null || true
+
 install -m 0755 -d /etc/apt/keyrings
 
 curl -fsSL ${docker_gpg_url} | \

@@ -148,6 +148,13 @@ resource "aws_iam_role_policy_attachment" "jenkins_ec2_read" {
   policy_arn = "arn:aws:iam::aws:policy/AmazonEC2ReadOnlyAccess"
 }
 
+# SSM core — lets shutdown/restore automation (restore-jenkins.sh) run commands
+# on the Jenkins host via Systems Manager without managing SSH keys.
+resource "aws_iam_role_policy_attachment" "jenkins_ssm" {
+  role       = aws_iam_role.jenkins_role.name
+  policy_arn = "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"
+}
+
 # Least-privilege S3 policy for Jenkins — scoped to the project buckets only.
 # If s3_bucket_arns is empty the policy is intentionally left unattached rather
 # than falling back to Resource: "*" (all buckets in the account).

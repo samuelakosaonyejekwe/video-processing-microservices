@@ -86,7 +86,19 @@ if [ "${MODE}" = "full" ] && [ "${SKIP_DB_DUMP:-false}" != "true" ]; then
     echo "       Fix the dump, or set SKIP_DB_DUMP=true to destroy WITHOUT a backup." >&2
     exit 1
   fi
-  log "Database backup complete — safe to proceed with teardown."
+  log "Database backup complete."
+
+  # RabbitMQ backup (definitions + durable messages) — the rabbitmq PVC is
+  # destroyed with the cluster, so capture it now while the cluster is still up.
+  if [ "${SKIP_RABBITMQ_BACKUP:-false}" != "true" ]; then
+    log "Backing up RabbitMQ (definitions + messages) to S3..."
+    if ! bash "${ROOT_DIR}/scripts/backup-rabbitmq.sh"; then
+      echo "ERROR: RabbitMQ backup failed — ABORTING to avoid losing queued messages." >&2
+      echo "       Fix it, or set SKIP_RABBITMQ_BACKUP=true to destroy WITHOUT a RabbitMQ backup." >&2
+      exit 1
+    fi
+  fi
+  log "Pre-teardown backups complete — safe to proceed with teardown."
 fi
 
 # ---------------------------------------------------------------------------
@@ -211,6 +223,21 @@ confirm_destructive "destroy the EKS cluster + Jenkins (EKS PVC data WILL be los
 : "${TF_LOCK_TABLE:?Missing TF_LOCK_TABLE (required for full mode)}"
 
 TF_DIR="${ROOT_DIR}/infrastructure/terraform"
+
+# ---------------------------------------------------------------------------
+# STEP 2b — Snapshot Jenkins home before it is destroyed
+# ---------------------------------------------------------------------------
+# Jenkins was stopped in STEP 2, so the EBS snapshot is crash-consistent. This
+# is what makes Jenkins lossless across a full destroy (restore-jenkins.sh on
+# start). ABORT if it fails — losing CI history/config is not silently acceptable.
+if [ "${SKIP_JENKINS_BACKUP:-false}" != "true" ]; then
+  log "=== STEP 2b: Snapshot Jenkins home to EBS before teardown ==="
+  if ! bash "${ROOT_DIR}/scripts/backup-jenkins.sh"; then
+    echo "ERROR: Jenkins backup failed — ABORTING full destroy to avoid losing Jenkins data." >&2
+    echo "       Fix it, or set SKIP_JENKINS_BACKUP=true to destroy WITHOUT a Jenkins backup." >&2
+    exit 1
+  fi
+fi
 
 # ---------------------------------------------------------------------------
 # STEP 3 — Uninstall Helm releases so ALB + other AWS resources are cleaned up
