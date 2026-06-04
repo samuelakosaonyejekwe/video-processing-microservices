@@ -595,6 +595,26 @@ export GRAFANA_REPLICAS="${GRAFANA_REPLICAS:-1}"
 export GRAFANA_REPLICA_COUNT="${GRAFANA_REPLICA_COUNT:-1}"
 export GRAFANA_IMAGE="${GRAFANA_IMAGE:-grafana/grafana:11.2.0}"
 export GRAFANA_SERVICE_TYPE="${GRAFANA_SERVICE_TYPE:-ClusterIP}"
+export GRAFANA_INGRESS_NAME="${GRAFANA_INGRESS_NAME:-grafana-ingress}"
+export GRAFANA_PVC_NAME="${GRAFANA_PVC_NAME:-grafana-pvc}"
+export GRAFANA_STORAGE_CLASS="${GRAFANA_STORAGE_CLASS:-ebs-gp3}"
+export GRAFANA_STORAGE_SIZE="${GRAFANA_STORAGE_SIZE:-5Gi}"
+export GRAFANA_SERVICE_NAME="${GRAFANA_SERVICE_NAME:-grafana-service}"
+export GRAFANA_SERVICE_PORT="${GRAFANA_SERVICE_PORT:-3000}"
+# Public hostname + ACM cert for the Grafana ingress. Default empty: when unset
+# the ingress is skipped by deploy-monitoring.sh (Grafana stays internal-only).
+export GRAFANA_DOMAIN="${GRAFANA_DOMAIN:-}"
+export GRAFANA_ACM_CERTIFICATE_ARN="${GRAFANA_ACM_CERTIFICATE_ARN:-}"
+# Grafana server config — must always be non-empty so GF_SERVER_* never renders
+# blank. Use the public domain when set, otherwise sane localhost defaults that
+# keep port-forward access working.
+if [ -n "${GRAFANA_DOMAIN}" ]; then
+  export GRAFANA_SERVER_DOMAIN="${GRAFANA_SERVER_DOMAIN:-${GRAFANA_DOMAIN}}"
+  export GRAFANA_ROOT_URL="${GRAFANA_ROOT_URL:-https://${GRAFANA_DOMAIN}/}"
+else
+  export GRAFANA_SERVER_DOMAIN="${GRAFANA_SERVER_DOMAIN:-localhost}"
+  export GRAFANA_ROOT_URL="${GRAFANA_ROOT_URL:-http://localhost:3000/}"
+fi
 export GRAFANA_ADMIN_USER="${GRAFANA_ADMIN_USER:-admin}"
 export GRAFANA_ADMIN_PASSWORD="${GRAFANA_ADMIN_PASSWORD:-}"
 if [ "${APP_ENV:-development}" = "production" ] && [ "${DEPLOY_MONITORING_STACK:-true}" = "true" ]; then

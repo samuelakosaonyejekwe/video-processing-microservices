@@ -10,6 +10,10 @@ metadata:
 spec:
   replicas: ${GRAFANA_REPLICA_COUNT}
   revisionHistoryLimit: 5
+  # Recreate (not RollingUpdate): the grafana-storage PVC is ReadWriteOnce, so the
+  # old pod must release the volume before the new pod can mount it.
+  strategy:
+    type: Recreate
   selector:
     matchLabels:
       app: grafana
@@ -55,6 +59,10 @@ spec:
                 secretKeyRef:
                   name: grafana-secret
                   key: GRAFANA_ADMIN_PASSWORD
+            - name: GF_SERVER_DOMAIN
+              value: "${GRAFANA_SERVER_DOMAIN}"
+            - name: GF_SERVER_ROOT_URL
+              value: "${GRAFANA_ROOT_URL}"
           resources:
             requests:
               cpu: "200m"
@@ -94,7 +102,8 @@ spec:
               readOnly: true
       volumes:
         - name: grafana-storage
-          emptyDir: {}
+          persistentVolumeClaim:
+            claimName: ${GRAFANA_PVC_NAME}
         - name: tmp
           emptyDir: {}
         - name: grafana-dashboards
