@@ -112,13 +112,27 @@ async function apiFetch(path, options = {}, allowRefresh = true) {
   const response = await fetch(`${API}${path}`, fetchOptions(options));
   const body = await response.json().catch(() => ({}));
 
-  if (response.status === 401 && allowRefresh) {
+  // A 401 from the auth endpoints themselves is a real credential error
+  // (e.g. wrong password) — do NOT try to refresh, or the user sees a
+  // misleading "Session expired" instead of "Invalid credentials".
+  const isAuthEndpoint =
+    path.startsWith("/auth/login") ||
+    path.startsWith("/auth/register") ||
+    path.startsWith("/auth/refresh");
+
+  if (response.status === 401 && allowRefresh && !isAuthEndpoint) {
     await refreshAccessToken();
     return apiFetch(path, options, false);
   }
 
   if (!response.ok) {
-    const detail = body.detail || body.message || `Request failed (${response.status})`;
+    // The gateway returns errors as {"error": {"message": "..."}}; also accept
+    // {detail} / {message} for robustness.
+    const detail =
+      body.detail ||
+      (body.error && body.error.message) ||
+      body.message ||
+      `Request failed (${response.status})`;
     throw new Error(typeof detail === "string" ? detail : JSON.stringify(detail));
   }
   return body;
