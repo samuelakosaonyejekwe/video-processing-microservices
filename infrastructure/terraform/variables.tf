@@ -727,6 +727,18 @@ variable "create_managed_node_group" {
   default     = true
 }
 
+# ---------------------------------------------------------------------------
+# Adopt-existing-cluster toggle. true (default + live) reads the running cluster
+# to reuse its real IAM role and avoid replacement. false is set by the recreate
+# path (start-platform.sh) so a fresh rebuild does not try to read a destroyed
+# cluster (which would error the apply at the data source).
+# ---------------------------------------------------------------------------
+variable "adopt_existing_cluster" {
+  description = "true = read the existing live cluster (reuse its role; avoids replacement). false = fresh recreate (no existing cluster to read)."
+  type        = bool
+  default     = true
+}
+
 variable "github_oidc_policy_arns" {
   description = "IAM policy ARNs to attach to the GitHub Actions OIDC role (e.g. the scoped deploy policy). Only used when enable_github_oidc = true."
   type        = list(string)

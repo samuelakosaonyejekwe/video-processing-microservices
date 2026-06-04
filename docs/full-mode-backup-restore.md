@@ -21,6 +21,31 @@ Shutdown **aborts the destroy** if the DB, RabbitMQ, or Jenkins backup fails
 (override per-component with `SKIP_DB_DUMP` / `SKIP_RABBITMQ_BACKUP` /
 `SKIP_JENKINS_BACKUP`). Better to keep paying than to lose data silently.
 
+### Zero-loss coverage for the remaining PVCs (added 2026-06-04)
+
+Every PVC is destroyed in full mode; each is now covered so a restart is data-complete:
+
+| PVC / data | Mechanism | Backup point | Restore point |
+|---|---|---|---|
+| Grafana hand-built dashboards | API export → S3 (`backup-grafana.sh`) | shutdown STEP 0 | start STEP 8c2 (`restore-grafana.sh`) |
+| Redis | RDB snapshot → S3 (`backup-redis.sh`) | shutdown STEP 0 | start STEP 8c2 (`restore-redis.sh`) |
+| Prometheus metrics history | TSDB tar → S3 (`backup-prometheus.sh`, best-effort) | shutdown STEP 0 | start STEP 8c2 (`restore-prometheus.sh`) |
+| converter scratch (`converter-pvc`) | none needed | — | result re-derived from the queued job + S3 source |
+
+Grafana/Redis/Prometheus backups are **non-fatal** (they `warn` but don't abort the
+destroy) — they are recoverable config/cache/observability, not core business data.
+
+### Recreate-path fixes (so the restart actually completes)
+
+The fresh rebuild is gated by two variables (live defaults vs recreate overrides):
+
+- `adopt_existing_cluster` — live `true` (read the running cluster's role); recreate
+  `false` (no cluster to read, so the apply doesn't error on the data source).
+- `create_managed_node_group` — live `false` (leave the unmanaged node group); recreate `true`.
+- `cluster_encryption_kms_key_arn` — live pins the existing key; recreate `""` (fresh key).
+
+`start-platform.sh` passes `-var=adopt_existing_cluster=false -var=create_managed_node_group=true -var=cluster_encryption_kms_key_arn=` on the recreate apply.
+
 ## What CANNOT be retained (AWS assigns these at creation)
 
 A full destroy of the EKS control plane necessarily produces **new**:

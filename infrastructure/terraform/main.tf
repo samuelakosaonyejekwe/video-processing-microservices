@@ -55,8 +55,11 @@ module "iam" {
 # Read the existing EKS cluster so we can pass its actual role_arn back into
 # the module. This prevents forced cluster replacement when Terraform would
 # otherwise create a new IAM role on each apply and see the role_arn change.
+# Gated by adopt_existing_cluster: true for the live cluster (default); the
+# recreate path (start-platform.sh) sets it false so a fresh rebuild does NOT
+# try to read a cluster that no longer exists (which would error the apply).
 data "aws_eks_cluster" "existing" {
-  count = 1
+  count = var.adopt_existing_cluster ? 1 : 0
   name  = var.eks_cluster_name
 }
 
@@ -78,7 +81,7 @@ module "eks" {
 
   subnet_ids = module.vpc.private_subnet_ids
 
-  cluster_role_arn = try(data.aws_eks_cluster.existing[0].role_arn, module.iam.cluster_role_arn)
+  cluster_role_arn = var.adopt_existing_cluster ? try(data.aws_eks_cluster.existing[0].role_arn, module.iam.cluster_role_arn) : module.iam.cluster_role_arn
 
   node_role_arn = module.iam.node_role_arn
 

@@ -167,13 +167,20 @@ if [ "${NEEDS_TERRAFORM}" = "true" ]; then
     TARGETS+=("-target=module.security_groups")
   fi
 
-  # On a fresh recreate terraform MUST provision the node group (the live-cluster
-  # default is create_managed_node_group=false to leave the existing unmanaged
-  # node group alone). Override to true here so the rebuilt cluster gets nodes.
+  # Fresh-recreate var overrides (the live-cluster defaults are the opposite):
+  #   create_managed_node_group=true  -> provision the node group (live default false)
+  #   adopt_existing_cluster=false    -> don't read a destroyed cluster (live default true)
+  #   cluster_encryption_kms_key_arn="" -> create a fresh KMS key for the new cluster
+  #                                        (live default pins the existing key)
+  RECREATE_VARS=(
+    -var=create_managed_node_group=true
+    -var=adopt_existing_cluster=false
+    -var=cluster_encryption_kms_key_arn=
+  )
   if [ ${#TARGETS[@]} -gt 0 ]; then
     terraform apply \
       "${TARGETS[@]}" \
-      -var=create_managed_node_group=true \
+      "${RECREATE_VARS[@]}" \
       -input=false \
       -auto-approve
     log "Terraform apply complete."
@@ -183,7 +190,7 @@ if [ "${NEEDS_TERRAFORM}" = "true" ]; then
   if [ "${EKS_STATUS}" = "MISSING" ]; then
     log "Re-applying IRSA roles (OIDC provider ARN has changed)..."
     terraform apply \
-      -var=create_managed_node_group=true \
+      "${RECREATE_VARS[@]}" \
       -input=false \
       -auto-approve
     log "IRSA roles updated."
@@ -339,6 +346,14 @@ else
   warn "RabbitMQ restore FAILED — apps recreate queues on connect, but queued messages were NOT restored."
   warn "Re-run: DATABASE_BACKUP_BUCKET=... bash scripts/restore-rabbitmq.sh"
 fi
+
+# ---------------------------------------------------------------------------
+# STEP 8c2 — Restore Redis, Grafana dashboards, Prometheus history (zero-loss)
+# ---------------------------------------------------------------------------
+log "=== STEP 8c2: Restoring Redis / Grafana dashboards / Prometheus metrics ==="
+bash "${ROOT_DIR}/scripts/restore-redis.sh"      || warn "Redis restore failed (cache will warm naturally)."
+bash "${ROOT_DIR}/scripts/restore-grafana.sh"    || warn "Grafana dashboard restore failed (provisioned dashboards still load from ConfigMap)."
+bash "${ROOT_DIR}/scripts/restore-prometheus.sh" || warn "Prometheus restore failed (metrics start fresh — non-critical)."
 
 # ---------------------------------------------------------------------------
 # STEP 8d — Re-point DNS to the freshly provisioned ALB

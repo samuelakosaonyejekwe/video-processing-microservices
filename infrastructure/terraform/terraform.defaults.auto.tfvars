@@ -50,3 +50,8 @@ enable_cluster_log_types = ["api", "audit", "authenticator", "controllerManager"
 # (start-platform.sh) overrides this with -var=create_managed_node_group=true so a
 # fresh cluster still gets its nodes provisioned.
 create_managed_node_group = false
+
+# Live cluster exists, so adopt it (read its real role; avoids replacement). The
+# recreate path overrides with -var=adopt_existing_cluster=false so a fresh
+# rebuild doesn't try to read a destroyed cluster.
+adopt_existing_cluster = true
