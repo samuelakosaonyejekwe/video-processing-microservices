@@ -161,6 +161,19 @@ variable "tags" {
   default = {}
 }
 
+variable "create_managed_node_group" {
+
+  description = <<-EOT
+    Whether terraform manages the EKS managed node group. false for the existing
+    live cluster (its node group is unmanaged/out-of-band — terraform must not
+    create a parallel one); true for a fresh recreate so nodes are provisioned.
+  EOT
+
+  type = bool
+
+  default = true
+}
+
 variable "cluster_encryption_kms_key_arn" {
 
   description = <<-EOT

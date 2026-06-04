@@ -37,7 +37,12 @@ module "eks" {
     resources        = ["secrets"]
   }
 
-  eks_managed_node_groups = {
+  # Gate the managed node group. The LIVE cluster's node group is unmanaged
+  # (created out-of-band), so for the existing cluster this is false → terraform
+  # leaves the running nodes untouched. On a fresh recreate (full restart) it is
+  # true so terraform provisions the node group. start-platform.sh passes
+  # -var=create_managed_node_group=true for the recreate path.
+  eks_managed_node_groups = var.create_managed_node_group ? {
 
     (var.eks_node_group_name) = {
 
@@ -74,7 +79,7 @@ module "eks" {
         Name = "${var.project_name}-${var.environment}-eks-worker"
       }
     }
-  }
+  } : {}
 
   create_iam_role = false
 

@@ -715,6 +715,18 @@ variable "github_oidc_subject_claims" {
   default     = []
 }
 
+# ---------------------------------------------------------------------------
+# Node-group management. The live cluster's node group is unmanaged (created
+# out-of-band), so this is set false for the existing cluster (terraform leaves
+# the running nodes alone). The recreate path (start-platform.sh) overrides this
+# with -var=create_managed_node_group=true so a fresh cluster gets its nodes.
+# ---------------------------------------------------------------------------
+variable "create_managed_node_group" {
+  description = "Whether terraform manages the EKS node group. false = leave the live unmanaged node group untouched; true = provision it (fresh recreate)."
+  type        = bool
+  default     = true
+}
+
 variable "github_oidc_policy_arns" {
   description = "IAM policy ARNs to attach to the GitHub Actions OIDC role (e.g. the scoped deploy policy). Only used when enable_github_oidc = true."
   type        = list(string)
