@@ -44,3 +44,9 @@ ami_type                = "AL2_x86_64"
 max_unavailable         = 1
 
 enable_cluster_log_types = ["api", "audit", "authenticator", "controllerManager", "scheduler"]
+
+# The live cluster's node group is unmanaged (created out-of-band), so terraform
+# must NOT create a parallel managed node group against it. The recreate path
+# (start-platform.sh) overrides this with -var=create_managed_node_group=true so a
+# fresh cluster still gets its nodes provisioned.
+create_managed_node_group = false

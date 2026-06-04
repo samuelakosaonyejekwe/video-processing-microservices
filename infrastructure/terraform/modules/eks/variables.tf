@@ -160,3 +160,31 @@ variable "tags" {
 
   default = {}
 }
+
+variable "create_managed_node_group" {
+
+  description = <<-EOT
+    Whether terraform manages the EKS managed node group. false for the existing
+    live cluster (its node group is unmanaged/out-of-band — terraform must not
+    create a parallel one); true for a fresh recreate so nodes are provisioned.
+  EOT
+
+  type = bool
+
+  default = true
+}
+
+variable "cluster_encryption_kms_key_arn" {
+
+  description = <<-EOT
+    ARN of an EXISTING KMS key to use for EKS secrets encryption. When set, the
+    module references this key instead of creating its own (create_kms_key=false).
+    Default is the live cluster's current encryption key so terraform state matches
+    reality and never attempts an (immutable) encryption_config change that would
+    force a cluster replacement. Leave "" to let the module create/manage a key.
+  EOT
+
+  type = string
+
+  default = "arn:aws:kms:eu-central-1:009850210027:key/2e99c142-566d-4f3f-a930-e456704aa00b"
+}

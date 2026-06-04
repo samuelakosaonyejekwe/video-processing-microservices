@@ -72,6 +72,8 @@ module "eks" {
 
   eks_node_group_name = var.eks_node_group_name
 
+  create_managed_node_group = var.create_managed_node_group
+
   vpc_id = module.vpc.vpc_id
 
   subnet_ids = module.vpc.private_subnet_ids

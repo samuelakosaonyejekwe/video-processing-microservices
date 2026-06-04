@@ -167,9 +167,13 @@ if [ "${NEEDS_TERRAFORM}" = "true" ]; then
     TARGETS+=("-target=module.security_groups")
   fi
 
+  # On a fresh recreate terraform MUST provision the node group (the live-cluster
+  # default is create_managed_node_group=false to leave the existing unmanaged
+  # node group alone). Override to true here so the rebuilt cluster gets nodes.
   if [ ${#TARGETS[@]} -gt 0 ]; then
     terraform apply \
       "${TARGETS[@]}" \
+      -var=create_managed_node_group=true \
       -input=false \
       -auto-approve
     log "Terraform apply complete."
@@ -179,6 +183,7 @@ if [ "${NEEDS_TERRAFORM}" = "true" ]; then
   if [ "${EKS_STATUS}" = "MISSING" ]; then
     log "Re-applying IRSA roles (OIDC provider ARN has changed)..."
     terraform apply \
+      -var=create_managed_node_group=true \
       -input=false \
       -auto-approve
     log "IRSA roles updated."
