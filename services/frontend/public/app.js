@@ -5,6 +5,7 @@ const WS_URL =
 
 const state = {
   email: "",
+  username: "",
   jobId: "",
   filename: "",
   pollTimer: null,
@@ -141,7 +142,7 @@ async function apiFetch(path, options = {}, allowRefresh = true) {
 function showAuthenticatedView() {
   els.authCard.classList.add("hidden");
   els.appCard.classList.remove("hidden");
-  els.userEmail.textContent = state.email || "Signed in";
+  els.userEmail.textContent = state.username || state.email || "your account";
 }
 
 function showGuestView() {
@@ -182,6 +183,7 @@ async function handleLogin(event) {
       body: JSON.stringify({ email, password }),
     });
     state.email = data.email || email;
+    state.username = data.username || "";
     state.authenticated = true;
     clearAuthAlert();
     showAuthenticatedView();
@@ -220,6 +222,7 @@ async function handleLogout() {
   }
 
   state.email = "";
+  state.username = "";
   state.authenticated = false;
   disconnectWebSocket();
   showGuestView();
@@ -431,6 +434,7 @@ async function restoreSession() {
   try {
     const data = await apiFetch("/auth/session");
     state.email = data.email || "";
+    state.username = data.username || "";
     state.authenticated = true;
     showAuthenticatedView();
     resetConversionUi();
