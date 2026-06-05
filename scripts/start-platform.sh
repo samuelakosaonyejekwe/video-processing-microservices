@@ -294,6 +294,47 @@ WORKER_TAG="${EKS_WORKER_INSTANCE_NAME:-${PROJECT_NAME}-${APP_ENV}-eks-worker}"
 tag_eks_worker_instances "${EKS_CLUSTER_NAME}" "${AWS_REGION}" "${WORKER_TAG}"
 
 # ---------------------------------------------------------------------------
+# STEP 5b — AZ guarantee for stateful data
+# ---------------------------------------------------------------------------
+# Stateful pods (postgres/mongo/rabbitmq/redis) can only schedule onto a node in
+# the SAME AZ as their EBS volume. The managed node group's ASG balances across
+# AZs, but to GUARANTEE coverage we verify each data-PVC AZ has a Ready node and,
+# if not, scale the node group up until it does (bounded). No-op when already covered.
+log "=== STEP 5b: Ensuring a Ready node in every AZ that holds a data PVC ==="
+DATA_AZS="$(kubectl get pv -o jsonpath='{range .items[?(@.status.phase=="Bound")]}{.spec.nodeAffinity.required.nodeSelectorTerms[0].matchExpressions[0].values[0]}{"\n"}{end}' 2>/dev/null | grep -E '^[a-z]{2}-' | sort -u || true)"
+if [ -z "${DATA_AZS}" ]; then
+  log "No zoned data PVCs detected — nothing to guarantee."
+else
+  log "Data PVC AZ(s): $(echo "${DATA_AZS}" | tr '\n' ' ')"
+  DESIRED_NOW="${EKS_DESIRED}"; CAP=$((EKS_DESIRED + 3))
+  for az in ${DATA_AZS}; do
+    tries=0
+    while true; do
+      N="$(kubectl get nodes -l "topology.kubernetes.io/zone=${az}" --no-headers 2>/dev/null | awk '$2=="Ready"' | wc -l | tr -d ' ')"
+      if [ "${N:-0}" -ge 1 ]; then ok "AZ ${az}: ${N} Ready node(s)."; break; fi
+      tries=$((tries+1))
+      if [ "${tries}" -gt 18 ]; then
+        if [ "${DESIRED_NOW}" -lt "${CAP}" ]; then
+          DESIRED_NOW=$((DESIRED_NOW + 1))
+          NEW_MAX=$(( DESIRED_NOW > EKS_MAX ? DESIRED_NOW : EKS_MAX ))
+          warn "No Ready node in ${az}; scaling node group to desired=${DESIRED_NOW} (max=${NEW_MAX}) to force AZ coverage..."
+          aws eks update-nodegroup-config --cluster-name "${EKS_CLUSTER_NAME}" \
+            --nodegroup-name "${NODEGROUP}" --region "${AWS_REGION}" \
+            --scaling-config "minSize=${EKS_MIN},maxSize=${NEW_MAX},desiredSize=${DESIRED_NOW}" >/dev/null 2>&1 || true
+          aws eks wait nodegroup-active --cluster-name "${EKS_CLUSTER_NAME}" \
+            --nodegroup-name "${NODEGROUP}" --region "${AWS_REGION}" 2>/dev/null || true
+          tries=0
+        else
+          warn "AZ ${az} still has no Ready node at cap (${CAP}). Pods bound to ${az} may stay Pending — check ${az} capacity."
+          break
+        fi
+      fi
+      sleep 10
+    done
+  done
+fi
+
+# ---------------------------------------------------------------------------
 # STEP 6 — Start Jenkins EC2
 # ---------------------------------------------------------------------------
 log "=== STEP 6: Starting Jenkins EC2 ==="
