@@ -20,9 +20,12 @@ metadata:
     app: prometheus
 rules:
   - apiGroups: [""]
+    # nodes/metrics authorises scraping the kubelet's /metrics and
+    # /metrics/cadvisor directly on each node:10250. nodes/proxy is deliberately
+    # NOT granted (Trivy KSV-0047) — we scrape the kubelet directly, not through
+    # the API-server proxy, so the proxy subresource is unnecessary.
     resources:
       - nodes
-      - nodes/proxy
       - nodes/metrics
       - services
       - endpoints

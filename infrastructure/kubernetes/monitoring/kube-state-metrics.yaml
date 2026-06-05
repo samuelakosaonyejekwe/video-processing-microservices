@@ -19,9 +19,11 @@ metadata:
     app: kube-state-metrics
 rules:
   - apiGroups: [""]
+    # NOTE: 'secrets' is intentionally omitted — kube_secret_* metrics are not
+    # used by any dashboard and granting cluster-wide secret read is a needless
+    # risk (Trivy KSV-0041).
     resources:
       - configmaps
-      - secrets
       - nodes
       - pods
       - services
