@@ -125,6 +125,13 @@ NEEDS_TERRAFORM=false
 [ "${JENKINS_STATE}" = "MISSING" ] && NEEDS_TERRAFORM=true
 [ "${NAT_STATUS}" = "MISSING" ] && NEEDS_TERRAFORM=true
 
+# CRITICAL: only restore from S3 when the cluster/Jenkins were actually destroyed
+# (full mode). On a SOFT start the PVCs/EBS still hold the NEWEST data, so restoring
+# an older S3 backup would CLOBBER live data. Capture the pre-recreate state now,
+# before the post-terraform refresh overwrites EKS_STATUS.
+RESTORE_CLUSTER_DATA=false; [ "${EKS_STATUS}" = "MISSING" ] && RESTORE_CLUSTER_DATA=true
+RESTORE_JENKINS_DATA=false; [ "${JENKINS_STATE}" = "MISSING" ] && RESTORE_JENKINS_DATA=true
+
 # ---------------------------------------------------------------------------
 # STEP 2 — Terraform recreate missing infrastructure (if needed)
 # ---------------------------------------------------------------------------
@@ -320,40 +327,36 @@ bash "${ROOT_DIR}/scripts/deploy-services.sh"
 ok "Services deployed."
 
 # ---------------------------------------------------------------------------
-# STEP 8b — Restore databases from the latest S3 dump
+# STEP 8b/8c/8c2 — Restore data from S3, but ONLY after a full recreate
 # ---------------------------------------------------------------------------
-# After a full recreate the DBs come up empty (schema re-migrated). Restore the
-# pre-shutdown data from S3 so the platform is identical to before the shutdown.
-# Idempotent (uses --clean/--drop); a no-op/skip if no dump exists (fresh start).
-# Set RESTORE_DATABASES=false to deliberately start fresh.
-log "=== STEP 8b: Restoring databases from S3 (if a dump exists) ==="
-if bash "${ROOT_DIR}/scripts/restore-databases.sh"; then
-  ok "Database restore step complete."
-  # Restart app deployments so they pick up restored data cleanly.
-  kubectl -n "${K8S_NAMESPACE}" rollout restart deployment 2>/dev/null || true
+# CRITICAL SAFETY GATE: restores run only when the cluster was actually destroyed
+# (full mode). On a SOFT start the PVCs still hold the newest data, so restoring
+# an older S3 backup would CLOBBER live data. Skip restores entirely in soft mode.
+if [ "${RESTORE_CLUSTER_DATA}" != "true" ]; then
+  log "=== STEP 8b-8c2: SOFT start — PVC data is intact and authoritative; SKIPPING all S3 restores (no data clobber) ==="
 else
-  warn "Database restore FAILED — platform is up but DB data was NOT restored."
-  warn "Re-run: DATABASE_BACKUP_BUCKET=... bash scripts/restore-databases.sh"
-fi
+  log "=== STEP 8b: Restoring databases from S3 (full recreate) ==="
+  if bash "${ROOT_DIR}/scripts/restore-databases.sh"; then
+    ok "Database restore step complete."
+    kubectl -n "${K8S_NAMESPACE}" rollout restart deployment 2>/dev/null || true
+  else
+    warn "Database restore FAILED — platform is up but DB data was NOT restored."
+    warn "Re-run: DATABASE_BACKUP_BUCKET=... bash scripts/restore-databases.sh"
+  fi
 
-# ---------------------------------------------------------------------------
-# STEP 8c — Restore RabbitMQ (topology + durable messages) from S3
-# ---------------------------------------------------------------------------
-log "=== STEP 8c: Restoring RabbitMQ from S3 (if a backup exists) ==="
-if bash "${ROOT_DIR}/scripts/restore-rabbitmq.sh"; then
-  ok "RabbitMQ restore step complete."
-else
-  warn "RabbitMQ restore FAILED — apps recreate queues on connect, but queued messages were NOT restored."
-  warn "Re-run: DATABASE_BACKUP_BUCKET=... bash scripts/restore-rabbitmq.sh"
-fi
+  log "=== STEP 8c: Restoring RabbitMQ from S3 ==="
+  if bash "${ROOT_DIR}/scripts/restore-rabbitmq.sh"; then
+    ok "RabbitMQ restore step complete."
+  else
+    warn "RabbitMQ restore FAILED — apps recreate queues on connect, but queued messages were NOT restored."
+    warn "Re-run: DATABASE_BACKUP_BUCKET=... bash scripts/restore-rabbitmq.sh"
+  fi
 
-# ---------------------------------------------------------------------------
-# STEP 8c2 — Restore Redis, Grafana dashboards, Prometheus history (zero-loss)
-# ---------------------------------------------------------------------------
-log "=== STEP 8c2: Restoring Redis / Grafana dashboards / Prometheus metrics ==="
-bash "${ROOT_DIR}/scripts/restore-redis.sh"      || warn "Redis restore failed (cache will warm naturally)."
-bash "${ROOT_DIR}/scripts/restore-grafana.sh"    || warn "Grafana dashboard restore failed (provisioned dashboards still load from ConfigMap)."
-bash "${ROOT_DIR}/scripts/restore-prometheus.sh" || warn "Prometheus restore failed (metrics start fresh — non-critical)."
+  log "=== STEP 8c2: Restoring Redis / Grafana dashboards / Prometheus metrics ==="
+  bash "${ROOT_DIR}/scripts/restore-redis.sh"      || warn "Redis restore failed (cache will warm naturally)."
+  bash "${ROOT_DIR}/scripts/restore-grafana.sh"    || warn "Grafana dashboard restore failed (provisioned dashboards still load from ConfigMap)."
+  bash "${ROOT_DIR}/scripts/restore-prometheus.sh" || warn "Prometheus restore failed (metrics start fresh — non-critical)."
+fi
 
 # ---------------------------------------------------------------------------
 # STEP 8d — Re-point DNS to the freshly provisioned ALB
@@ -371,11 +374,17 @@ fi
 # ---------------------------------------------------------------------------
 # STEP 8e — Restore Jenkins home from the latest EBS snapshot
 # ---------------------------------------------------------------------------
-log "=== STEP 8e: Restoring Jenkins home from snapshot (if one exists) ==="
-if bash "${ROOT_DIR}/scripts/restore-jenkins.sh"; then
-  ok "Jenkins restore step complete."
+# Only restore Jenkins after a full recreate. On a soft start Jenkins was merely
+# stopped (its EBS data is intact), so restoring an older snapshot would clobber it.
+if [ "${RESTORE_JENKINS_DATA}" != "true" ]; then
+  log "=== STEP 8e: SOFT start — Jenkins data intact (instance only stopped); SKIPPING snapshot restore ==="
 else
-  warn "Jenkins restore FAILED — Jenkins is up but may be empty. See restore-jenkins.sh output for manual steps."
+  log "=== STEP 8e: Restoring Jenkins home from snapshot (full recreate) ==="
+  if bash "${ROOT_DIR}/scripts/restore-jenkins.sh"; then
+    ok "Jenkins restore step complete."
+  else
+    warn "Jenkins restore FAILED — Jenkins is up but may be empty. See restore-jenkins.sh output for manual steps."
+  fi
 fi
 
 # ---------------------------------------------------------------------------
