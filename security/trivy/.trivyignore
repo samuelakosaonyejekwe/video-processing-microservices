@@ -1,3 +1,10 @@
+# IaC misconfiguration exceptions (Trivy `config` scan)
+# node-exporter (monitoring ns) must mount host /proc, /sys and / read-only to
+# read node-level CPU/memory/disk/filesystem metrics — intrinsic to its purpose
+# and unavoidable. Mounts are readOnly; the container drops ALL capabilities,
+# runs as non-root and has a read-only root filesystem. Added 2026-06-05.
+AVD-KSV-0121
+
 # Pending dependency upgrades — review monthly
 CVE-2024-33663
 CVE-2024-53981

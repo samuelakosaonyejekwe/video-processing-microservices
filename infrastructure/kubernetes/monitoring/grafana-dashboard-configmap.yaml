@@ -25,3 +25,19 @@ data:
   keda-dashboard.json: |
 
     ${KEDA_DASHBOARD_JSON}
+
+  kubernetes-dashboard.json: |
+
+    ${KUBERNETES_DASHBOARD_JSON}
+
+  eks-dashboard.json: |
+
+    ${EKS_DASHBOARD_JSON}
+
+  node-dashboard.json: |
+
+    ${NODE_DASHBOARD_JSON}
+
+  pod-dashboard.json: |
+
+    ${POD_DASHBOARD_JSON}

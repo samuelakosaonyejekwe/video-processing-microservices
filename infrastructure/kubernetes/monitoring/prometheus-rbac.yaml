@@ -1,0 +1,58 @@
+# RBAC for Prometheus' Kubernetes service discovery. Lets the Prometheus pod
+# (running in the application namespace) authenticate to the EKS API server and
+# scrape the kubelet, cAdvisor and API-server metrics via the API-server proxy —
+# the data behind the Kubernetes / EKS / Pod dashboards. Read-only; the bearer
+# token is the pod's auto-mounted ServiceAccount token.
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: prometheus
+  namespace: ${K8S_NAMESPACE}
+  labels:
+    app: prometheus
+    environment: ${APP_ENV}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: prometheus
+  labels:
+    app: prometheus
+rules:
+  - apiGroups: [""]
+    # nodes/metrics authorises scraping the kubelet's /metrics and
+    # /metrics/cadvisor directly on each node:10250. nodes/proxy is deliberately
+    # NOT granted (Trivy KSV-0047) — we scrape the kubelet directly, not through
+    # the API-server proxy, so the proxy subresource is unnecessary.
+    resources:
+      - nodes
+      - nodes/metrics
+      - services
+      - endpoints
+      - pods
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["discovery.k8s.io"]
+    resources:
+      - endpointslices
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["networking.k8s.io"]
+    resources:
+      - ingresses
+    verbs: ["get", "list", "watch"]
+  - nonResourceURLs: ["/metrics", "/metrics/cadvisor"]
+    verbs: ["get"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: prometheus
+  labels:
+    app: prometheus
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: prometheus
+subjects:
+  - kind: ServiceAccount
+    name: prometheus
+    namespace: ${K8S_NAMESPACE}

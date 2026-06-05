@@ -54,3 +54,84 @@ data:
         static_configs:
           - targets: ["keda-operator.${KEDA_NAMESPACE}.svc.cluster.local:8080"]
             labels: { service: keda }
+
+      # ── Kubernetes / EKS infrastructure metrics ──────────────────────────────
+      # The jobs below feed the Kubernetes, EKS, Node and Pod dashboards. The
+      # kubelet/cAdvisor/API-server jobs authenticate with the pod's
+      # ServiceAccount token and reach each node through the API-server proxy, so
+      # Prometheus only needs egress to the API server on 443 (see
+      # prometheus-rbac.yaml + prometheus-network-policy.yaml).
+
+      # kube-state-metrics — object/state metrics (kube_pod_*, kube_deployment_*,
+      # kube_node_*). Scraped via static service DNS in the monitoring namespace.
+      - job_name: kube-state-metrics
+        metrics_path: /metrics
+        static_configs:
+          - targets: ["kube-state-metrics.${MONITORING_NAMESPACE}.svc.cluster.local:8080"]
+            labels: { service: kube-state-metrics }
+
+      # node-exporter — per-node CPU/mem/disk/net (DaemonSet, monitoring ns).
+      # Endpoints SD so every node's pod is scraped; instance/node = node name.
+      - job_name: node-exporter
+        kubernetes_sd_configs:
+          - role: endpoints
+            namespaces:
+              names: ["${MONITORING_NAMESPACE}"]
+        relabel_configs:
+          - source_labels: [__meta_kubernetes_endpoints_name]
+            action: keep
+            regex: node-exporter
+          - source_labels: [__meta_kubernetes_pod_node_name]
+            target_label: node
+          - source_labels: [__meta_kubernetes_pod_node_name]
+            target_label: instance
+
+      # EKS control-plane: API server request rate / latency / health.
+      - job_name: kubernetes-apiservers
+        scheme: https
+        tls_config:
+          ca_file: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+          insecure_skip_verify: true
+        bearer_token_file: /var/run/secrets/kubernetes.io/serviceaccount/token
+        kubernetes_sd_configs:
+          - role: endpoints
+        relabel_configs:
+          - source_labels:
+              [__meta_kubernetes_namespace, __meta_kubernetes_service_name, __meta_kubernetes_endpoint_port_name]
+            action: keep
+            regex: default;kubernetes;https
+
+      # Kubelet node metrics — scraped directly on the node's kubelet
+      # (InternalIP:10250) rather than through the API-server proxy, so the
+      # destination is a real node IP inside the VPC CIDR (the AWS VPC CNI network
+      # policy agent does not honour egress to the API-server ClusterIP).
+      - job_name: kubernetes-nodes-kubelet
+        scheme: https
+        tls_config:
+          ca_file: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+          insecure_skip_verify: true
+        bearer_token_file: /var/run/secrets/kubernetes.io/serviceaccount/token
+        kubernetes_sd_configs:
+          - role: node
+        relabel_configs:
+          - action: labelmap
+            regex: __meta_kubernetes_node_label_(.+)
+          - source_labels: [__meta_kubernetes_node_name]
+            target_label: instance
+
+      # cAdvisor — per-container/pod CPU & memory, also direct from the kubelet
+      # (InternalIP:10250) at the /metrics/cadvisor path.
+      - job_name: kubernetes-cadvisor
+        scheme: https
+        tls_config:
+          ca_file: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+          insecure_skip_verify: true
+        bearer_token_file: /var/run/secrets/kubernetes.io/serviceaccount/token
+        metrics_path: /metrics/cadvisor
+        kubernetes_sd_configs:
+          - role: node
+        relabel_configs:
+          - action: labelmap
+            regex: __meta_kubernetes_node_label_(.+)
+          - source_labels: [__meta_kubernetes_node_name]
+            target_label: instance

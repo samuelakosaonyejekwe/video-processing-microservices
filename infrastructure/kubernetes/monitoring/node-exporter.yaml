@@ -1,0 +1,134 @@
+# node-exporter — per-node CPU / memory / disk / filesystem / network metrics
+# (node_*) that power the Node Grafana dashboard. Runs as a DaemonSet in the
+# monitoring namespace (no restricted PSS, so host /proc, /sys and / can be
+# mounted read-only). Deliberately NOT hostNetwork so the pods keep routable pod
+# IPs and Prometheus can scrape them through a normal NetworkPolicy. Discovered
+# by Prometheus via the endpoints role on the node-exporter Service.
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: node-exporter
+  namespace: ${MONITORING_NAMESPACE}
+  labels:
+    app: node-exporter
+    environment: ${APP_ENV}
+automountServiceAccountToken: false
+---
+# node-exporter must mount host /proc, /sys and / (all read-only) to read
+# node-level CPU/memory/disk/filesystem metrics — this is its entire purpose and
+# cannot be avoided. Mounts are readOnly; the container drops ALL capabilities,
+# runs as non-root and has a read-only root filesystem. Accepted exception.
+#trivy:ignore:AVD-KSV-0121
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: node-exporter
+  namespace: ${MONITORING_NAMESPACE}
+  labels:
+    app: node-exporter
+    environment: ${APP_ENV}
+spec:
+  selector:
+    matchLabels:
+      app: node-exporter
+  updateStrategy:
+    type: RollingUpdate
+  template:
+    metadata:
+      labels:
+        app: node-exporter
+        environment: ${APP_ENV}
+    spec:
+      serviceAccountName: node-exporter
+      automountServiceAccountToken: false
+      priorityClassName: system-node-critical
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 65534
+        runAsGroup: 65534
+        seccompProfile:
+          type: RuntimeDefault
+      tolerations:
+        - operator: Exists
+      containers:
+        - name: node-exporter
+          image: quay.io/prometheus/node-exporter:v1.8.2
+          imagePullPolicy: IfNotPresent
+          args:
+            - "--path.procfs=/host/proc"
+            - "--path.sysfs=/host/sys"
+            - "--path.rootfs=/host/root"
+            - "--web.listen-address=:9100"
+            - "--collector.filesystem.mount-points-exclude=^/(dev|proc|sys|var/lib/docker/.+|var/lib/kubelet/.+)($|/)"
+            - "--collector.filesystem.fs-types-exclude=^(autofs|binfmt_misc|bpf|cgroup2?|configfs|debugfs|devpts|devtmpfs|fusectl|hugetlbfs|iso9660|mqueue|nsfs|overlay|proc|procfs|pstore|rpc_pipefs|securityfs|selinuxfs|squashfs|sysfs|tracefs)$"
+          ports:
+            - name: metrics
+              containerPort: 9100
+              protocol: TCP
+          resources:
+            requests:
+              cpu: "20m"
+              memory: "32Mi"
+            limits:
+              cpu: "100m"
+              memory: "128Mi"
+          livenessProbe:
+            httpGet:
+              path: /
+              port: 9100
+            initialDelaySeconds: 5
+            periodSeconds: 15
+            timeoutSeconds: 5
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 9100
+            initialDelaySeconds: 5
+            periodSeconds: 15
+            timeoutSeconds: 5
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop:
+                - ALL
+          volumeMounts:
+            - name: proc
+              mountPath: /host/proc
+              readOnly: true
+            - name: sys
+              mountPath: /host/sys
+              readOnly: true
+            - name: root
+              mountPath: /host/root
+              mountPropagation: HostToContainer
+              readOnly: true
+      volumes:
+        - name: proc
+          hostPath:
+            path: /proc
+        - name: sys
+          hostPath:
+            path: /sys
+        - name: root
+          hostPath:
+            path: /
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: node-exporter
+  namespace: ${MONITORING_NAMESPACE}
+  labels:
+    app: node-exporter
+    environment: ${APP_ENV}
+spec:
+  type: ClusterIP
+  clusterIP: None
+  selector:
+    app: node-exporter
+  ports:
+    - name: metrics
+      protocol: TCP
+      port: 9100
+      targetPort: 9100

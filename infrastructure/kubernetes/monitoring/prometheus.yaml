@@ -27,6 +27,10 @@ spec:
 
     spec:
 
+      # Used by the kubernetes_sd_configs scrape jobs (kubelet, cAdvisor, API
+      # server) — see prometheus-rbac.yaml for the bound ClusterRole.
+      serviceAccountName: prometheus
+
       securityContext:
         runAsNonRoot: true
         runAsUser: 65534
