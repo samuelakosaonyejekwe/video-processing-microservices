@@ -17,8 +17,8 @@ automountServiceAccountToken: false
 # node-exporter must mount host /proc, /sys and / (all read-only) to read
 # node-level CPU/memory/disk/filesystem metrics — this is its entire purpose and
 # cannot be avoided. Mounts are readOnly; the container drops ALL capabilities,
-# runs as non-root and has a read-only root filesystem. Accepted exception:
-# trivy:ignore:AVD-KSV-0121
+# runs as non-root and has a read-only root filesystem. Accepted exception.
+#trivy:ignore:AVD-KSV-0121
 apiVersion: apps/v1
 kind: DaemonSet
 metadata:
