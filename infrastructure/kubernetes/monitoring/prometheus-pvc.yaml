@@ -2,7 +2,7 @@ apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
   name: ${PROMETHEUS_PVC_NAME}
-  namespace: ${K8S_NAMESPACE}
+  namespace: ${MONITORING_NAMESPACE}
   labels:
     app: prometheus
     service: prometheus-service

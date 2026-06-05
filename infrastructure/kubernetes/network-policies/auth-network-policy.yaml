@@ -46,10 +46,14 @@ spec:
           port: ${INTERNAL_TLS_PORT}
 
     #
-    # ALLOW PROMETHEUS METRICS SCRAPE (/metrics)
+    # ALLOW PROMETHEUS METRICS SCRAPE (/metrics) — Prometheus runs in the
+    # monitoring namespace (policy-free), so match it by namespace + pod label.
     #
     - from:
-        - podSelector:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: ${MONITORING_NAMESPACE}
+          podSelector:
             matchLabels:
               ${PROMETHEUS_LABEL_KEY}: ${PROMETHEUS_LABEL_VALUE}
       ports:

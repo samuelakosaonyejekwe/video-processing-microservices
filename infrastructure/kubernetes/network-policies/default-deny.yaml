@@ -127,51 +127,13 @@ spec:
 
 ---
 #
-# MONITORING NAMESPACE: default-deny-all backstop.
-# This namespace currently hosts only ServiceMonitor CRs (no pods); the deny-all
-# plus DNS allow is a safe baseline if pods are added later.
-#
-apiVersion: networking.k8s.io/v1
-kind: NetworkPolicy
-metadata:
-  name: default-deny-all
-  namespace: ${MONITORING_NAMESPACE}
-  labels:
-    app: network-security
-    policy: default-deny
-    environment: ${APP_ENV}
-spec:
-  podSelector: {}
-  policyTypes:
-    - Ingress
-    - Egress
-  ingress: []
-  egress: []
-
----
-#
-# MONITORING NAMESPACE: allow DNS egress for every pod.
-#
-apiVersion: networking.k8s.io/v1
-kind: NetworkPolicy
-metadata:
-  name: allow-dns-egress
-  namespace: ${MONITORING_NAMESPACE}
-  labels:
-    app: network-security
-    policy: allow-dns
-    environment: ${APP_ENV}
-spec:
-  podSelector: {}
-  policyTypes:
-    - Egress
-  egress:
-    - to:
-        - namespaceSelector:
-            matchLabels:
-              kubernetes.io/metadata.name: ${KUBE_SYSTEM_NAMESPACE}
-      ports:
-        - protocol: UDP
-          port: ${DNS_PORT}
-        - protocol: TCP
-          port: ${DNS_PORT}
+# MONITORING NAMESPACE: intentionally has NO default-deny / allow-dns policies.
+# Prometheus + kube-state-metrics + node-exporter run here and must reach the
+# Kubernetes API server for service discovery. On this cluster the AWS VPC CNI
+# Network Policy agent unreliably programs egress-to-apiserver for policy-governed
+# pods (especially after a node recreation), which broke the K8s/EKS/Node/Pod
+# dashboards on every restart and could not be fixed with policy exemptions (the
+# agent ignores them). Leaving this namespace policy-free makes the scrapers behave
+# like kube-system pods — reliable API-server access. The namespace holds only
+# read-only monitoring components; the things they scrape still constrain ingress
+# on their own side. See docs/soft-shutdown-restart-runbook.md.

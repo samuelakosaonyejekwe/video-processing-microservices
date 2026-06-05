@@ -86,13 +86,16 @@ dashboards and the whole platform are unaffected.
 also does **not** honour NetworkPolicy exemptions (ipBlock-to-apiserver allows or
 pod exclusions), so it cannot be fixed by editing policies.
 
-**Durable fix:** run the monitoring scrapers (Prometheus + kube-state-metrics) in a
-namespace **without** a `default-deny-all` policy, so their egress is not subject
-to the VPC CNI policy agent at all (policy-free pods reach the API server
-reliably, exactly like pods in `kube-system`/`default`). This is a deliberate,
-watched change — see the "monitoring namespace move" task. Until then the 4 infra
-dashboards are best-effort after a restart (they recover if/when the agent
-reconciles); everything else is reliable.
+**This has been fixed (durably).** Prometheus + kube-state-metrics + node-exporter
+now run in the **`monitoring` namespace, which is intentionally policy-free** (no
+`default-deny-all` / `allow-dns-egress` — see `default-deny.yaml`). Policy-free
+pods are not subject to the VPC CNI policy agent at all, so they reach the API
+server reliably (exactly like `kube-system` pods) on every restart. Grafana (in the
+app namespace) reaches Prometheus cross-namespace at
+`prometheus-service.monitoring.svc.cluster.local:9090`, and the app/rabbitmq
+ingress policies allow the scrape from the monitoring namespace. The `monitoring`
+namespace holds only read-only monitoring components; the things they scrape still
+constrain ingress on their own side, so the security trade-off is contained.
 
 ## Verify after any restart
 

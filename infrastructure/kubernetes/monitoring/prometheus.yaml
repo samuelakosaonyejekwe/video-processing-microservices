@@ -3,7 +3,7 @@ kind: Deployment
 
 metadata:
   name: prometheus
-  namespace: ${K8S_NAMESPACE}
+  namespace: ${MONITORING_NAMESPACE}
 
   labels:
     app: prometheus
@@ -175,7 +175,7 @@ kind: Service
 
 metadata:
   name: prometheus-service
-  namespace: ${K8S_NAMESPACE}
+  namespace: ${MONITORING_NAMESPACE}
 
   labels:
     app: prometheus
