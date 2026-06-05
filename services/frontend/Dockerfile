@@ -1,4 +1,4 @@
-FROM nginx:1.27-alpine
+FROM public.ecr.aws/docker/library/nginx:1.27-alpine
 
 RUN apk upgrade --no-cache && apk add --no-cache gettext
 
