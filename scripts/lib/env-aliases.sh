@@ -599,6 +599,11 @@ export GRAFANA_INGRESS_NAME="${GRAFANA_INGRESS_NAME:-grafana-ingress}"
 export GRAFANA_PVC_NAME="${GRAFANA_PVC_NAME:-grafana-pvc}"
 export GRAFANA_STORAGE_CLASS="${GRAFANA_STORAGE_CLASS:-ebs-gp3}"
 export GRAFANA_STORAGE_SIZE="${GRAFANA_STORAGE_SIZE:-5Gi}"
+# Prometheus TSDB persistence (so metric history survives pod restarts / a soft
+# platform shutdown). RWO EBS volume; deployment uses strategy Recreate.
+export PROMETHEUS_PVC_NAME="${PROMETHEUS_PVC_NAME:-prometheus-pvc}"
+export PROMETHEUS_STORAGE_CLASS="${PROMETHEUS_STORAGE_CLASS:-ebs-gp3}"
+export PROMETHEUS_STORAGE_SIZE="${PROMETHEUS_STORAGE_SIZE:-10Gi}"
 export GRAFANA_SERVICE_NAME="${GRAFANA_SERVICE_NAME:-grafana-service}"
 export GRAFANA_SERVICE_PORT="${GRAFANA_SERVICE_PORT:-3000}"
 # Public hostname + ACM cert for the Grafana ingress. Default empty: when unset
