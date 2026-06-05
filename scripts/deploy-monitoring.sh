@@ -37,7 +37,7 @@ if [ -f "${grafana_secret_template}" ]; then
   envsubst < "${grafana_secret_template}" | kubectl apply -f -
 fi
 
-for manifest in prometheus-configmap.yaml prometheus.yaml grafana-pvc.yaml grafana.yaml gateway-servicemonitor.yaml auth-servicemonitor.yaml converter-servicemonitor.yaml notification-servicemonitor.yaml; do
+for manifest in prometheus-configmap.yaml prometheus.yaml rabbitmq-metrics-service.yaml grafana-pvc.yaml grafana.yaml gateway-servicemonitor.yaml auth-servicemonitor.yaml converter-servicemonitor.yaml notification-servicemonitor.yaml; do
   if [ -f "${RENDERED}/${manifest}" ]; then
     case "${manifest}" in
       *servicemonitor.yaml)

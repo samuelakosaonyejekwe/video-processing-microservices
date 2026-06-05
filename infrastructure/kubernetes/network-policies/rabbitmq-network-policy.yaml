@@ -76,6 +76,21 @@ spec:
         - protocol: TCP
           port: ${RABBITMQ_MANAGEMENT_PORT}
 
+    # Prometheus metrics scrape (rabbitmq_prometheus plugin, port 15692).
+    - from:
+
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: ${K8S_NAMESPACE}
+          podSelector:
+            matchLabels:
+              ${PROMETHEUS_LABEL_KEY}: ${PROMETHEUS_LABEL_VALUE}
+
+      ports:
+
+        - protocol: TCP
+          port: 15692
+
   egress:
 
     # DNS access

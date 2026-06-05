@@ -47,3 +47,39 @@ spec:
           port: ${DNS_PORT}
         - protocol: TCP
           port: ${DNS_PORT}
+    #
+    # SCRAPE: application services (/metrics) in the app namespace
+    #
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: ${K8S_NAMESPACE}
+      ports:
+        - protocol: TCP
+          port: ${GATEWAY_PORT}
+        - protocol: TCP
+          port: ${AUTH_APP_PORT}
+        - protocol: TCP
+          port: ${CONVERTER_SERVICE_PORT}
+        - protocol: TCP
+          port: ${NOTIFICATION_APP_PORT}
+    #
+    # SCRAPE: RabbitMQ prometheus plugin (messaging namespace)
+    #
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: ${MESSAGING_NAMESPACE}
+      ports:
+        - protocol: TCP
+          port: 15692
+    #
+    # SCRAPE: KEDA operator prometheus metrics (keda namespace, port 8080)
+    #
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: ${KEDA_NAMESPACE}
+      ports:
+        - protocol: TCP
+          port: 8080
