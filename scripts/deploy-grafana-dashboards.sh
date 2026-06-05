@@ -65,9 +65,13 @@ kubectl create configmap grafana-dashboards \
   --from-file="${DASH_DIR}/platform-overview-dashboard.json" \
   --from-file="${DASH_DIR}/rabbitmq-dashboard.json" \
   --from-file="${DASH_DIR}/keda-dashboard.json" \
+  --from-file="${DASH_DIR}/kubernetes-dashboard.json" \
+  --from-file="${DASH_DIR}/eks-dashboard.json" \
+  --from-file="${DASH_DIR}/node-dashboard.json" \
+  --from-file="${DASH_DIR}/pod-dashboard.json" \
   --dry-run=client -o yaml | kubectl apply -f -
 
-echo "  ✓ Dashboards configmap applied (3 dashboards)"
+echo "  ✓ Dashboards configmap applied (7 dashboards)"
 
 # ── 4. Restart Grafana so it picks up the new mounts ─────────────────────────
 kubectl rollout restart deployment/grafana --namespace "${NS}"

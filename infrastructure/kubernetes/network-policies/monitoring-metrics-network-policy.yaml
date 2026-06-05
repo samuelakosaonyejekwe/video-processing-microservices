@@ -1,0 +1,52 @@
+# Allows Prometheus (app namespace) to scrape kube-state-metrics (8080) and
+# node-exporter (9100) in the monitoring namespace, and lets kube-state-metrics
+# reach the EKS API server (443) to list/watch objects. The monitoring namespace
+# has a default-deny-all policy plus allow-dns-egress; this adds the specific
+# openings the metrics exporters need. DNS is already permitted by
+# allow-dns-egress.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: monitoring-metrics-network-policy
+  namespace: ${MONITORING_NAMESPACE}
+  labels:
+    policy: monitoring-metrics-access
+    environment: ${APP_ENV}
+spec:
+  podSelector:
+    matchExpressions:
+      - key: app
+        operator: In
+        values:
+          - kube-state-metrics
+          - node-exporter
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress:
+    #
+    # Prometheus scrape (kube-state-metrics 8080, node-exporter 9100)
+    #
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: ${K8S_NAMESPACE}
+          podSelector:
+            matchLabels:
+              app: prometheus
+      ports:
+        - protocol: TCP
+          port: 8080
+        - protocol: TCP
+          port: 9100
+  egress:
+    #
+    # kube-state-metrics → EKS API server (list/watch objects). Reached on 443
+    # within the VPC CIDR.
+    #
+    - to:
+        - ipBlock:
+            cidr: ${VPC_CIDR}
+      ports:
+        - protocol: TCP
+          port: 443

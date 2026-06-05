@@ -27,6 +27,7 @@ for policy in \
   redis-network-policy.yaml \
   grafana-network-policy.yaml \
   prometheus-network-policy.yaml \
+  monitoring-metrics-network-policy.yaml \
   postgres-migrations-network-policy.yaml; do
   if [ -f "${RENDERED}/${policy}" ]; then
     kubectl apply -f "${RENDERED}/${policy}"
