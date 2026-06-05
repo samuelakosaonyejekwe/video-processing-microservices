@@ -98,6 +98,21 @@ if [ "${MODE}" = "full" ] && [ "${SKIP_DB_DUMP:-false}" != "true" ]; then
       exit 1
     fi
   fi
+
+  # Grafana hand-built dashboards (PVC destroyed; provisioned ones come from
+  # ConfigMap). Non-fatal: dashboards are recoverable config, not core data.
+  log "Backing up Grafana dashboards to S3..."
+  bash "${ROOT_DIR}/scripts/backup-grafana.sh" || warn "Grafana dashboard backup failed (continuing)."
+
+  # Redis (cache) — PVC destroyed. Non-fatal (cache repopulates), but captured for
+  # a truly zero-loss restart.
+  log "Backing up Redis to S3..."
+  bash "${ROOT_DIR}/scripts/backup-redis.sh" || warn "Redis backup failed (continuing; cache repopulates)."
+
+  # Prometheus metrics history (emptyDir) — best-effort, non-fatal.
+  log "Backing up Prometheus metrics to S3..."
+  bash "${ROOT_DIR}/scripts/backup-prometheus.sh" || warn "Prometheus backup failed (continuing; metrics non-critical)."
+
   log "Pre-teardown backups complete — safe to proceed with teardown."
 fi
 
