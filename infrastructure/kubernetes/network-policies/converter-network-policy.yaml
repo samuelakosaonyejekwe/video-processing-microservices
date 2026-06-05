@@ -50,7 +50,10 @@ spec:
     # ALLOW PROMETHEUS METRICS SCRAPE (/metrics)
     #
     - from:
-        - podSelector:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: ${MONITORING_NAMESPACE}
+          podSelector:
             matchLabels:
               ${PROMETHEUS_LABEL_KEY}: ${PROMETHEUS_LABEL_VALUE}
       ports:

@@ -7,7 +7,7 @@ apiVersion: v1
 kind: ServiceAccount
 metadata:
   name: prometheus
-  namespace: ${K8S_NAMESPACE}
+  namespace: ${MONITORING_NAMESPACE}
   labels:
     app: prometheus
     environment: ${APP_ENV}
@@ -55,4 +55,4 @@ roleRef:
 subjects:
   - kind: ServiceAccount
     name: prometheus
-    namespace: ${K8S_NAMESPACE}
+    namespace: ${MONITORING_NAMESPACE}

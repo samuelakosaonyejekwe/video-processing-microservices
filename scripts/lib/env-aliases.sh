@@ -604,6 +604,9 @@ export GRAFANA_STORAGE_SIZE="${GRAFANA_STORAGE_SIZE:-5Gi}"
 export PROMETHEUS_PVC_NAME="${PROMETHEUS_PVC_NAME:-prometheus-pvc}"
 export PROMETHEUS_STORAGE_CLASS="${PROMETHEUS_STORAGE_CLASS:-ebs-gp3}"
 export PROMETHEUS_STORAGE_SIZE="${PROMETHEUS_STORAGE_SIZE:-10Gi}"
+# Prometheus runs in the monitoring namespace (policy-free — see default-deny.yaml);
+# Grafana (app namespace) queries it cross-namespace by FQDN.
+export PROMETHEUS_DATASOURCE_URL="${PROMETHEUS_DATASOURCE_URL:-http://prometheus-service.${MONITORING_NAMESPACE}.svc.cluster.local:9090}"
 export GRAFANA_SERVICE_NAME="${GRAFANA_SERVICE_NAME:-grafana-service}"
 export GRAFANA_SERVICE_PORT="${GRAFANA_SERVICE_PORT:-3000}"
 # Public hostname + ACM cert for the Grafana ingress. Default empty: when unset

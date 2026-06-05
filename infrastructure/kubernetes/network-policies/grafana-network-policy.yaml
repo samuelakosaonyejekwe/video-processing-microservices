@@ -27,10 +27,13 @@ spec:
           port: 3000
   egress:
     #
-    # PROMETHEUS DATASOURCE
+    # PROMETHEUS DATASOURCE (Prometheus runs in the monitoring namespace)
     #
     - to:
-        - podSelector:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: ${MONITORING_NAMESPACE}
+          podSelector:
             matchLabels:
               ${PROMETHEUS_LABEL_KEY}: ${PROMETHEUS_LABEL_VALUE}
       ports:

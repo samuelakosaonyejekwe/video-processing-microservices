@@ -13,7 +13,7 @@ source "${ROOT_DIR}/scripts/lib/env-aliases.sh"
 
 # Grafana is deployed in the application namespace, not the monitoring namespace
 NS="${K8S_NAMESPACE:-video-processing}"
-PROM_URL="${PROMETHEUS_DATASOURCE_URL:-http://prometheus-service:9090}"
+PROM_URL="${PROMETHEUS_DATASOURCE_URL:-http://prometheus-service.monitoring.svc.cluster.local:9090}"
 PROM_NAME="${PROMETHEUS_DATASOURCE_NAME:-Prometheus}"
 
 echo "Deploying Grafana configuration to namespace: ${NS}"

@@ -77,11 +77,12 @@ spec:
           port: ${RABBITMQ_MANAGEMENT_PORT}
 
     # Prometheus metrics scrape (rabbitmq_prometheus plugin, port 15692).
+    # Prometheus runs in the monitoring namespace (policy-free).
     - from:
 
         - namespaceSelector:
             matchLabels:
-              kubernetes.io/metadata.name: ${K8S_NAMESPACE}
+              kubernetes.io/metadata.name: ${MONITORING_NAMESPACE}
           podSelector:
             matchLabels:
               ${PROMETHEUS_LABEL_KEY}: ${PROMETHEUS_LABEL_VALUE}
