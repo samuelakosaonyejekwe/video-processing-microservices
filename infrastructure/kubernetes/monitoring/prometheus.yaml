@@ -13,6 +13,11 @@ metadata:
 spec:
   replicas: ${PROMETHEUS_REPLICAS}
 
+  # The TSDB lives on a ReadWriteOnce EBS PVC, so the old pod must be torn down
+  # before the new one mounts the volume (no rolling overlap).
+  strategy:
+    type: Recreate
+
   selector:
     matchLabels:
       app: prometheus
@@ -161,7 +166,8 @@ spec:
             name: prometheus-config
 
         - name: prometheus-storage
-          emptyDir: {}
+          persistentVolumeClaim:
+            claimName: ${PROMETHEUS_PVC_NAME}
 
 ---
 apiVersion: v1
