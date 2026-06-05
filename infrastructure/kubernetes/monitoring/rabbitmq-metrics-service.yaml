@@ -1,0 +1,22 @@
+# Additive metrics-only Service that exposes the rabbitmq_prometheus plugin
+# (port 15692) for Prometheus scraping. Separate from the helm-managed RabbitMQ
+# Service (which exposes only AMQP 5672 + management 15672), so it does not modify
+# any helm-owned resource.
+apiVersion: v1
+kind: Service
+metadata:
+  name: rabbitmq-metrics
+  namespace: ${MESSAGING_NAMESPACE}
+  labels:
+    app: ${RABBITMQ_APP_NAME}
+    component: messaging-metrics
+    environment: ${APP_ENV}
+spec:
+  type: ClusterIP
+  selector:
+    app: ${RABBITMQ_APP_NAME}
+  ports:
+    - name: metrics
+      protocol: TCP
+      port: 15692
+      targetPort: 15692

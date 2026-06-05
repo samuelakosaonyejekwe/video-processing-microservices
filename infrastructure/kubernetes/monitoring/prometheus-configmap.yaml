@@ -10,7 +10,47 @@ data:
   prometheus.yml: |
     global:
       scrape_interval: 30s
+      scrape_timeout: 10s
     scrape_configs:
       - job_name: prometheus
         static_configs:
           - targets: ["localhost:9090"]
+
+      # Application services expose Prometheus metrics at /metrics on their http
+      # service port. Static service-DNS targets (no kube SD / RBAC needed).
+      - job_name: gateway
+        metrics_path: /metrics
+        static_configs:
+          - targets: ["gateway-service.${K8S_NAMESPACE}.svc.cluster.local:80"]
+            labels: { service: gateway }
+      - job_name: auth
+        metrics_path: /metrics
+        static_configs:
+          - targets: ["auth-service.${K8S_NAMESPACE}.svc.cluster.local:80"]
+            labels: { service: auth }
+      - job_name: converter
+        metrics_path: /metrics
+        static_configs:
+          - targets: ["converter-service.${K8S_NAMESPACE}.svc.cluster.local:80"]
+            labels: { service: converter }
+      - job_name: notification
+        metrics_path: /metrics
+        static_configs:
+          - targets: ["notification-service.${K8S_NAMESPACE}.svc.cluster.local:80"]
+            labels: { service: notification }
+
+      # RabbitMQ — rabbitmq_prometheus plugin on 15692 (exposed via the additive
+      # rabbitmq-metrics service).
+      - job_name: rabbitmq
+        metrics_path: /metrics
+        static_configs:
+          - targets: ["rabbitmq-metrics.${MESSAGING_NAMESPACE}.svc.cluster.local:15692"]
+            labels: { service: rabbitmq }
+
+      # KEDA operator Prometheus metrics (scaler activity, etc.) — port 8080,
+      # enabled via helm prometheus.operator.enabled=true.
+      - job_name: keda
+        metrics_path: /metrics
+        static_configs:
+          - targets: ["keda-operator.${KEDA_NAMESPACE}.svc.cluster.local:8080"]
+            labels: { service: keda }

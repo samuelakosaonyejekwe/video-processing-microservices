@@ -12,15 +12,23 @@ KEDA_HELM_REPOSITORY="${KEDA_HELM_REPOSITORY:-https://kedacore.github.io/charts}
 KEDA_CHART_NAME="${KEDA_CHART_NAME:-keda}"
 KEDA_INSTALL_TIMEOUT="${KEDA_INSTALL_TIMEOUT:-120s}"
 
+# Install or upgrade KEDA. prometheus.operator.enabled=true exposes the operator's
+# Prometheus metrics on port 8080 (scraped by Prometheus for the KEDA dashboard).
+# Run helm even when the CRD already exists so the prometheus setting is applied
+# on an existing cluster (idempotent; --reuse-values preserves other settings).
+echo "Installing/upgrading KEDA Helm chart (prometheus operator metrics enabled)..."
+helm repo add kedacore "${KEDA_HELM_REPOSITORY}" 2>/dev/null || true
+helm repo update 2>/dev/null || true
 if kubectl get crd scaledobjects.keda.sh >/dev/null 2>&1; then
-  echo "KEDA CRD already present."
+  helm upgrade "${KEDA_RELEASE_NAME}" "kedacore/${KEDA_CHART_NAME}" \
+    --namespace "${KEDA_NAMESPACE}" --reuse-values \
+    --set prometheus.operator.enabled=true \
+    --wait --timeout "${KEDA_INSTALL_TIMEOUT}" || echo "KEDA upgrade skipped/failed (non-fatal)."
 else
-  echo "Installing KEDA Helm chart..."
-  helm repo add kedacore "${KEDA_HELM_REPOSITORY}" 2>/dev/null || true
-  helm repo update
   helm upgrade --install "${KEDA_RELEASE_NAME}" "kedacore/${KEDA_CHART_NAME}" \
     --namespace "${KEDA_NAMESPACE}" \
     --create-namespace \
+    --set prometheus.operator.enabled=true \
     --wait \
     --timeout "${KEDA_INSTALL_TIMEOUT}"
 fi

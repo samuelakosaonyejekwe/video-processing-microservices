@@ -46,6 +46,17 @@ spec:
         - protocol: TCP
           port: ${CONVERTER_SERVICE_PORT}
 
+    #
+    # ALLOW PROMETHEUS METRICS SCRAPE (/metrics)
+    #
+    - from:
+        - podSelector:
+            matchLabels:
+              ${PROMETHEUS_LABEL_KEY}: ${PROMETHEUS_LABEL_VALUE}
+      ports:
+        - protocol: TCP
+          port: ${CONVERTER_SERVICE_PORT}
+
   egress:
 
     #
