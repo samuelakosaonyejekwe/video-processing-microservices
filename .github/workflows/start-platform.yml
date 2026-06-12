@@ -79,6 +79,7 @@ jobs:
       AUTH_PORT: ${{ vars.AUTH_SERVICE_PORT }}
       VPC_CIDR: ${{ vars.VPC_CIDR }}
       PUBLIC_SUBNET_CIDRS: ${{ vars.PUBLIC_SUBNET_CIDRS }}
+      PRIVATE_SUBNET_CIDRS: ${{ vars.PRIVATE_SUBNET_CIDRS }}
       AVAILABILITY_ZONES: ${{ vars.AVAILABILITY_ZONES }}
       # Restore DBs from this bucket after a full recreate (no-op if no dump exists).
       DATABASE_BACKUP_BUCKET: ${{ vars.DATABASE_BACKUP_BUCKET }}
