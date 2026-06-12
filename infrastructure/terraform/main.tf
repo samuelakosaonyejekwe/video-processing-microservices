@@ -83,6 +83,8 @@ module "eks" {
 
   cluster_role_arn = var.adopt_existing_cluster ? try(data.aws_eks_cluster.existing[0].role_arn, module.iam.cluster_role_arn) : module.iam.cluster_role_arn
 
+  cluster_encryption_kms_key_arn = var.cluster_encryption_kms_key_arn
+
   node_role_arn = module.iam.node_role_arn
 
   security_group_ids = [
