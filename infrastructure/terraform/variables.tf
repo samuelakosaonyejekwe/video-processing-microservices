@@ -739,6 +739,21 @@ variable "adopt_existing_cluster" {
   default     = true
 }
 
+# ---------------------------------------------------------------------------
+# EKS secrets-encryption KMS key. Forwarded to module.eks. "" => the module
+# CREATES/manages its own key (create_kms_key=true); a non-empty ARN => the
+# module references that existing key (avoids the immutable encryption_config
+# change that would replace a live cluster). Default is "" because the prior
+# pinned key was destroyed with the cluster in the full teardown, so a recreate
+# must mint a fresh key. start-platform.sh passes -var=cluster_encryption_kms_key_arn=
+# explicitly for the same reason; a future live cluster can pin its real key here.
+# ---------------------------------------------------------------------------
+variable "cluster_encryption_kms_key_arn" {
+  description = "ARN of an existing KMS key for EKS secrets encryption; empty string lets module.eks create/manage its own key."
+  type        = string
+  default     = ""
+}
+
 variable "github_oidc_policy_arns" {
   description = "IAM policy ARNs to attach to the GitHub Actions OIDC role (e.g. the scoped deploy policy). Only used when enable_github_oidc = true."
   type        = list(string)
