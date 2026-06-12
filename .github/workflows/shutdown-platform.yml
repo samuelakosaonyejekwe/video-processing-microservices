@@ -16,6 +16,11 @@ on:
         required: false
         default: ""
         type: string
+      skip_db_dump:
+        description: "Full mode ONLY: skip the pre-teardown backups (STEP 0). Use ONLY when a fresh S3 backup already exists — e.g. re-running after a partial teardown where the node group is already gone and the DB pods can no longer start."
+        required: false
+        default: false
+        type: boolean
 
 jobs:
   shutdown:
@@ -90,6 +95,8 @@ jobs:
         env:
           SHUTDOWN_MODE: ${{ github.event.inputs.mode }}
           CONFIRM: ${{ github.event.inputs.confirm }}
+          # Honoured by shutdown-platform.sh to skip STEP 0 backups (full mode).
+          SKIP_DB_DUMP: ${{ github.event.inputs.skip_db_dump }}
         run: |
           chmod +x scripts/shutdown-platform.sh scripts/lib/*.sh
           if [ "${SHUTDOWN_MODE}" = "full" ]; then
