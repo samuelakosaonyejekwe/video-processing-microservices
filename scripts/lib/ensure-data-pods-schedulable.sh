@@ -137,9 +137,31 @@ ensure_data_pods_schedulable() {
     done
   fi
 
+  # --- Free CPU for the DB pods by scaling down non-backup workloads. ---------
+  # The data pods are pinned (EBS node-affinity) to the AZ holding their volume,
+  # often a single small node. When every workload reschedules at once on
+  # bring-up, the stateless app tier can grab that node's CPU first and starve
+  # the DB pods ("0/N nodes available: Insufficient cpu"), so they never schedule
+  # and the dump times out. We are about to destroy everything anyway, so scale
+  # the app tier to 0 to make room — keeping only the pods STEP 0 still needs to
+  # back up (grafana/redis here; postgres/mongo/rabbitmq/prometheus live in other
+  # namespaces and are untouched). Adding worker nodes alone does not help: the
+  # ASG may add them in the wrong AZ, but freeing CPU is deterministic.
+  local app_ns="${K8S_NAMESPACE:-video-processing}"
+  local keep_deploys=" grafana redis "   # backup targets that live in app_ns
+  log "Freeing CPU for the DB pods: stopping KEDA and scaling down the app tier in '${app_ns}'..."
+  # Stop KEDA first so it does not scale the workers back up as we free CPU.
+  kubectl -n "${KEDA_NAMESPACE:-keda}" scale deploy keda-operator --replicas=0 >/dev/null 2>&1 || true
+  local dep
+  for dep in $(kubectl -n "${app_ns}" get deploy -o jsonpath='{.items[*].metadata.name}' 2>/dev/null); do
+    case "${keep_deploys}" in *" ${dep} "*) continue ;; esac
+    kubectl -n "${app_ns}" scale deploy "${dep}" --replicas=0 >/dev/null 2>&1 \
+      && log "  scaled ${app_ns}/${dep} -> 0" || true
+  done
+
   # --- Wait for the DB pods themselves to be Ready. ---------------------------
-  # Once a node exists in the pod's AZ the scheduler binds the Pending pod
-  # automatically; then give the DB process time to accept connections.
+  # Once a node exists in the pod's AZ AND has free CPU, the scheduler binds the
+  # Pending pod automatically; then give the DB process time to accept connections.
   log "Waiting for DB pods (${pg_pod}, ${mongo_pod}) to become Ready..."
   local rc=0
   kubectl -n "${db_ns}" wait --for=condition=ready "pod/${pg_pod}"    --timeout=300s >/dev/null 2>&1 || rc=1
