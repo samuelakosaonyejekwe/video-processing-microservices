@@ -42,6 +42,12 @@ POD="$(kubectl -n "${NS}" get pods -l app.kubernetes.io/name=rabbitmq -o jsonpat
 [ -n "${POD}" ] || { echo "ERROR: no RabbitMQ pod in ns ${NS}." >&2; exit 1; }
 log "RabbitMQ pod: ${NS}/${POD} (QUIESCE=${QUIESCE})"
 
+# Wait until the pod is actually scheduled and Ready before exec'ing into it.
+# Full-mode shutdown may have just scaled worker nodes back up (from a prior soft
+# shutdown), so the pod can still be Pending ("does not have a host assigned").
+kubectl -n "${NS}" wait --for=condition=ready "pod/${POD}" --timeout=300s >/dev/null 2>&1 \
+  || { echo "ERROR: RabbitMQ pod ${NS}/${POD} not Ready within timeout." >&2; exit 1; }
+
 # --- 1) Definitions (topology) — online-safe, the guaranteed-restore artifact ---
 log "Exporting definitions..."
 kubectl -n "${NS}" exec "${POD}" -- rabbitmqctl export_definitions /tmp/rmq-defs.json >/dev/null

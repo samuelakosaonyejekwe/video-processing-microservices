@@ -11,6 +11,11 @@ on:
         options:
           - soft
           - full
+      confirm:
+        description: "Full mode ONLY: type 'destroy' to confirm EKS/Jenkins/NAT teardown (DB data is backed up to S3 first, then PVCs are destroyed). Ignored for soft mode."
+        required: false
+        default: ""
+        type: string
 
 jobs:
   shutdown:
@@ -73,10 +78,21 @@ jobs:
           terraform_version: 1.8.5
 
       - name: Run Shutdown
+        env:
+          SHUTDOWN_MODE: ${{ github.event.inputs.mode }}
+          CONFIRM: ${{ github.event.inputs.confirm }}
         run: |
           chmod +x scripts/shutdown-platform.sh scripts/lib/*.sh
-          if [ "${{ github.event.inputs.mode }}" = "full" ]; then
-            bash scripts/shutdown-platform.sh --full
+          if [ "${SHUTDOWN_MODE}" = "full" ]; then
+            # Full mode is destructive (PVCs are destroyed after the S3 backup).
+            # Require an explicit typed confirmation so a stray dispatch can't
+            # tear down production. --yes maps to CONFIRM_DESTROY=yes for the
+            # non-interactive confirm guard.
+            if [ "${CONFIRM}" != "destroy" ]; then
+              echo "::error::Full shutdown requires the 'confirm' input to be set to 'destroy' (got '${CONFIRM}'). Re-run with confirm=destroy."
+              exit 1
+            fi
+            bash scripts/shutdown-platform.sh --full --yes
           else
             bash scripts/shutdown-platform.sh
           fi

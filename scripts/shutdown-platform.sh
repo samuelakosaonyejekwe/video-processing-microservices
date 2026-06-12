@@ -81,6 +81,19 @@ if [ "${MODE}" = "full" ] && [ "${SKIP_DB_DUMP:-false}" != "true" ]; then
     exit 1
   fi
   aws eks update-kubeconfig --region "${AWS_REGION}" --name "${EKS_CLUSTER_NAME}" >/dev/null 2>&1 || true
+
+  # The DB pods must be running to be dumped. If the platform was previously
+  # soft-shut-down (worker nodes scaled to 0), they are Pending ("does not have a
+  # host assigned") and the dump would fail. Bring worker capacity back first;
+  # STEP 1 scales the nodes back to 0 afterwards. No-op when DBs are already up.
+  # shellcheck source=scripts/lib/ensure-data-pods-schedulable.sh
+  source "${ROOT_DIR}/scripts/lib/ensure-data-pods-schedulable.sh"
+  if ! ensure_data_pods_schedulable "${EKS_CLUSTER_NAME}" "${AWS_REGION}" "${DATABASE_NAMESPACE:-database}"; then
+    echo "ERROR: Could not bring the database pods up for backup — ABORTING full destroy." >&2
+    echo "       Investigate worker-node/AZ capacity, or set SKIP_DB_DUMP=true to destroy WITHOUT a backup." >&2
+    exit 1
+  fi
+
   if ! bash "${ROOT_DIR}/scripts/dump-databases.sh"; then
     echo "ERROR: Database dump failed — ABORTING full destroy to avoid data loss." >&2
     echo "       Fix the dump, or set SKIP_DB_DUMP=true to destroy WITHOUT a backup." >&2
