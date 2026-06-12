@@ -88,6 +88,13 @@ module "eks" {
   cluster_addons = {
     vpc-cni = {
       most_recent = true
+      # Install the CNI BEFORE the managed node group. Without this, a fresh
+      # recreate deadlocks: the node group create waits for its nodes to be
+      # Ready, but nodes can't be Ready until the CNI exists — and the CNI addon
+      # is created AFTER compute by default. (The live cluster never hit this
+      # because its node group was created out-of-band; create_managed_node_group
+      # makes terraform own it, exposing the ordering.)
+      before_compute = true
       # Enable Kubernetes NetworkPolicy enforcement via the AWS VPC CNI
       # network-policy agent, so the default-deny + per-app NetworkPolicies are
       # actually enforced rather than declarative. Enforcing mode defaults to
