@@ -372,38 +372,44 @@ cd "${ROOT_DIR}"
 # ---------------------------------------------------------------------------
 log "=== STEP 5: Destroy NAT Gateway ==="
 
-# Find NAT gateways in the VPC
-VPC_ID="$(aws ec2 describe-vpcs \
+# Find NAT gateways in the project VPC(s). NOTE: there can be MORE THAN ONE VPC
+# matching the project name tag (state drift / duplicate applies), so iterate ALL
+# of them — using Vpcs[0] left an orphan NAT gateway (~$33/month) in the second
+# VPC on a prior run.
+VPC_IDS="$(aws ec2 describe-vpcs \
   --region "${AWS_REGION}" \
   --filters \
     "Name=tag:Name,Values=*${PROJECT_NAME}*${APP_ENV}*" \
     "Name=state,Values=available" \
-  --query 'Vpcs[0].VpcId' \
-  --output text 2>/dev/null || echo "None")"
+  --query 'Vpcs[*].VpcId' \
+  --output text 2>/dev/null || echo "")"
 
-if [ -n "${VPC_ID}" ] && [ "${VPC_ID}" != "None" ]; then
-  NAT_IDS="$(aws ec2 describe-nat-gateways \
-    --region "${AWS_REGION}" \
-    --filter \
-      "Name=vpc-id,Values=${VPC_ID}" \
-      "Name=state,Values=available,pending" \
-    --query 'NatGateways[*].NatGatewayId' \
-    --output text 2>/dev/null || echo "")"
+if [ -n "${VPC_IDS}" ] && [ "${VPC_IDS}" != "None" ]; then
+  for VPC_ID in ${VPC_IDS}; do
+    NAT_IDS="$(aws ec2 describe-nat-gateways \
+      --region "${AWS_REGION}" \
+      --filter \
+        "Name=vpc-id,Values=${VPC_ID}" \
+        "Name=state,Values=available,pending" \
+      --query 'NatGateways[*].NatGatewayId' \
+      --output text 2>/dev/null || echo "")"
 
-  for nat_id in ${NAT_IDS}; do
-    log "Deleting NAT Gateway ${nat_id}..."
-    aws ec2 delete-nat-gateway \
-      --nat-gateway-id "${nat_id}" \
-      --region "${AWS_REGION}" >/dev/null
+    for nat_id in ${NAT_IDS}; do
+      log "Deleting NAT Gateway ${nat_id} (vpc ${VPC_ID})..."
+      aws ec2 delete-nat-gateway \
+        --nat-gateway-id "${nat_id}" \
+        --region "${AWS_REGION}" >/dev/null
 
-    log "Waiting for NAT Gateway ${nat_id} to be deleted..."
-    aws ec2 wait nat-gateway-deleted \
-      --nat-gateway-ids "${nat_id}" \
-      --region "${AWS_REGION}" 2>/dev/null || true
-    log "NAT Gateway ${nat_id} deleted."
+      log "Waiting for NAT Gateway ${nat_id} to be deleted..."
+      aws ec2 wait nat-gateway-deleted \
+        --nat-gateway-ids "${nat_id}" \
+        --region "${AWS_REGION}" 2>/dev/null || true
+      log "NAT Gateway ${nat_id} deleted."
+    done
   done
 
-  # Release NAT EIPs (they accrue charges when unassociated)
+  # Release NAT EIPs (they accrue charges when unassociated). Tag-based and
+  # region-wide, so this catches the EIPs freed from every VPC's NAT above.
   NAT_EIPS="$(aws ec2 describe-addresses \
     --region "${AWS_REGION}" \
     --filters \
