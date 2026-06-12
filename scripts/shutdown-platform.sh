@@ -301,6 +301,27 @@ else
 fi
 
 # ---------------------------------------------------------------------------
+# STEP 3c — Backstop: delete any ALB the controller left behind
+# ---------------------------------------------------------------------------
+# The controller only deletes the ALB if it is running when the ingress/helm
+# release is removed. On a re-entrant teardown (controller already gone) or if it
+# fails to finalize, the ALB is orphaned (~$16-22/month) and also blocks VPC/ENI
+# cleanup. Force-delete any load balancer tagged for THIS cluster.
+log "=== STEP 3c: Backstop — delete any orphaned ALB tagged for the cluster ==="
+LB_ARNS="$(aws elbv2 describe-load-balancers --region "${AWS_REGION}" \
+  --query 'LoadBalancers[].LoadBalancerArn' --output text 2>/dev/null || echo "")"
+for lb_arn in ${LB_ARNS}; do
+  [ -z "${lb_arn}" ] && continue
+  if aws elbv2 describe-tags --region "${AWS_REGION}" --resource-arns "${lb_arn}" \
+       --query 'TagDescriptions[0].Tags[?Key==`elbv2.k8s.aws/cluster`].Value' \
+       --output text 2>/dev/null | grep -qx "${EKS_CLUSTER_NAME}"; then
+    log "Deleting orphaned ALB ${lb_arn}..."
+    aws elbv2 delete-load-balancer --load-balancer-arn "${lb_arn}" \
+      --region "${AWS_REGION}" 2>/dev/null || true
+  fi
+done
+
+# ---------------------------------------------------------------------------
 # STEP 3b — Delete ALL EKS node groups (AWS-native)
 # ---------------------------------------------------------------------------
 # An EKS cluster cannot be deleted while it still has node groups. The running
@@ -366,6 +387,31 @@ terraform destroy \
   -auto-approve
 
 cd "${ROOT_DIR}"
+
+# ---------------------------------------------------------------------------
+# STEP 4b — Delete orphaned PVC EBS volumes left by the destroyed cluster
+# ---------------------------------------------------------------------------
+# The EBS volumes backing the app PVCs (postgres/mongo/rabbitmq/redis/grafana/
+# prometheus/...) are provisioned by the EBS CSI driver, NOT by Terraform, so
+# `terraform destroy` of the cluster does not remove them. Once the node group is
+# gone they sit 'available' (detached) and keep billing (~$0.08-0.10/GB-month).
+# Full mode already accepts PVC data loss (logical dumps are in S3), so delete
+# them. Scope: CSI-tagged AND detached — the recreate path provisions fresh PVCs.
+log "=== STEP 4b: Delete orphaned CSI EBS volumes (PVC data already dumped to S3) ==="
+ORPHAN_VOLS="$(aws ec2 describe-volumes --region "${AWS_REGION}" \
+  --filters \
+    "Name=status,Values=available" \
+    "Name=tag:ebs.csi.aws.com/cluster,Values=true" \
+  --query 'Volumes[].VolumeId' --output text 2>/dev/null || echo "")"
+for vol in ${ORPHAN_VOLS}; do
+  [ -z "${vol}" ] && continue
+  pvc="$(aws ec2 describe-volumes --region "${AWS_REGION}" --volume-ids "${vol}" \
+    --query "Volumes[0].Tags[?Key=='kubernetes.io/created-for/pvc/name'].Value" \
+    --output text 2>/dev/null || echo "")"
+  log "Deleting orphaned EBS volume ${vol} (pvc: ${pvc:-unknown})..."
+  aws ec2 delete-volume --volume-id "${vol}" --region "${AWS_REGION}" 2>/dev/null \
+    || warn "Could not delete ${vol} (may still be detaching); delete manually if it lingers."
+done
 
 # ---------------------------------------------------------------------------
 # STEP 5 — Destroy NAT Gateway (biggest remaining cost after EKS)
