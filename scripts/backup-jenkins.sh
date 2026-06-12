@@ -11,7 +11,7 @@
 #   start (recreate) -> restore-jenkins.sh   (copy the snapshot back in)
 #
 # Env: PROJECT_NAME, APP_ENV/ENVIRONMENT, AWS_REGION. AWS credentials required.
-#      JENKINS_BACKUP_RETENTION (default 7) — newest N snapshots kept.
+#      JENKINS_BACKUP_RETENTION (default 3) — newest N snapshots kept (older pruned).
 #      SKIP_JENKINS_BACKUP=true — skip entirely.
 set -euo pipefail
 
@@ -29,7 +29,7 @@ fi
 PROJECT="${PROJECT_NAME:-video-processing}"
 ENVIRON="${APP_ENV:-${ENVIRONMENT:-production}}"
 REGION="${AWS_REGION:-eu-central-1}"
-RETENTION="${JENKINS_BACKUP_RETENTION:-7}"
+RETENTION="${JENKINS_BACKUP_RETENTION:-3}"
 JENKINS_NAME="${PROJECT}-${ENVIRON}-jenkins"
 
 # --- Resolve the Jenkins instance (running OR stopped) ---
