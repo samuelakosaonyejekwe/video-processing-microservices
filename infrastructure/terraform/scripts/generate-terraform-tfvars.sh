@@ -30,6 +30,16 @@ fi
 : "${TF_STATE_BUCKET:?Missing TF_STATE_BUCKET}"
 : "${TF_LOCK_TABLE:?Missing TF_LOCK_TABLE}"
 
+# Network inputs are emitted UNQUOTED with no safe fallback (and have no default
+# in variables.tf — vpc_cidr/availability_zones/*_subnet_cidrs are validated as
+# required, non-empty). If any is empty the generated tfvars become invalid HCL
+# ("availability_zones =") and terraform fails with a cryptic "Invalid
+# expression". Fail fast here with an actionable message instead.
+: "${VPC_CIDR:?Missing VPC_CIDR (set the GitHub var; required for terraform tfvars)}"
+: "${AVAILABILITY_ZONES:?Missing AVAILABILITY_ZONES (set the GitHub var; required for terraform tfvars)}"
+: "${PUBLIC_SUBNET_CIDRS:?Missing PUBLIC_SUBNET_CIDRS (set the GitHub var; required for terraform tfvars)}"
+: "${PRIVATE_SUBNET_CIDRS:?Missing PRIVATE_SUBNET_CIDRS (set the GitHub var; required for terraform tfvars)}"
+
 # Terraform-specific defaults sourced from GitHub vars or safe fallbacks
 export EKS_NODE_INSTANCE_TYPE="${EKS_NODE_INSTANCE_TYPE:-${EKS_INSTANCE_TYPE}}"
 export PRIVATE_SUBNET_CIDRS="${PRIVATE_SUBNET_CIDRS:-}"
