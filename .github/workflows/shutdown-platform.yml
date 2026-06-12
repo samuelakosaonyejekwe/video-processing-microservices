@@ -41,6 +41,15 @@ jobs:
       TF_LOCK_TABLE: ${{ vars.TF_LOCK_TABLE }}
       HOSTED_ZONE_NAME: ${{ vars.HOSTED_ZONE_NAME }}
       APP_DOMAIN: ${{ vars.APP_DOMAIN }}
+      # Network inputs for STEP 4's `terraform destroy` (full mode). generate-
+      # terraform-tfvars.sh emits these UNQUOTED with no safe default, so when
+      # they are empty the tfvars become invalid HCL ("availability_zones =")
+      # and vpc_cidr="" / empty lists also fail their length/cidr validations.
+      # Mirror terraform-eks.yml so the destroy gets valid, matching values.
+      VPC_CIDR: ${{ vars.VPC_CIDR }}
+      AVAILABILITY_ZONES: ${{ vars.AVAILABILITY_ZONES }}
+      PUBLIC_SUBNET_CIDRS: ${{ vars.PUBLIC_SUBNET_CIDRS }}
+      PRIVATE_SUBNET_CIDRS: ${{ vars.PRIVATE_SUBNET_CIDRS }}
       # Full mode dumps the DBs here before destroy (start-platform restores from it).
       DATABASE_BACKUP_BUCKET: ${{ vars.DATABASE_BACKUP_BUCKET }}
 
