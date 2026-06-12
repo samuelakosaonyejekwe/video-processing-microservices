@@ -47,6 +47,14 @@ EOF
       --role-name "${role_name}" \
       --assume-role-policy-document "${trust_policy}" >/dev/null
     echo "Created IRSA role ${role_name}"
+  else
+    # The role survives a full destroy (IAM is preserved), but a recreate mints a
+    # NEW OIDC provider — refresh the trust to the CURRENT issuer so the addon can
+    # assume it (else AssumeRoleWithWebIdentity AccessDenied after a recreate).
+    aws iam update-assume-role-policy \
+      --role-name "${role_name}" \
+      --policy-document "${trust_policy}" >/dev/null
+    echo "Refreshed IRSA trust for ${role_name} to current OIDC provider"
   fi
 
   for policy_arn in "${policy_arns[@]}"; do

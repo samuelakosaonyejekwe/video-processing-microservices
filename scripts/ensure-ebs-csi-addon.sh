@@ -70,11 +70,19 @@ EOF
     aws iam create-role \
       --role-name "${ROLE_NAME}" \
       --assume-role-policy-document "${trust_policy}" >/dev/null
-    aws iam attach-role-policy \
-      --role-name "${ROLE_NAME}" \
-      --policy-arn "arn:aws:iam::aws:policy/service-role/AmazonEBSCSIDriverPolicy"
     echo "Created IRSA role ${ROLE_NAME}"
+  else
+    # Role survives a full destroy (IAM is preserved), but a recreate mints a NEW
+    # OIDC provider — so refresh the trust to the CURRENT issuer, else the
+    # controller gets AssumeRoleWithWebIdentity AccessDenied and CrashLoopBackOff.
+    aws iam update-assume-role-policy \
+      --role-name "${ROLE_NAME}" \
+      --policy-document "${trust_policy}" >/dev/null
+    echo "Refreshed IRSA trust for ${ROLE_NAME} to current OIDC provider"
   fi
+  aws iam attach-role-policy \
+    --role-name "${ROLE_NAME}" \
+    --policy-arn "arn:aws:iam::aws:policy/service-role/AmazonEBSCSIDriverPolicy" >/dev/null 2>&1 || true
 
   role_arn="$(aws iam get-role --role-name "${ROLE_NAME}" --query 'Role.Arn' --output text)"
   printf '%s' "${role_arn}"
