@@ -28,6 +28,14 @@ MONGO_POD="${MONGODB_RELEASE_NAME:-mongodb}-0"
 
 log() { echo "[$(date -u '+%H:%M:%S')] $*"; }
 
+# Wait for the DB pods to be scheduled and Ready before exec'ing into them.
+# After a soft shutdown the pods can be Pending ("does not have a host assigned");
+# the shutdown orchestrator restores worker capacity first, but wait here too so
+# this script is robust when run standalone. Non-fatal: the exec below surfaces
+# the real error if a pod never becomes Ready.
+kubectl -n "${DB_NS}" wait --for=condition=ready "pod/${PG_POD}"    --timeout=300s >/dev/null 2>&1 || true
+kubectl -n "${DB_NS}" wait --for=condition=ready "pod/${MONGO_POD}" --timeout=300s >/dev/null 2>&1 || true
+
 # --- Resolve credentials from the live cluster secrets (robust local + CI) ---
 PG_USER="$(kubectl -n "${DB_NS}" get secret postgres-secret -o jsonpath='{.data.POSTGRES_USER}' | base64 -d)"
 PG_PW="$(kubectl -n "${DB_NS}" get secret postgres-secret -o jsonpath='{.data.POSTGRES_PASSWORD}' | base64 -d)"
